@@ -88,7 +88,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       ...invoiceData,
       client_id: selectedClient.id,
       amount: total,
-      description: lineItems.map(item => item.description).join(', ')
+      description: lineItems.map(item => item.description).join(', '),
+      type: 'one-time'
     };
 
     try {
