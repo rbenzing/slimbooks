@@ -6,14 +6,20 @@ import {
   Bell, 
   Palette,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Percent,
+  Truck
 } from 'lucide-react';
+import { TaxSettings } from './settings/TaxSettings';
+import { ShippingSettings } from './settings/ShippingSettings';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
 
   const tabs = [
     { id: 'general', name: 'General', icon: SettingsIcon },
+    { id: 'tax', name: 'Tax Rates', icon: Percent },
+    { id: 'shipping', name: 'Shipping', icon: Truck },
     { id: 'stripe', name: 'Stripe Integration', icon: CreditCard },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'appearance', name: 'Appearance', icon: Palette },
@@ -54,6 +60,8 @@ export const Settings = () => {
         {/* Settings Content */}
         <div className="flex-1">
           {activeTab === 'general' && <GeneralSettings />}
+          {activeTab === 'tax' && <TaxSettings />}
+          {activeTab === 'shipping' && <ShippingSettings />}
           {activeTab === 'stripe' && <StripeSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'appearance' && <AppearanceSettings />}

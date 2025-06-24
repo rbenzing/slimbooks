@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X, Upload } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
@@ -27,14 +26,32 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
   ]);
-  const [taxRate, setTaxRate] = useState<number>(0);
-  const [shippingAmount, setShippingAmount] = useState<number>(0);
+  const [selectedTaxRate, setSelectedTaxRate] = useState<any>(null);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
+  const [taxRates, setTaxRates] = useState<any[]>([]);
+  const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
 
   useEffect(() => {
     const allClients = clientOperations.getAll();
     setClients(allClients);
+    
+    // Load tax rates from settings
+    const savedTaxRates = localStorage.getItem('tax_rates');
+    if (savedTaxRates) {
+      const rates = JSON.parse(savedTaxRates);
+      setTaxRates(rates);
+      setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+    }
+
+    // Load shipping rates from settings
+    const savedShippingRates = localStorage.getItem('shipping_rates');
+    if (savedShippingRates) {
+      const rates = JSON.parse(savedShippingRates);
+      setShippingRates(rates);
+      setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+    }
     
     if (!editingInvoice) {
       setInvoiceData(prev => ({
@@ -75,7 +92,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const taxAmount = subtotal * (taxRate / 100);
+  const taxAmount = selectedTaxRate ? subtotal * (selectedTaxRate.rate / 100) : 0;
+  const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
 
   const handleSave = () => {
@@ -292,30 +310,38 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           <div className="flex justify-between mb-8">
             <div className="w-1/2 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate</label>
                 <select
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(parseFloat(e.target.value))}
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedTaxRate?.id || ''}
+                  onChange={(e) => {
+                    const rate = taxRates.find(r => r.id === e.target.value);
+                    setSelectedTaxRate(rate);
+                  }}
+                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={0}>No Tax</option>
-                  <option value={5}>5%</option>
-                  <option value={8.25}>8.25%</option>
-                  <option value={10}>10%</option>
+                  {taxRates.map((rate) => (
+                    <option key={rate.id} value={rate.id}>
+                      {rate.name} ({rate.rate}%)
+                    </option>
+                  ))}
                 </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Shipping</label>
                 <select
-                  value={shippingAmount}
-                  onChange={(e) => setShippingAmount(parseFloat(e.target.value))}
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedShippingRate?.id || ''}
+                  onChange={(e) => {
+                    const rate = shippingRates.find(r => r.id === e.target.value);
+                    setSelectedShippingRate(rate);
+                  }}
+                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={0}>No Shipping</option>
-                  <option value={10}>$10.00</option>
-                  <option value={25}>$25.00</option>
-                  <option value={50}>$50.00</option>
+                  {shippingRates.map((rate) => (
+                    <option key={rate.id} value={rate.id}>
+                      {rate.name} (${rate.amount.toFixed(2)})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -326,15 +352,15 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   <span>Subtotal:</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                {taxRate > 0 && (
+                {selectedTaxRate && selectedTaxRate.rate > 0 && (
                   <div className="flex justify-between">
-                    <span>Tax ({taxRate}%):</span>
+                    <span>Tax ({selectedTaxRate.name}):</span>
                     <span>${taxAmount.toFixed(2)}</span>
                   </div>
                 )}
-                {shippingAmount > 0 && (
+                {selectedShippingRate && selectedShippingRate.amount > 0 && (
                   <div className="flex justify-between">
-                    <span>Shipping:</span>
+                    <span>Shipping ({selectedShippingRate.name}):</span>
                     <span>${shippingAmount.toFixed(2)}</span>
                   </div>
                 )}
