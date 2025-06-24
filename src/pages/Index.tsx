@@ -1,12 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import { Sidebar } from '@/components/Sidebar';
+import { DashboardOverview } from '@/components/DashboardOverview';
+import { ClientManagement } from '@/components/ClientManagement';
+import { InvoiceManagement } from '@/components/InvoiceManagement';
+import { Settings } from '@/components/Settings';
 
 const Index = () => {
+  const [activeSection, setActiveSection] = useState('dashboard');
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'dashboard':
+        return <DashboardOverview />;
+      case 'clients':
+        return <ClientManagement />;
+      case 'invoices':
+        return <InvoiceManagement />;
+      case 'settings':
+        return <Settings />;
+      default:
+        return <DashboardOverview />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <main className="flex-1 lg:ml-64">
+        <div className="p-6">
+          {renderActiveSection()}
+        </div>
+      </main>
     </div>
   );
 };
