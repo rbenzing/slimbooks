@@ -6,9 +6,11 @@ import {
   FileText, 
   Settings as SettingsIcon,
   CreditCard,
-  PlusCircle
+  PlusCircle,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   activeSection: string;
@@ -23,6 +25,8 @@ const navigation = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) => {
+  const { logout, user } = useAuth();
+
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg lg:block">
       <div className="flex h-full flex-col">
@@ -61,11 +65,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSectio
           })}
         </nav>
 
-        {/* Quick Actions */}
+        {/* User Section */}
         <div className="border-t border-gray-200 p-4">
-          <button className="flex w-full items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Quick Invoice
+          <div className="flex items-center mb-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900">Welcome, {user?.username}</p>
+              <p className="text-xs text-gray-500">Administrator</p>
+            </div>
+          </div>
+          <button 
+            onClick={logout}
+            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
           </button>
         </div>
       </div>

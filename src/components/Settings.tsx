@@ -3,12 +3,8 @@ import React, { useState } from 'react';
 import { 
   Settings as SettingsIcon, 
   CreditCard, 
-  Mail, 
   Bell, 
-  Shield, 
   Palette,
-  Database,
-  Key,
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
@@ -20,7 +16,6 @@ export const Settings = () => {
     { id: 'general', name: 'General', icon: SettingsIcon },
     { id: 'stripe', name: 'Stripe Integration', icon: CreditCard },
     { id: 'notifications', name: 'Notifications', icon: Bell },
-    { id: 'security', name: 'Security', icon: Shield },
     { id: 'appearance', name: 'Appearance', icon: Palette },
   ];
 
@@ -61,7 +56,6 @@ export const Settings = () => {
           {activeTab === 'general' && <GeneralSettings />}
           {activeTab === 'stripe' && <StripeSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'security' && <SecuritySettings />}
           {activeTab === 'appearance' && <AppearanceSettings />}
         </div>
       </div>
@@ -116,15 +110,14 @@ const StripeSettings = () => (
         </div>
       </div>
       <p className="text-gray-600 mb-4">
-        Connect your Stripe account to enable payment processing and invoice automation. 
-        You'll need to set up Supabase integration first.
+        Connect your Stripe account to enable payment processing and invoice automation.
       </p>
       <div className="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
         <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
         <div>
-          <p className="text-sm font-medium text-yellow-800">Supabase Required</p>
+          <p className="text-sm font-medium text-yellow-800">Backend Required</p>
           <p className="text-sm text-yellow-700">
-            Connect to Supabase first to enable secure Stripe integration and backend functionality.
+            Connect to a backend service to enable secure Stripe integration.
           </p>
         </div>
       </div>
@@ -203,28 +196,6 @@ const NotificationSettings = () => (
       <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
         Save Preferences
       </button>
-    </div>
-  </div>
-);
-
-const SecuritySettings = () => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h3 className="text-lg font-medium text-gray-900 mb-6">Security Settings</h3>
-    <div className="space-y-6">
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 mb-3">API Access</h4>
-        <p className="text-sm text-gray-600 mb-4">Manage API keys and access tokens for your application.</p>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          Generate API Key
-        </button>
-      </div>
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 mb-3">Data Export</h4>
-        <p className="text-sm text-gray-600 mb-4">Download your data for backup or migration purposes.</p>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          Export Data
-        </button>
-      </div>
     </div>
   </div>
 );
