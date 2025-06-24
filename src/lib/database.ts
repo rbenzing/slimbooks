@@ -1,214 +1,357 @@
 
-import Database from 'better-sqlite3';
+// Browser-compatible database simulation using localStorage
 
-// Initialize SQLite database
-const db = new Database('clientbill.db');
+interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  stripe_customer_id?: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+interface Invoice {
+  id: number;
+  invoice_number: string;
+  client_id: number;
+  template_id?: number;
+  amount: number;
+  status: string;
+  due_date: string;
+  description: string;
+  stripe_invoice_id?: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// Initialize database tables
+interface InvoiceTemplate {
+  id: number;
+  name: string;
+  client_id: number;
+  frequency: string;
+  amount: number;
+  description: string;
+  next_invoice_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Storage keys
+const CLIENTS_KEY = 'clientbill_clients';
+const INVOICES_KEY = 'clientbill_invoices';
+const TEMPLATES_KEY = 'clientbill_templates';
+const COUNTERS_KEY = 'clientbill_counters';
+
+// Helper functions for localStorage
+const getStorageData = <T>(key: string): T[] => {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+};
+
+const setStorageData = <T>(key: string, data: T[]): void => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
+
+const getNextId = (entity: string): number => {
+  const counters = JSON.parse(localStorage.getItem(COUNTERS_KEY) || '{}');
+  const nextId = (counters[entity] || 0) + 1;
+  counters[entity] = nextId;
+  localStorage.setItem(COUNTERS_KEY, JSON.stringify(counters));
+  return nextId;
+};
+
+// Initialize database with sample data
 export const initDatabase = () => {
-  // Clients table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS clients (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      phone TEXT,
-      company TEXT,
-      address TEXT,
-      city TEXT,
-      state TEXT,
-      zipCode TEXT,
-      country TEXT,
-      stripe_customer_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  // Check if data already exists
+  if (localStorage.getItem(CLIENTS_KEY)) {
+    return; // Already initialized
+  }
 
-  // Invoice templates table (for recurring invoices)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS invoice_templates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      client_id INTEGER NOT NULL,
-      frequency TEXT NOT NULL, -- monthly, quarterly, yearly
-      amount DECIMAL(10,2) NOT NULL,
-      description TEXT,
-      next_invoice_date DATE,
-      is_active BOOLEAN DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
-    )
-  `);
+  // Sample clients
+  const sampleClients: Client[] = [
+    {
+      id: 1,
+      name: 'Acme Corporation',
+      email: 'contact@acme.com',
+      phone: '+1-555-0123',
+      company: 'Acme Corp',
+      address: '123 Business St',
+      city: 'New York',
+      state: 'NY',
+      zipCode: '10001',
+      country: 'USA',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      name: 'TechStart Inc',
+      email: 'hello@techstart.com',
+      phone: '+1-555-0124',
+      company: 'TechStart',
+      address: '456 Innovation Ave',
+      city: 'San Francisco',
+      state: 'CA',
+      zipCode: '94105',
+      country: 'USA',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      name: 'Design Studio LLC',
+      email: 'info@designstudio.com',
+      phone: '+1-555-0125',
+      company: 'Design Studio',
+      address: '789 Creative Blvd',
+      city: 'Los Angeles',
+      state: 'CA',
+      zipCode: '90210',
+      country: 'USA',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
 
-  // Invoices table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS invoices (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      invoice_number TEXT UNIQUE NOT NULL,
-      client_id INTEGER NOT NULL,
-      template_id INTEGER NULL,
-      amount DECIMAL(10,2) NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft', -- draft, sent, paid, overdue
-      due_date DATE NOT NULL,
-      description TEXT,
-      stripe_invoice_id TEXT,
-      type TEXT NOT NULL DEFAULT 'one-time', -- one-time, recurring
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
-      FOREIGN KEY (template_id) REFERENCES invoice_templates (id) ON DELETE SET NULL
-    )
-  `);
-
-  // Invoice line items table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS invoice_line_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      invoice_id INTEGER,
-      template_id INTEGER,
-      description TEXT NOT NULL,
-      quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
-      unit_price DECIMAL(10,2) NOT NULL,
-      total DECIMAL(10,2) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE,
-      FOREIGN KEY (template_id) REFERENCES invoice_templates (id) ON DELETE CASCADE
-    )
-  `);
-
-  // Insert some sample data
-  const insertClient = db.prepare(`
-    INSERT OR IGNORE INTO clients (name, email, phone, company, address, city, state, zipCode, country)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  insertClient.run('Acme Corporation', 'contact@acme.com', '+1-555-0123', 'Acme Corp', '123 Business St', 'New York', 'NY', '10001', 'USA');
-  insertClient.run('TechStart Inc', 'hello@techstart.com', '+1-555-0124', 'TechStart', '456 Innovation Ave', 'San Francisco', 'CA', '94105', 'USA');
-  insertClient.run('Design Studio LLC', 'info@designstudio.com', '+1-555-0125', 'Design Studio', '789 Creative Blvd', 'Los Angeles', 'CA', '90210', 'USA');
+  setStorageData(CLIENTS_KEY, sampleClients);
+  setStorageData(INVOICES_KEY, []);
+  setStorageData(TEMPLATES_KEY, []);
+  localStorage.setItem(COUNTERS_KEY, JSON.stringify({ clients: 3, invoices: 0, templates: 0 }));
 };
 
 // Client operations
 export const clientOperations = {
-  getAll: () => {
-    const stmt = db.prepare('SELECT * FROM clients ORDER BY created_at DESC');
-    return stmt.all();
+  getAll: (): Client[] => {
+    return getStorageData<Client>(CLIENTS_KEY).sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   },
   
-  getById: (id: number) => {
-    const stmt = db.prepare('SELECT * FROM clients WHERE id = ?');
-    return stmt.get(id);
+  getById: (id: number): Client | undefined => {
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    return clients.find(client => client.id === id);
   },
   
-  create: (client: any) => {
-    const stmt = db.prepare(`
-      INSERT INTO clients (name, email, phone, company, address, city, state, zipCode, country)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(client.name, client.email, client.phone, client.company, client.address, client.city, client.state, client.zipCode, client.country);
+  create: (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): { lastInsertRowid: number } => {
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    const id = getNextId('clients');
+    const now = new Date().toISOString();
+    
+    const newClient: Client = {
+      ...clientData,
+      id,
+      created_at: now,
+      updated_at: now
+    };
+    
+    clients.push(newClient);
+    setStorageData(CLIENTS_KEY, clients);
+    
+    return { lastInsertRowid: id };
   },
   
-  update: (id: number, client: any) => {
-    const stmt = db.prepare(`
-      UPDATE clients 
-      SET name = ?, email = ?, phone = ?, company = ?, address = ?, city = ?, state = ?, zipCode = ?, country = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    return stmt.run(client.name, client.email, client.phone, client.company, client.address, client.city, client.state, client.zipCode, client.country, id);
+  update: (id: number, clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): { changes: number } => {
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    const index = clients.findIndex(client => client.id === id);
+    
+    if (index === -1) {
+      return { changes: 0 };
+    }
+    
+    clients[index] = {
+      ...clients[index],
+      ...clientData,
+      updated_at: new Date().toISOString()
+    };
+    
+    setStorageData(CLIENTS_KEY, clients);
+    return { changes: 1 };
   },
   
-  delete: (id: number) => {
-    const stmt = db.prepare('DELETE FROM clients WHERE id = ?');
-    return stmt.run(id);
+  delete: (id: number): { changes: number } => {
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    const filteredClients = clients.filter(client => client.id !== id);
+    
+    if (filteredClients.length === clients.length) {
+      return { changes: 0 };
+    }
+    
+    setStorageData(CLIENTS_KEY, filteredClients);
+    return { changes: 1 };
   }
 };
 
 // Invoice operations
 export const invoiceOperations = {
-  getAll: () => {
-    const stmt = db.prepare(`
-      SELECT i.*, c.name as client_name 
-      FROM invoices i 
-      JOIN clients c ON i.client_id = c.id 
-      ORDER BY i.created_at DESC
-    `);
-    return stmt.all();
+  getAll: (): (Invoice & { client_name: string })[] => {
+    const invoices = getStorageData<Invoice>(INVOICES_KEY);
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    
+    return invoices.map(invoice => {
+      const client = clients.find(c => c.id === invoice.client_id);
+      return {
+        ...invoice,
+        client_name: client?.name || 'Unknown Client'
+      };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
   
-  getById: (id: number) => {
-    const stmt = db.prepare(`
-      SELECT i.*, c.name as client_name 
-      FROM invoices i 
-      JOIN clients c ON i.client_id = c.id 
-      WHERE i.id = ?
-    `);
-    return stmt.get(id);
+  getById: (id: number): (Invoice & { client_name: string }) | undefined => {
+    const invoices = getStorageData<Invoice>(INVOICES_KEY);
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    const invoice = invoices.find(inv => inv.id === id);
+    
+    if (!invoice) return undefined;
+    
+    const client = clients.find(c => c.id === invoice.client_id);
+    return {
+      ...invoice,
+      client_name: client?.name || 'Unknown Client'
+    };
   },
   
-  create: (invoice: any) => {
-    const stmt = db.prepare(`
-      INSERT INTO invoices (invoice_number, client_id, amount, status, due_date, description, type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(invoice.invoice_number, invoice.client_id, invoice.amount, invoice.status, invoice.due_date, invoice.description, invoice.type);
+  create: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): { lastInsertRowid: number } => {
+    const invoices = getStorageData<Invoice>(INVOICES_KEY);
+    const id = getNextId('invoices');
+    const now = new Date().toISOString();
+    
+    const newInvoice: Invoice = {
+      ...invoiceData,
+      id,
+      created_at: now,
+      updated_at: now
+    };
+    
+    invoices.push(newInvoice);
+    setStorageData(INVOICES_KEY, invoices);
+    
+    return { lastInsertRowid: id };
   },
   
-  update: (id: number, invoice: any) => {
-    const stmt = db.prepare(`
-      UPDATE invoices 
-      SET client_id = ?, amount = ?, status = ?, due_date = ?, description = ?, type = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    return stmt.run(invoice.client_id, invoice.amount, invoice.status, invoice.due_date, invoice.description, invoice.type, id);
+  update: (id: number, invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): { changes: number } => {
+    const invoices = getStorageData<Invoice>(INVOICES_KEY);
+    const index = invoices.findIndex(invoice => invoice.id === id);
+    
+    if (index === -1) {
+      return { changes: 0 };
+    }
+    
+    invoices[index] = {
+      ...invoices[index],
+      ...invoiceData,
+      updated_at: new Date().toISOString()
+    };
+    
+    setStorageData(INVOICES_KEY, invoices);
+    return { changes: 1 };
   },
   
-  delete: (id: number) => {
-    const stmt = db.prepare('DELETE FROM invoices WHERE id = ?');
-    return stmt.run(id);
+  delete: (id: number): { changes: number } => {
+    const invoices = getStorageData<Invoice>(INVOICES_KEY);
+    const filteredInvoices = invoices.filter(invoice => invoice.id !== id);
+    
+    if (filteredInvoices.length === invoices.length) {
+      return { changes: 0 };
+    }
+    
+    setStorageData(INVOICES_KEY, filteredInvoices);
+    return { changes: 1 };
   }
 };
 
 // Template operations
 export const templateOperations = {
-  getAll: () => {
-    const stmt = db.prepare(`
-      SELECT t.*, c.name as client_name 
-      FROM invoice_templates t 
-      JOIN clients c ON t.client_id = c.id 
-      WHERE t.is_active = 1
-      ORDER BY t.created_at DESC
-    `);
-    return stmt.all();
+  getAll: (): (InvoiceTemplate & { client_name: string })[] => {
+    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    
+    return templates
+      .filter(template => template.is_active)
+      .map(template => {
+        const client = clients.find(c => c.id === template.client_id);
+        return {
+          ...template,
+          client_name: client?.name || 'Unknown Client'
+        };
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
   
-  create: (template: any) => {
-    const stmt = db.prepare(`
-      INSERT INTO invoice_templates (name, client_id, frequency, amount, description, next_invoice_date)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(template.name, template.client_id, template.frequency, template.amount, template.description, template.next_invoice_date);
+  create: (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>): { lastInsertRowid: number } => {
+    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
+    const id = getNextId('templates');
+    const now = new Date().toISOString();
+    
+    const newTemplate: InvoiceTemplate = {
+      ...templateData,
+      id,
+      is_active: true,
+      created_at: now,
+      updated_at: now
+    };
+    
+    templates.push(newTemplate);
+    setStorageData(TEMPLATES_KEY, templates);
+    
+    return { lastInsertRowid: id };
   },
   
-  update: (id: number, template: any) => {
-    const stmt = db.prepare(`
-      UPDATE invoice_templates 
-      SET name = ?, client_id = ?, frequency = ?, amount = ?, description = ?, next_invoice_date = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    return stmt.run(template.name, template.client_id, template.frequency, template.amount, template.description, template.next_invoice_date, id);
+  update: (id: number, templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>): { changes: number } => {
+    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
+    const index = templates.findIndex(template => template.id === id);
+    
+    if (index === -1) {
+      return { changes: 0 };
+    }
+    
+    templates[index] = {
+      ...templates[index],
+      ...templateData,
+      updated_at: new Date().toISOString()
+    };
+    
+    setStorageData(TEMPLATES_KEY, templates);
+    return { changes: 1 };
   },
   
-  delete: (id: number) => {
-    const stmt = db.prepare('UPDATE invoice_templates SET is_active = 0 WHERE id = ?');
-    return stmt.run(id);
+  delete: (id: number): { changes: number } => {
+    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
+    const index = templates.findIndex(template => template.id === id);
+    
+    if (index === -1) {
+      return { changes: 0 };
+    }
+    
+    templates[index] = {
+      ...templates[index],
+      is_active: false,
+      updated_at: new Date().toISOString()
+    };
+    
+    setStorageData(TEMPLATES_KEY, templates);
+    return { changes: 1 };
   }
 };
 
 // Initialize database on import
 initDatabase();
+
+// Export a mock db object for compatibility
+const db = {
+  prepare: () => ({
+    all: () => [],
+    get: () => null,
+    run: () => ({ lastInsertRowid: 0, changes: 0 })
+  })
+};
 
 export default db;
