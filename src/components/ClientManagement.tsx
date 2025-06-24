@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -11,7 +10,7 @@ import {
   Building,
   MapPin
 } from 'lucide-react';
-import { ClientForm } from './ClientForm';
+import { useNavigate } from 'react-router-dom';
 import { clientOperations } from '@/lib/database';
 
 interface Client {
@@ -29,10 +28,9 @@ interface Client {
 }
 
 export const ClientManagement = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   useEffect(() => {
     loadClients();
@@ -47,24 +45,8 @@ export const ClientManagement = () => {
     }
   };
 
-  const handleSaveClient = (clientData: any) => {
-    try {
-      if (editingClient) {
-        clientOperations.update(editingClient.id, clientData);
-      } else {
-        clientOperations.create(clientData);
-      }
-      loadClients();
-      setEditingClient(null);
-    } catch (error) {
-      console.error('Error saving client:', error);
-      alert('Error saving client. Please try again.');
-    }
-  };
-
   const handleEditClient = (client: Client) => {
-    setEditingClient(client);
-    setIsFormOpen(true);
+    navigate(`/clients/edit/${client.id}`);
   };
 
   const handleDeleteClient = (id: number) => {
@@ -94,10 +76,7 @@ export const ClientManagement = () => {
           <p className="text-gray-600">Manage your client database and contact information</p>
         </div>
         <button 
-          onClick={() => {
-            setEditingClient(null);
-            setIsFormOpen(true);
-          }}
+          onClick={() => navigate('/clients/new')}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -222,10 +201,7 @@ export const ClientManagement = () => {
           </p>
           {!searchTerm && (
             <button 
-              onClick={() => {
-                setEditingClient(null);
-                setIsFormOpen(true);
-              }}
+              onClick={() => navigate('/clients/new')}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -234,17 +210,6 @@ export const ClientManagement = () => {
           )}
         </div>
       )}
-
-      {/* Client Form Modal */}
-      <ClientForm
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingClient(null);
-        }}
-        onSave={handleSaveClient}
-        client={editingClient}
-      />
     </div>
   );
 };

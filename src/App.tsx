@@ -1,43 +1,61 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { LoginForm } from "@/components/LoginForm";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuth } from './contexts/AuthContext';
+import { Sidebar } from './components/Sidebar';
+import { DashboardOverview } from './components/DashboardOverview';
+import { ClientManagement } from './components/ClientManagement';
+import { EditClientPage } from './components/clients/EditClientPage';
+import { InvoiceManagement } from './components/InvoiceManagement';
+import { CreateInvoicePage } from './components/invoices/CreateInvoicePage';
+import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurringInvoicePage';
+import { Settings } from './components/Settings';
+import { LoginForm } from './components/LoginForm';
+import { NotFound } from './pages/NotFound';
+import { Toaster } from './components/ui/sonner';
+import './App.css';
 
 const queryClient = new QueryClient();
 
-const AuthenticatedApp = () => {
+const App = () => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <LoginForm />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoginForm />
+      </div>
+    );
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="flex h-screen bg-gray-100">
+          <Sidebar />
+          <main className="flex-1 overflow-auto">
+            <div className="p-6">
+              <Routes>
+                <Route path="/" element={<DashboardOverview />} />
+                <Route path="/clients" element={<ClientManagement />} />
+                <Route path="/clients/new" element={<EditClientPage />} />
+                <Route path="/clients/edit/:id" element={<EditClientPage />} />
+                <Route path="/invoices" element={<InvoiceManagement />} />
+                <Route path="/invoices/create" element={<CreateInvoicePage />} />
+                <Route path="/invoices/edit/:id" element={<CreateInvoicePage />} />
+                <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage />} />
+                <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </main>
+        </div>
+        <Toaster />
+      </Router>
+    </QueryClientProvider>
   );
 };
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <AuthenticatedApp />
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
 
 export default App;

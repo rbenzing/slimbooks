@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Settings as SettingsIcon, 
@@ -8,15 +7,18 @@ import {
   CheckCircle,
   AlertTriangle,
   Percent,
-  Truck
+  Truck,
+  Building
 } from 'lucide-react';
 import { TaxSettings } from './settings/TaxSettings';
 import { ShippingSettings } from './settings/ShippingSettings';
+import { CompanySettings } from './settings/CompanySettings';
 
 export const Settings = () => {
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState('company');
 
   const tabs = [
+    { id: 'company', name: 'Company', icon: Building },
     { id: 'general', name: 'General', icon: SettingsIcon },
     { id: 'tax', name: 'Tax Rates', icon: Percent },
     { id: 'shipping', name: 'Shipping', icon: Truck },
@@ -59,6 +61,7 @@ export const Settings = () => {
 
         {/* Settings Content */}
         <div className="flex-1">
+          {activeTab === 'company' && <CompanySettings />}
           {activeTab === 'general' && <GeneralSettings />}
           {activeTab === 'tax' && <TaxSettings />}
           {activeTab === 'shipping' && <ShippingSettings />}
@@ -75,14 +78,6 @@ const GeneralSettings = () => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
     <h3 className="text-lg font-medium text-gray-900 mb-6">General Settings</h3>
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-        <input
-          type="text"
-          defaultValue="ClientBill Pro"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Default Currency</label>
         <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
