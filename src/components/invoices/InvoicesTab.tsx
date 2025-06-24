@@ -15,7 +15,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { InvoiceForm } from './InvoiceForm';
+import { CreateInvoicePage } from './CreateInvoicePage';
 import { invoiceOperations } from '@/lib/database';
 
 interface Invoice {
@@ -41,7 +41,7 @@ export const InvoicesTab = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showCreatePage, setShowCreatePage] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
@@ -57,22 +57,6 @@ export const InvoicesTab = () => {
     }
   };
 
-  const handleSaveInvoice = (invoiceData: any) => {
-    try {
-      if (editingInvoice) {
-        invoiceOperations.update(editingInvoice.id, invoiceData);
-      } else {
-        const invoiceNumber = `INV-${Date.now()}`;
-        invoiceOperations.create({ ...invoiceData, invoice_number: invoiceNumber });
-      }
-      loadInvoices();
-      setEditingInvoice(null);
-    } catch (error) {
-      console.error('Error saving invoice:', error);
-      alert('Error saving invoice. Please try again.');
-    }
-  };
-
   const handleDeleteInvoice = (id: number) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
@@ -84,6 +68,26 @@ export const InvoicesTab = () => {
       }
     }
   };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    setShowCreatePage(true);
+  };
+
+  const handleBackToList = () => {
+    setShowCreatePage(false);
+    setEditingInvoice(null);
+    loadInvoices();
+  };
+
+  if (showCreatePage) {
+    return (
+      <CreateInvoicePage
+        onBack={handleBackToList}
+        editingInvoice={editingInvoice}
+      />
+    );
+  }
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = invoice.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,10 +169,7 @@ export const InvoicesTab = () => {
           </select>
         </div>
         <button 
-          onClick={() => {
-            setEditingInvoice(null);
-            setIsFormOpen(true);
-          }}
+          onClick={() => setShowCreatePage(true)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -221,10 +222,7 @@ export const InvoicesTab = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button 
-                          onClick={() => {
-                            setEditingInvoice(invoice);
-                            setIsFormOpen(true);
-                          }}
+                          onClick={() => handleEditInvoice(invoice)}
                           className="text-gray-400 hover:text-blue-600 transition-colors"
                         >
                           <Edit className="h-4 w-4" />
@@ -254,16 +252,6 @@ export const InvoicesTab = () => {
           </p>
         </div>
       )}
-
-      <InvoiceForm
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingInvoice(null);
-        }}
-        onSave={handleSaveInvoice}
-        invoice={editingInvoice}
-      />
     </>
   );
 };
