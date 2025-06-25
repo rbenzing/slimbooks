@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './contexts/AuthContext';
@@ -12,7 +12,7 @@ import { CreateInvoicePage } from './components/invoices/CreateInvoicePage';
 import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurringInvoicePage';
 import { Settings } from './components/Settings';
 import { LoginForm } from './components/LoginForm';
-import { NotFound } from './pages/NotFound';
+import NotFound from './pages/NotFound';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
 
@@ -20,6 +20,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { isAuthenticated } = useAuth();
+  const [activeSection, setActiveSection] = useState('dashboard');
 
   if (!isAuthenticated) {
     return (
@@ -33,7 +34,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <div className="flex h-screen bg-gray-100">
-          <Sidebar />
+          <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
           <main className="flex-1 overflow-auto">
             <div className="p-6">
               <Routes>
@@ -42,10 +43,10 @@ const App = () => {
                 <Route path="/clients/new" element={<EditClientPage />} />
                 <Route path="/clients/edit/:id" element={<EditClientPage />} />
                 <Route path="/invoices" element={<InvoiceManagement />} />
-                <Route path="/invoices/create" element={<CreateInvoicePage />} />
-                <Route path="/invoices/edit/:id" element={<CreateInvoicePage />} />
-                <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage />} />
-                <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage />} />
+                <Route path="/invoices/create" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
+                <Route path="/invoices/edit/:id" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
+                <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
+                <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -6,26 +6,30 @@ import {
   FileText, 
   Settings as SettingsIcon,
   CreditCard,
-  PlusCircle,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface SidebarProps {
-  activeSection: string;
-  setActiveSection: (section: string) => void;
-}
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const navigation = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-  { id: 'clients', name: 'Clients', icon: Users },
-  { id: 'invoices', name: 'Invoices', icon: FileText },
-  { id: 'settings', name: 'Settings', icon: SettingsIcon },
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'clients', name: 'Clients', icon: Users, path: '/clients' },
+  { id: 'invoices', name: 'Invoices', icon: FileText, path: '/invoices' },
+  { id: 'settings', name: 'Settings', icon: SettingsIcon, path: '/settings' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) => {
+export const Sidebar: React.FC = () => {
   const { logout, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg lg:block">
@@ -42,13 +46,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSectio
         <nav className="flex-1 space-y-1 px-4 py-6">
           {navigation.map((item) => {
             const Icon = item.icon;
+            const active = isActive(item.path);
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => navigate(item.path)}
                 className={cn(
                   'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  activeSection === item.id
+                  active
                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 )}
@@ -56,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSectio
                 <Icon
                   className={cn(
                     'mr-3 h-5 w-5 flex-shrink-0',
-                    activeSection === item.id ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
+                    active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
                   )}
                 />
                 {item.name}
