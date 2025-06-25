@@ -20,7 +20,6 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { isAuthenticated } = useAuth();
-  const [activeSection, setActiveSection] = useState('dashboard');
 
   if (!isAuthenticated) {
     return (
@@ -34,7 +33,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <div className="flex h-screen bg-gray-100">
-          <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+          <Sidebar />
           <main className="flex-1 overflow-auto">
             <div className="p-6">
               <Routes>
