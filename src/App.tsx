@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -34,22 +33,20 @@ const App = () => {
       <Router>
         <div className="flex h-screen bg-gray-100">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-gray-100">
-            <div className="min-h-full">
-              <Routes>
-                <Route path="/" element={<DashboardOverview />} />
-                <Route path="/clients" element={<ClientManagement />} />
-                <Route path="/clients/new" element={<EditClientPage />} />
-                <Route path="/clients/edit/:id" element={<EditClientPage />} />
-                <Route path="/invoices" element={<InvoiceManagement />} />
-                <Route path="/invoices/create" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
-                <Route path="/invoices/edit/:id" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
-                <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
-                <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
+          <main className="flex-1 h-screen overflow-y-auto bg-gray-100">
+            <Routes>
+              <Route path="/" element={<DashboardOverview />} />
+              <Route path="/clients" element={<ClientManagement />} />
+              <Route path="/clients/new" element={<EditClientPage />} />
+              <Route path="/clients/edit/:id" element={<EditClientPage />} />
+              <Route path="/invoices" element={<InvoiceManagement />} />
+              <Route path="/invoices/create" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
+              <Route path="/invoices/edit/:id" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
+              <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
+              <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </main>
         </div>
         <Toaster />
