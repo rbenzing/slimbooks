@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
-import { clientOperations, invoiceOperations } from '@/lib/database';
+import { clientOperations, invoiceOperations, templateOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 
@@ -113,18 +113,19 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     }
 
     const templatePayload = {
-      ...templateData,
+      name: templateData.name,
       client_id: selectedClient.id,
+      frequency: templateData.frequency,
       amount: total,
       description: lineItems.map(item => item.description).join(', '),
-      type: 'recurring'
+      next_invoice_date: templateData.next_invoice_date
     };
 
     try {
       if (editingTemplate) {
-        invoiceOperations.update(editingTemplate.id, templatePayload);
+        templateOperations.update(editingTemplate.id, templatePayload);
       } else {
-        invoiceOperations.create(templatePayload);
+        templateOperations.create(templatePayload);
       }
       onBack();
     } catch (error) {
