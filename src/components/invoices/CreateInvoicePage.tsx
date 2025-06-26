@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
@@ -99,15 +98,23 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
 
-  const handleSave = () => {
-    if (!selectedClient) {
-      alert('Please select a client');
-      return;
-    }
-
+  // Validation for save button
+  const isValidForSave = () => {
+    // Check if client is selected
+    if (!selectedClient) return false;
+    
+    // Check if invoice number is provided
+    if (!invoiceData.invoice_number.trim()) return false;
+    
+    // Check if at least one line item has a description
     const hasValidLineItems = lineItems.some(item => item.description.trim() !== '');
-    if (!hasValidLineItems) {
-      alert('Please add at least one line item with a description');
+    if (!hasValidLineItems) return false;
+    
+    return true;
+  };
+
+  const handleSave = () => {
+    if (!isValidForSave()) {
       return;
     }
 
@@ -158,7 +165,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           <div className="flex space-x-3">
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={!isValidForSave()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               Save Invoice
             </button>
@@ -174,12 +182,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
               <h2 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h2>
               <div className="space-y-1">
                 <div>
-                  <label className="text-sm text-gray-600">Invoice #</label>
+                  <label className="text-sm text-gray-600">Invoice # *</label>
                   <input
                     type="text"
                     value={invoiceData.invoice_number}
                     onChange={(e) => setInvoiceData({...invoiceData, invoice_number: e.target.value})}
                     className="block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right"
+                    required
                   />
                 </div>
                 <div>
@@ -209,7 +218,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-gray-300">
-                  <th className="text-left py-3 font-semibold">Description</th>
+                  <th className="text-left py-3 font-semibold">Description *</th>
                   <th className="text-center py-3 font-semibold w-20">Qty</th>
                   <th className="text-right py-3 font-semibold w-24">Rate</th>
                   <th className="text-right py-3 font-semibold w-24">Amount</th>
@@ -224,8 +233,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                         type="text"
                         value={item.description}
                         onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                        placeholder="Enter description"
+                        placeholder="Enter description *"
                         className="w-full border-0 focus:ring-0 p-0"
+                        required
                       />
                     </td>
                     <td className="py-3 text-center">
@@ -284,7 +294,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   value={selectedTaxRate?.id || ''}
                   onChange={(e) => {
                     const rate = taxRates.find(r => r.id === e.target.value);
-                    setSelectedTaxRate(rate);
+                    setSelectedTaxRate(rate || null);
                   }}
                   className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
@@ -303,7 +313,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   value={selectedShippingRate?.id || ''}
                   onChange={(e) => {
                     const rate = shippingRates.find(r => r.id === e.target.value);
-                    setSelectedShippingRate(rate);
+                    setSelectedShippingRate(rate || null);
                   }}
                   className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >

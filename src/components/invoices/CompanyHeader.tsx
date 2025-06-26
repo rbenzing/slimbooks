@@ -18,11 +18,24 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
   });
 
   useEffect(() => {
-    // Load company settings from localStorage
+    // Load company settings from localStorage or use defaults
     const saved = localStorage.getItem('company_settings');
     if (saved) {
       const settings = JSON.parse(saved);
       setCompanySettings(settings);
+    } else {
+      // Set default company settings if none exist
+      const defaultSettings = {
+        companyName: 'ClientBill Pro',
+        address: '123 Business Street',
+        city: 'Business City',
+        state: 'CA',
+        zipCode: '90210',
+        brandingImage: ''
+      };
+      setCompanySettings(defaultSettings);
+      // Save defaults to localStorage so they persist
+      localStorage.setItem('company_settings', JSON.stringify(defaultSettings));
     }
   }, []);
 
