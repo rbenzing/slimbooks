@@ -52,7 +52,7 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-56 bg-white shadow-lg h-screen flex flex-col">
+    <div className="w-full bg-white shadow-lg h-full flex flex-col">
       <div className="flex h-full flex-col">
         {/* Logo/Header */}
         <div className="flex h-16 items-center border-b border-gray-200 px-6">

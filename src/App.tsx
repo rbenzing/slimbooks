@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -31,9 +32,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="flex h-screen bg-gray-100">
-          <Sidebar />
-          <main className="flex-1 h-screen overflow-y-auto bg-gray-100">
+        <div className="h-screen w-full flex bg-gray-100 overflow-hidden">
+          <div className="w-[14%] min-w-[200px]">
+            <Sidebar />
+          </div>
+          <main className="w-[86%] h-full overflow-y-auto bg-gray-100">
             <Routes>
               <Route path="/" element={<DashboardOverview />} />
               <Route path="/clients" element={<ClientManagement />} />
