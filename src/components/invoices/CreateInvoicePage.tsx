@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, X, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, X } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
+import { ClientSelector } from './ClientSelector';
+import { CompanyHeader } from './CompanyHeader';
 
 interface LineItem {
   id: string;
@@ -102,6 +105,12 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       return;
     }
 
+    const hasValidLineItems = lineItems.some(item => item.description.trim() !== '');
+    if (!hasValidLineItems) {
+      alert('Please add at least one line item with a description');
+      return;
+    }
+
     const invoicePayload = {
       ...invoiceData,
       client_id: selectedClient.id,
@@ -160,26 +169,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Company Header */}
           <div className="flex justify-between items-start mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 cursor-pointer relative overflow-hidden">
-                {companyLogo ? (
-                  <img src={companyLogo} alt="Company Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Upload className="h-6 w-6 text-gray-400" />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Your Company</h1>
-                <p className="text-gray-600">123 Business Street</p>
-                <p className="text-gray-600">City, State 12345</p>
-              </div>
-            </div>
+            <CompanyHeader companyLogo={companyLogo} onLogoUpload={handleLogoUpload} />
             <div className="text-right">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h2>
               <div className="space-y-1">
@@ -207,32 +197,11 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
           {/* Client Information */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Bill To:</h3>
-            <select
-              value={selectedClient?.id || ''}
-              onChange={(e) => {
-                const client = clients.find(c => c.id === parseInt(e.target.value));
-                setSelectedClient(client);
-              }}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a client</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name} - {client.company}
-                </option>
-              ))}
-            </select>
-            
-            {selectedClient && (
-              <div className="mt-3 p-4 bg-gray-50 rounded-lg">
-                <div className="font-semibold">{selectedClient.name}</div>
-                <div>{selectedClient.company}</div>
-                <div>{selectedClient.address}</div>
-                <div>{selectedClient.city}, {selectedClient.state} {selectedClient.zipCode}</div>
-                <div>{selectedClient.email}</div>
-              </div>
-            )}
+            <ClientSelector
+              clients={clients}
+              selectedClient={selectedClient}
+              onClientSelect={setSelectedClient}
+            />
           </div>
 
           {/* Line Items */}
@@ -317,8 +286,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     const rate = taxRates.find(r => r.id === e.target.value);
                     setSelectedTaxRate(rate);
                   }}
-                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
+                  <option value="">No Tax</option>
                   {taxRates.map((rate) => (
                     <option key={rate.id} value={rate.id}>
                       {rate.name} ({rate.rate}%)
@@ -335,8 +305,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     const rate = shippingRates.find(r => r.id === e.target.value);
                     setSelectedShippingRate(rate);
                   }}
-                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
+                  <option value="">No Shipping</option>
                   {shippingRates.map((rate) => (
                     <option key={rate.id} value={rate.id}>
                       {rate.name} (${rate.amount.toFixed(2)})

@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, X, Upload, Calendar, Clock, CreditCard } from 'lucide-react';
+import { ArrowLeft, Plus, X, Calendar, Clock, CreditCard } from 'lucide-react';
 import { clientOperations, templateOperations } from '@/lib/database';
+import { ClientSelector } from './ClientSelector';
+import { CompanyHeader } from './CompanyHeader';
 
 interface LineItem {
   id: string;
@@ -27,14 +28,32 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
   ]);
-  const [taxRate, setTaxRate] = useState<number>(0);
-  const [shippingAmount, setShippingAmount] = useState<number>(0);
+  const [selectedTaxRate, setSelectedTaxRate] = useState<any>(null);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
+  const [taxRates, setTaxRates] = useState<any[]>([]);
+  const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
 
   useEffect(() => {
     const allClients = clientOperations.getAll();
     setClients(allClients);
+    
+    // Load tax rates from settings
+    const savedTaxRates = localStorage.getItem('tax_rates');
+    if (savedTaxRates) {
+      const rates = JSON.parse(savedTaxRates);
+      setTaxRates(rates);
+      setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+    }
+
+    // Load shipping rates from settings
+    const savedShippingRates = localStorage.getItem('shipping_rates');
+    if (savedShippingRates) {
+      const rates = JSON.parse(savedShippingRates);
+      setShippingRates(rates);
+      setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+    }
     
     if (!editingTemplate) {
       setTemplateData(prev => ({
@@ -75,12 +94,19 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const taxAmount = subtotal * (taxRate / 100);
+  const taxAmount = selectedTaxRate ? subtotal * (selectedTaxRate.rate / 100) : 0;
+  const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
 
   const handleSave = () => {
     if (!selectedClient) {
       alert('Please select a client');
+      return;
+    }
+
+    const hasValidLineItems = lineItems.some(item => item.description.trim() !== '');
+    if (!hasValidLineItems) {
+      alert('Please add at least one line item with a description');
       return;
     }
 
@@ -143,26 +169,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
           <div className="bg-white rounded-lg shadow-lg p-8">
             {/* Company Header */}
             <div className="flex justify-between items-start mb-8">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 cursor-pointer relative overflow-hidden">
-                  {companyLogo ? (
-                    <img src={companyLogo} alt="Company Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <Upload className="h-6 w-6 text-gray-400" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Your Company</h1>
-                  <p className="text-gray-600">123 Business Street</p>
-                  <p className="text-gray-600">City, State 12345</p>
-                </div>
-              </div>
+              <CompanyHeader companyLogo={companyLogo} onLogoUpload={handleLogoUpload} />
               <div className="text-right">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">RECURRING INVOICE</h2>
                 <div className="space-y-1">
@@ -181,32 +188,11 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
             {/* Client Information */}
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bill To:</h3>
-              <select
-                value={selectedClient?.id || ''}
-                onChange={(e) => {
-                  const client = clients.find(c => c.id === parseInt(e.target.value));
-                  setSelectedClient(client);
-                }}
-                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} - {client.company}
-                  </option>
-                ))}
-              </select>
-              
-              {selectedClient && (
-                <div className="mt-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="font-semibold">{selectedClient.name}</div>
-                  <div>{selectedClient.company}</div>
-                  <div>{selectedClient.address}</div>
-                  <div>{selectedClient.city}, {selectedClient.state} {selectedClient.zipCode}</div>
-                  <div>{selectedClient.email}</div>
-                </div>
-              )}
+              <ClientSelector
+                clients={clients}
+                selectedClient={selectedClient}
+                onClientSelect={setSelectedClient}
+              />
             </div>
 
             {/* Line Items */}
@@ -284,30 +270,40 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
             <div className="flex justify-between mb-8">
               <div className="w-1/2 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate</label>
                   <select
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(parseFloat(e.target.value))}
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedTaxRate?.id || ''}
+                    onChange={(e) => {
+                      const rate = taxRates.find(r => r.id === e.target.value);
+                      setSelectedTaxRate(rate);
+                    }}
+                    className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value={0}>No Tax</option>
-                    <option value={5}>5%</option>
-                    <option value={8.25}>8.25%</option>
-                    <option value={10}>10%</option>
+                    <option value="">No Tax</option>
+                    {taxRates.map((rate) => (
+                      <option key={rate.id} value={rate.id}>
+                        {rate.name} ({rate.rate}%)
+                      </option>
+                    ))}
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Shipping</label>
                   <select
-                    value={shippingAmount}
-                    onChange={(e) => setShippingAmount(parseFloat(e.target.value))}
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedShippingRate?.id || ''}
+                    onChange={(e) => {
+                      const rate = shippingRates.find(r => r.id === e.target.value);
+                      setSelectedShippingRate(rate);
+                    }}
+                    className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value={0}>No Shipping</option>
-                    <option value={10}>$10.00</option>
-                    <option value={25}>$25.00</option>
-                    <option value={50}>$50.00</option>
+                    <option value="">No Shipping</option>
+                    {shippingRates.map((rate) => (
+                      <option key={rate.id} value={rate.id}>
+                        {rate.name} (${rate.amount.toFixed(2)})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -318,15 +314,15 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
                     <span>Subtotal:</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
-                  {taxRate > 0 && (
+                  {selectedTaxRate && selectedTaxRate.rate > 0 && (
                     <div className="flex justify-between">
-                      <span>Tax ({taxRate}%):</span>
+                      <span>Tax ({selectedTaxRate.name}):</span>
                       <span>${taxAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  {shippingAmount > 0 && (
+                  {selectedShippingRate && selectedShippingRate.amount > 0 && (
                     <div className="flex justify-between">
-                      <span>Shipping:</span>
+                      <span>Shipping ({selectedShippingRate.name}):</span>
                       <span>${shippingAmount.toFixed(2)}</span>
                     </div>
                   )}
@@ -367,7 +363,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
             <select
               value={templateData.frequency}
               onChange={(e) => setTemplateData({...templateData, frequency: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>

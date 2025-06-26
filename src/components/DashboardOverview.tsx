@@ -4,11 +4,10 @@ import {
   Users, 
   FileText, 
   DollarSign, 
-  TrendingUp,
-  Calendar,
-  AlertCircle
+  TrendingUp
 } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
+import { DashboardChart } from './DashboardChart';
 
 export const DashboardOverview = () => {
   const [clients, setClients] = useState<any[]>([]);
@@ -136,8 +135,11 @@ export const DashboardOverview = () => {
         })}
       </div>
 
-      {/* Recent Activity & Quick Actions */}
+      {/* Chart and Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Chart */}
+        <DashboardChart invoices={invoices} />
+
         {/* Recent Activity */}
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -159,47 +161,6 @@ export const DashboardOverview = () => {
                 </div>
               )) : (
                 <p className="text-sm text-gray-500">No recent activity</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-blue-600 mr-3" />
-                  <span className="font-medium">Add New Client</span>
-                </div>
-                <span className="text-gray-400">→</span>
-              </button>
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-green-600 mr-3" />
-                  <span className="font-medium">Create Invoice</span>
-                </div>
-                <span className="text-gray-400">→</span>
-              </button>
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 text-purple-600 mr-3" />
-                  <span className="font-medium">Schedule Recurring</span>
-                </div>
-                <span className="text-gray-400">→</span>
-              </button>
-              {stats.overdueCount > 0 && (
-                <button className="w-full flex items-center justify-between p-4 border border-orange-200 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 text-orange-600 mr-3" />
-                    <span className="font-medium text-orange-800">Review Overdue ({stats.overdueCount})</span>
-                  </div>
-                  <span className="text-orange-400">→</span>
-                </button>
               )}
             </div>
           </div>
