@@ -34,7 +34,7 @@ const App = () => {
       <Router>
         <div className="flex h-screen bg-gray-100">
           <Sidebar />
-          <main className="flex-1 overflow-auto pl-64">
+          <main className="flex-1 overflow-y-auto bg-gray-100">
             <div className="min-h-full">
               <Routes>
                 <Route path="/" element={<DashboardOverview />} />

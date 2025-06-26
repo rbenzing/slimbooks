@@ -1,33 +1,67 @@
 
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { FileText, Calendar } from 'lucide-react';
 import { InvoicesTab } from './invoices/InvoicesTab';
 import { TemplatesTab } from './invoices/TemplatesTab';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const InvoiceManagement = () => {
+  const [activeTab, setActiveTab] = useState('invoices');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Set active tab based on URL hash or default to invoices
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash === 'templates') {
+      setActiveTab('templates');
+    } else {
+      setActiveTab('invoices');
+    }
+  }, [location.hash]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    navigate(`/invoices#${tab}`);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
-        <p className="text-gray-600">Create, track, and manage your client invoices</p>
+    <div className="min-h-full bg-gray-100">
+      {/* Sub Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 py-4">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => handleTabChange('invoices')}
+              className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === 'invoices'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Sent Invoices
+            </button>
+            <button
+              onClick={() => handleTabChange('templates')}
+              className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === 'templates'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Recurring Templates
+            </button>
+          </nav>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="invoices" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="invoices">Sent Invoices</TabsTrigger>
-          <TabsTrigger value="templates">Recurring Templates</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="invoices" className="space-y-6">
-          <InvoicesTab />
-        </TabsContent>
-        
-        <TabsContent value="templates" className="space-y-6">
-          <TemplatesTab />
-        </TabsContent>
-      </Tabs>
+      {/* Content */}
+      <div className="p-6">
+        {activeTab === 'invoices' && <InvoicesTab />}
+        {activeTab === 'templates' && <TemplatesTab />}
+      </div>
     </div>
   );
 };
