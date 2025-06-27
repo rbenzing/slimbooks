@@ -1,14 +1,15 @@
 
 import React from 'react';
 import { ArrowLeft, Download } from 'lucide-react';
-import { DateRange } from '../ReportsManagement';
+import { DateRange, ReportType } from '../ReportsManagement';
 
 interface ClientReportProps {
   dateRange: DateRange;
   onBack: () => void;
+  onSave: (reportData: any, reportType: ReportType) => void;
 }
 
-export const ClientReport: React.FC<ClientReportProps> = ({ dateRange, onBack }) => {
+export const ClientReport: React.FC<ClientReportProps> = ({ dateRange, onBack, onSave }) => {
   const formatDateRange = () => {
     const start = new Date(dateRange.start).toLocaleDateString('en-US', {
       year: 'numeric',
