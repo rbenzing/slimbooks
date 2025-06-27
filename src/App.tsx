@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,6 +10,8 @@ import { EditClientPage } from './components/clients/EditClientPage';
 import { InvoiceManagement } from './components/InvoiceManagement';
 import { CreateInvoicePage } from './components/invoices/CreateInvoicePage';
 import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurringInvoicePage';
+import { ExpenseManagement } from './components/ExpenseManagement';
+import { ReportsManagement } from './components/ReportsManagement';
 import { Settings } from './components/Settings';
 import { LoginForm } from './components/LoginForm';
 import NotFound from './pages/NotFound';
