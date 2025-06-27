@@ -102,9 +102,24 @@ export const InvoicesTab = () => {
   const overdueCount = filteredInvoices.filter(inv => inv.status === 'overdue').length;
 
   return (
-    <>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Sent Invoices</h1>
+          <p className="text-gray-600">Manage and track your invoice payments</p>
+        </div>
+        <button 
+          onClick={() => setShowCreatePage(true)}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Create Invoice
+        </button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -143,21 +158,21 @@ export const InvoicesTab = () => {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex justify-between items-center">
+      {/* Search and Filter Controls */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="flex space-x-4 flex-1">
           <div className="flex-1 relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search invoices..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <select 
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -168,13 +183,6 @@ export const InvoicesTab = () => {
             <option value="overdue">Overdue</option>
           </select>
         </div>
-        <button 
-          onClick={() => setShowCreatePage(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Invoice
-        </button>
       </div>
 
       {/* Invoices Table */}
@@ -243,15 +251,18 @@ export const InvoicesTab = () => {
         </div>
       </div>
 
+      {/* Empty State */}
       {filteredInvoices.length === 0 && (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No invoices found</h3>
-          <p className="text-gray-600 mb-4">
-            {searchTerm || statusFilter !== 'all' ? 'Try adjusting your search or filters' : 'Create your first invoice to get started'}
-          </p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No invoices found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter !== 'all' ? 'Try adjusting your search or filters' : 'Create your first invoice to get started'}
+            </p>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
