@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -12,7 +11,9 @@ import {
   Percent,
   Truck,
   Bell,
-  Palette
+  Palette,
+  Receipt,
+  BarChart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,8 @@ const navigation = [
       { id: 'recurring-templates', name: 'Recurring Templates', path: '/invoices#templates' }
     ]
   },
+  { id: 'expenses', name: 'Expenses', icon: Receipt, path: '/expenses' },
+  { id: 'reports', name: 'Reports', icon: BarChart, path: '/reports' },
   { 
     id: 'settings', 
     name: 'Settings', 
