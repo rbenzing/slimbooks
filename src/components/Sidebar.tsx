@@ -7,7 +7,12 @@ import {
   Settings as SettingsIcon,
   CreditCard,
   LogOut,
-  Calendar
+  Calendar,
+  Building,
+  Percent,
+  Truck,
+  Bell,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +31,21 @@ const navigation = [
       { id: 'recurring-templates', name: 'Recurring Templates', path: '/invoices#templates' }
     ]
   },
-  { id: 'settings', name: 'Settings', icon: SettingsIcon, path: '/settings' },
+  { 
+    id: 'settings', 
+    name: 'Settings', 
+    icon: SettingsIcon, 
+    path: '/settings',
+    subItems: [
+      { id: 'company', name: 'Company', path: '/settings#company' },
+      { id: 'general', name: 'General', path: '/settings#general' },
+      { id: 'tax', name: 'Tax Rates', path: '/settings#tax' },
+      { id: 'shipping', name: 'Shipping', path: '/settings#shipping' },
+      { id: 'stripe', name: 'Stripe Integration', path: '/settings#stripe' },
+      { id: 'notifications', name: 'Notifications', path: '/settings#notifications' },
+      { id: 'appearance', name: 'Appearance', path: '/settings#appearance' }
+    ]
+  },
 ];
 
 export const Sidebar: React.FC = () => {

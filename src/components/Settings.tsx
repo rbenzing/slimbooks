@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, 
   CreditCard, 
@@ -10,57 +11,36 @@ import {
   Truck,
   Building
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { TaxSettings } from './settings/TaxSettings';
 import { ShippingSettings } from './settings/ShippingSettings';
 import { CompanySettings } from './settings/CompanySettings';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');
+  const location = useLocation();
 
-  const tabs = [
-    { id: 'company', name: 'Company', icon: Building },
-    { id: 'general', name: 'General', icon: SettingsIcon },
-    { id: 'tax', name: 'Tax Rates', icon: Percent },
-    { id: 'shipping', name: 'Shipping', icon: Truck },
-    { id: 'stripe', name: 'Stripe Integration', icon: CreditCard },
-    { id: 'notifications', name: 'Notifications', icon: Bell },
-    { id: 'appearance', name: 'Appearance', icon: Palette },
-  ];
+  // Set active tab based on URL hash or default to company
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash && ['company', 'general', 'tax', 'shipping', 'stripe', 'notifications', 'appearance'].includes(hash)) {
+      setActiveTab(hash);
+    } else {
+      setActiveTab('company');
+    }
+  }, [location.hash]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Manage your application preferences and integrations</p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Settings Navigation */}
-        <div className="lg:w-64">
-          <nav className="space-y-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className={`mr-3 h-4 w-4 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-400'}`} />
-                  {tab.name}
-                </button>
-              );
-            })}
-          </nav>
+    <div className="h-full bg-gray-100">
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600">Manage your application preferences and integrations</p>
         </div>
 
-        {/* Settings Content */}
-        <div className="flex-1">
+        {/* Content */}
+        <div className="space-y-6">
           {activeTab === 'company' && <CompanySettings />}
           {activeTab === 'general' && <GeneralSettings />}
           {activeTab === 'tax' && <TaxSettings />}
