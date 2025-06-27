@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Edit, Receipt, Eye } from 'lucide-react';
+import { Edit, Receipt, Eye, Trash2 } from 'lucide-react';
 
 interface Expense {
   id: number;
@@ -17,9 +17,10 @@ interface Expense {
 interface ExpensesListProps {
   expenses: Expense[];
   onEditExpense: (expense: Expense) => void;
+  onDeleteExpense: (id: number) => void;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpense }) => {
+export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpense, onDeleteExpense }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-orange-100 text-orange-800';
@@ -35,6 +36,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleDelete = (id: number, merchant: string) => {
+    if (window.confirm(`Are you sure you want to delete the expense from ${merchant}?`)) {
+      onDeleteExpense(id);
+    }
   };
 
   return (
@@ -116,6 +123,13 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
                       title="View details"
                     >
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(expense.id, expense.merchant)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete expense"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </td>

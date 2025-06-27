@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Receipt, DollarSign, Calendar, FileText } from 'lucide-react';
 import { ExpenseForm } from './expenses/ExpenseForm';
 import { ExpensesList } from './expenses/ExpensesList';
+import { expenseOperations } from '../lib/database';
+import { toast } from 'sonner';
 
 interface Expense {
   id: number;
@@ -14,6 +16,7 @@ interface Expense {
   receipt_url?: string;
   status: 'pending' | 'approved' | 'reimbursed';
   created_at: string;
+  updated_at: string;
 }
 
 export const ExpenseManagement: React.FC = () => {
@@ -22,30 +25,16 @@ export const ExpenseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // Mock data - replace with actual data fetching
-  const [expenses] = useState<Expense[]>([
-    {
-      id: 1,
-      date: '2024-01-15',
-      merchant: 'Office Depot',
-      category: 'Office Supplies',
-      amount: 125.50,
-      description: 'Printer paper and ink cartridges',
-      status: 'approved',
-      created_at: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: 2,
-      date: '2024-01-14',
-      merchant: 'Starbucks',
-      category: 'Meals & Entertainment',
-      amount: 45.75,
-      description: 'Client meeting coffee',
-      status: 'pending',
-      created_at: '2024-01-14T14:20:00Z'
-    }
-  ]);
+  useEffect(() => {
+    loadExpenses();
+  }, []);
+
+  const loadExpenses = () => {
+    const allExpenses = expenseOperations.getAll();
+    setExpenses(allExpenses);
+  };
 
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = expense.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,6 +60,35 @@ export const ExpenseManagement: React.FC = () => {
     setShowCreateForm(true);
   };
 
+  const handleSaveExpense = (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      if (editingExpense) {
+        expenseOperations.update(editingExpense.id, expenseData);
+        toast.success('Expense updated successfully');
+      } else {
+        expenseOperations.create(expenseData);
+        toast.success('Expense created successfully');
+      }
+      loadExpenses();
+      setShowCreateForm(false);
+      setEditingExpense(null);
+    } catch (error) {
+      toast.error('Failed to save expense');
+      console.error('Error saving expense:', error);
+    }
+  };
+
+  const handleDeleteExpense = (id: number) => {
+    try {
+      expenseOperations.delete(id);
+      toast.success('Expense deleted successfully');
+      loadExpenses();
+    } catch (error) {
+      toast.error('Failed to delete expense');
+      console.error('Error deleting expense:', error);
+    }
+  };
+
   const handleCloseForm = () => {
     setShowCreateForm(false);
     setEditingExpense(null);
@@ -80,7 +98,7 @@ export const ExpenseManagement: React.FC = () => {
     return (
       <ExpenseForm 
         expense={editingExpense}
-        onSave={handleCloseForm}
+        onSave={handleSaveExpense}
         onCancel={handleCloseForm}
       />
     );
@@ -186,6 +204,7 @@ export const ExpenseManagement: React.FC = () => {
       <ExpensesList 
         expenses={filteredExpenses}
         onEditExpense={handleEditExpense}
+        onDeleteExpense={handleDeleteExpense}
       />
 
       {/* Empty State */}

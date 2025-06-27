@@ -15,7 +15,7 @@ interface Expense {
 
 interface ExpenseFormProps {
   expense?: Expense | null;
-  onSave: () => void;
+  onSave: (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
 }
 
@@ -26,7 +26,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     category: expense?.category || 'Office Supplies',
     amount: expense?.amount?.toString() || '',
     description: expense?.description || '',
-    receipt_url: expense?.receipt_url || ''
+    receipt_url: expense?.receipt_url || '',
+    status: expense?.status || 'pending' as const
   });
 
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -34,10 +35,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Here you would save the expense data
-    console.log('Saving expense:', formData);
+    const expenseData = {
+      date: formData.date,
+      merchant: formData.merchant,
+      category: formData.category,
+      amount: parseFloat(formData.amount),
+      description: formData.description,
+      receipt_url: formData.receipt_url,
+      status: formData.status
+    };
     
-    onSave();
+    onSave(expenseData);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +53,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     if (file) {
       setReceiptFile(file);
       // In a real app, you'd upload this file and get a URL
+      setFormData({ ...formData, receipt_url: `receipt_${Date.now()}.${file.name.split('.').pop()}` });
       console.log('Receipt file selected:', file.name);
     }
   };
@@ -139,6 +148,21 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 <option value="Utilities">Utilities</option>
                 <option value="Professional Services">Professional Services</option>
                 <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'pending' | 'approved' | 'reimbursed' })}
+              >
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="reimbursed">Reimbursed</option>
               </select>
             </div>
 

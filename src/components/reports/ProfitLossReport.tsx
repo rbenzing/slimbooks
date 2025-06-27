@@ -1,33 +1,33 @@
 
-import React from 'react';
-import { ArrowLeft, Download, TrendingUp, TrendingDown } from 'lucide-react';
-import { DateRange } from '../ReportsManagement';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Download, TrendingUp, TrendingDown, Save } from 'lucide-react';
+import { DateRange, ReportType } from '../ReportsManagement';
+import { reportOperations } from '../../lib/database';
 
 interface ProfitLossReportProps {
   dateRange: DateRange;
   onBack: () => void;
+  onSave: (reportData: any, reportType: ReportType) => void;
 }
 
-export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ dateRange, onBack }) => {
-  // Mock data - replace with actual calculations
-  const reportData = {
-    revenue: {
-      invoices: 125000,
-      otherIncome: 5000,
-      total: 130000
-    },
-    expenses: {
-      officeSupplies: 2500,
-      meals: 1200,
-      travel: 3500,
-      software: 8000,
-      marketing: 4500,
-      utilities: 1800,
-      professional: 12000,
-      other: 1500,
-      total: 35000
-    },
-    netIncome: 95000
+export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ dateRange, onBack, onSave }) => {
+  const [reportData, setReportData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    generateReportData();
+  }, [dateRange]);
+
+  const generateReportData = () => {
+    setLoading(true);
+    try {
+      const data = reportOperations.generateProfitLossData(dateRange.start, dateRange.end);
+      setReportData(data);
+    } catch (error) {
+      console.error('Error generating report data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -51,6 +51,47 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ dateRange, o
     return `${start} - ${end}`;
   };
 
+  const handleSave = () => {
+    if (reportData) {
+      onSave(reportData, 'profit-loss');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center">
+          <button onClick={onBack} className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Back to Reports
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Generating Report...</h1>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Please wait while we generate your report...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!reportData) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center">
+          <button onClick={onBack} className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Back to Reports
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Error Generating Report</h1>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-gray-600">Unable to generate report data.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -68,10 +109,19 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ dateRange, o
             <p className="text-gray-600">{formatDateRange()}</p>
           </div>
         </div>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <Download className="h-4 w-4 mr-2" />
-          Export PDF
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={handleSave}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Report
+          </button>
+          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -143,38 +193,15 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ dateRange, o
             <div>
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Expenses</h4>
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Office Supplies</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.officeSupplies)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Meals & Entertainment</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.meals)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Travel</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.travel)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Software</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.software)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Marketing</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.marketing)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Utilities</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.utilities)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Professional Services</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.professional)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-700">Other</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(reportData.expenses.other)}</span>
-                </div>
+                {Object.entries(reportData.expenses).map(([category, amount]) => {
+                  if (category === 'total') return null;
+                  return (
+                    <div key={category} className="flex justify-between items-center py-2">
+                      <span className="text-gray-700">{category}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(amount as number)}</span>
+                    </div>
+                  );
+                })}
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between items-center py-2">
                     <span className="font-semibold text-gray-900">Total Expenses</span>
