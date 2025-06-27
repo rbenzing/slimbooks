@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X, Eye } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -15,9 +15,10 @@ interface LineItem {
 interface CreateInvoicePageProps {
   onBack: () => void;
   editingInvoice?: any;
+  viewOnly?: boolean;
 }
 
-export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, editingInvoice }) => {
+export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, editingInvoice, viewOnly = false }) => {
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState({
@@ -55,7 +56,34 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
     }
     
-    if (!editingInvoice) {
+    // Load existing invoice data if editing
+    if (editingInvoice) {
+      setInvoiceData({
+        invoice_number: editingInvoice.invoice_number || '',
+        due_date: editingInvoice.due_date || '',
+        status: editingInvoice.status || 'draft'
+      });
+
+      // Find and set the client
+      const client = allClients.find(c => c.id === editingInvoice.client_id);
+      if (client) {
+        setSelectedClient(client);
+      }
+
+      // Parse line items from description (basic implementation)
+      // In a real app, you'd store line items separately
+      if (editingInvoice.description) {
+        const descriptions = editingInvoice.description.split(', ');
+        const items = descriptions.map((desc: string, index: number) => ({
+          id: (index + 1).toString(),
+          description: desc,
+          quantity: 1,
+          rate: editingInvoice.amount / descriptions.length,
+          amount: editingInvoice.amount / descriptions.length
+        }));
+        setLineItems(items);
+      }
+    } else {
       setInvoiceData(prev => ({
         ...prev,
         invoice_number: `INV-${Date.now()}`
@@ -114,7 +142,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   };
 
   const handleSave = () => {
-    if (!isValidForSave()) {
+    if (!isValidForSave() || viewOnly) {
       return;
     }
 
@@ -140,6 +168,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (viewOnly) return;
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -162,22 +191,30 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Invoices
           </button>
-          <div className="flex space-x-3">
-            <button
-              onClick={handleSave}
-              disabled={!isValidForSave()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              Save Invoice
-            </button>
-          </div>
+          {!viewOnly && (
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSave}
+                disabled={!isValidForSave()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {editingInvoice ? 'Update Invoice' : 'Save Invoice'}
+              </button>
+            </div>
+          )}
+          {viewOnly && (
+            <div className="flex items-center text-blue-600">
+              <Eye className="h-4 w-4 mr-2" />
+              <span className="font-medium">View Mode</span>
+            </div>
+          )}
         </div>
 
         {/* Invoice Layout */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Company Header */}
           <div className="flex justify-between items-start mb-8">
-            <CompanyHeader companyLogo={companyLogo} onLogoUpload={handleLogoUpload} />
+            <CompanyHeader companyLogo={companyLogo} onLogoUpload={viewOnly ? undefined : handleLogoUpload} />
             <div className="text-right">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h2>
               <div className="space-y-1">
@@ -186,9 +223,10 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   <input
                     type="text"
                     value={invoiceData.invoice_number}
-                    onChange={(e) => setInvoiceData({...invoiceData, invoice_number: e.target.value})}
-                    className="block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right"
+                    onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, invoice_number: e.target.value})}
+                    className={`block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right ${viewOnly ? 'bg-gray-50' : ''}`}
                     required
+                    disabled={viewOnly}
                   />
                 </div>
                 <div>
@@ -196,8 +234,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   <input
                     type="date"
                     value={invoiceData.due_date}
-                    onChange={(e) => setInvoiceData({...invoiceData, due_date: e.target.value})}
-                    className="block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right"
+                    onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, due_date: e.target.value})}
+                    className={`block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right ${viewOnly ? 'bg-gray-50' : ''}`}
+                    disabled={viewOnly}
                   />
                 </div>
               </div>
@@ -209,7 +248,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             <ClientSelector
               clients={clients}
               selectedClient={selectedClient}
-              onClientSelect={setSelectedClient}
+              onClientSelect={viewOnly ? () => {} : setSelectedClient}
+              disabled={viewOnly}
             />
           </div>
 
@@ -222,7 +262,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   <th className="text-center py-3 font-semibold w-20">Qty</th>
                   <th className="text-right py-3 font-semibold w-24">Rate</th>
                   <th className="text-right py-3 font-semibold w-24">Amount</th>
-                  <th className="w-8"></th>
+                  {!viewOnly && <th className="w-8"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -232,57 +272,64 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       <input
                         type="text"
                         value={item.description}
-                        onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                        onChange={(e) => !viewOnly && updateLineItem(item.id, 'description', e.target.value)}
                         placeholder="Enter description *"
-                        className="w-full border-0 focus:ring-0 p-0"
+                        className={`w-full border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
                         required
+                        disabled={viewOnly}
                       />
                     </td>
                     <td className="py-3 text-center">
                       <input
                         type="number"
                         value={item.quantity}
-                        onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        className="w-full text-center border-0 focus:ring-0 p-0"
+                        onChange={(e) => !viewOnly && updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                        className={`w-full text-center border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
                         min="0"
                         step="0.01"
+                        disabled={viewOnly}
                       />
                     </td>
                     <td className="py-3 text-right">
                       <input
                         type="number"
                         value={item.rate}
-                        onChange={(e) => updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                        className="w-full text-right border-0 focus:ring-0 p-0"
+                        onChange={(e) => !viewOnly && updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                        className={`w-full text-right border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
                         min="0"
                         step="0.01"
+                        disabled={viewOnly}
                       />
                     </td>
                     <td className="py-3 text-right font-medium">
                       ${item.amount.toFixed(2)}
                     </td>
-                    <td className="py-3">
-                      {lineItems.length > 1 && (
-                        <button
-                          onClick={() => removeLineItem(item.id)}
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
+                    {!viewOnly && (
+                      <td className="py-3">
+                        {lineItems.length > 1 && (
+                          <button
+                            onClick={() => removeLineItem(item.id)}
+                            className="text-red-400 hover:text-red-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
             
-            <button
-              onClick={addLineItem}
-              className="mt-3 flex items-center text-blue-600 hover:text-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Line Item
-            </button>
+            {!viewOnly && (
+              <button
+                onClick={addLineItem}
+                className="mt-3 flex items-center text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Line Item
+              </button>
+            )}
           </div>
 
           {/* Tax and Shipping */}
@@ -293,10 +340,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                 <select
                   value={selectedTaxRate?.id || ''}
                   onChange={(e) => {
-                    const rate = taxRates.find(r => r.id === e.target.value);
-                    setSelectedTaxRate(rate || null);
+                    if (!viewOnly) {
+                      const rate = taxRates.find(r => r.id === e.target.value);
+                      setSelectedTaxRate(rate || null);
+                    }
                   }}
-                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className={`w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : 'bg-white'}`}
+                  disabled={viewOnly}
                 >
                   <option value="">No Tax</option>
                   {taxRates.map((rate) => (
@@ -312,10 +362,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                 <select
                   value={selectedShippingRate?.id || ''}
                   onChange={(e) => {
-                    const rate = shippingRates.find(r => r.id === e.target.value);
-                    setSelectedShippingRate(rate || null);
+                    if (!viewOnly) {
+                      const rate = shippingRates.find(r => r.id === e.target.value);
+                      setSelectedShippingRate(rate || null);
+                    }
                   }}
-                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className={`w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : 'bg-white'}`}
+                  disabled={viewOnly}
                 >
                   <option value="">No Shipping</option>
                   {shippingRates.map((rate) => (
@@ -358,10 +411,11 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             <label className="block text-sm font-medium text-gray-700 mb-2">Thank You Message</label>
             <textarea
               value={thankYouMessage}
-              onChange={(e) => setThankYouMessage(e.target.value)}
+              onChange={(e) => !viewOnly && setThankYouMessage(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : ''}`}
               placeholder="Add a personal message to your client..."
+              disabled={viewOnly}
             />
           </div>
         </div>

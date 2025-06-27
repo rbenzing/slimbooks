@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
@@ -43,6 +42,7 @@ export const InvoicesTab = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreatePage, setShowCreatePage] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     loadInvoices();
@@ -71,12 +71,20 @@ export const InvoicesTab = () => {
 
   const handleEditInvoice = (invoice: Invoice) => {
     setEditingInvoice(invoice);
+    setViewingInvoice(null);
+    setShowCreatePage(true);
+  };
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    setViewingInvoice(invoice);
+    setEditingInvoice(null);
     setShowCreatePage(true);
   };
 
   const handleBackToList = () => {
     setShowCreatePage(false);
     setEditingInvoice(null);
+    setViewingInvoice(null);
     loadInvoices();
   };
 
@@ -85,6 +93,7 @@ export const InvoicesTab = () => {
       <CreateInvoicePage
         onBack={handleBackToList}
         editingInvoice={editingInvoice}
+        viewOnly={!!viewingInvoice}
       />
     );
   }
@@ -230,14 +239,23 @@ export const InvoicesTab = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button 
+                          onClick={() => handleViewInvoice(invoice)}
+                          className="text-gray-400 hover:text-green-600 transition-colors"
+                          title="View Invoice"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button 
                           onClick={() => handleEditInvoice(invoice)}
                           className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Edit Invoice"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteInvoice(invoice.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete Invoice"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
