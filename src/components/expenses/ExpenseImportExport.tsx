@@ -385,5 +385,6 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
