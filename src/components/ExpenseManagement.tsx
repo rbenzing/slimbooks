@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Receipt, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Plus, Search, Receipt, DollarSign, Calendar, FileText, Upload } from 'lucide-react';
 import { ExpenseForm } from './expenses/ExpenseForm';
 import { ExpensesList } from './expenses/ExpensesList';
+import { ExpenseImportExport } from './expenses/ExpenseImportExport';
 import { expenseOperations } from '../lib/database';
 import { toast } from 'sonner';
 
@@ -26,6 +26,7 @@ export const ExpenseManagement: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [showImportExport, setShowImportExport] = useState(false);
 
   useEffect(() => {
     loadExpenses();
@@ -112,13 +113,22 @@ export const ExpenseManagement: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
           <p className="text-gray-600">Track and manage company expenses</p>
         </div>
-        <button 
-          onClick={handleCreateExpense}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Expense
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => setShowImportExport(true)}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import/Export
+          </button>
+          <button 
+            onClick={handleCreateExpense}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -221,6 +231,14 @@ export const ExpenseManagement: React.FC = () => {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Import/Export Modal */}
+      {showImportExport && (
+        <ExpenseImportExport
+          onClose={() => setShowImportExport(false)}
+          onImportComplete={loadExpenses}
+        />
       )}
     </div>
   );

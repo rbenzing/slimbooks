@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -9,10 +8,13 @@ import {
   Mail, 
   Phone,
   Building,
-  MapPin
+  MapPin,
+  Upload,
+  Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clientOperations } from '@/lib/database';
+import { ClientImportExport } from './clients/ClientImportExport';
 
 interface Client {
   id: number;
@@ -32,6 +34,7 @@ export const ClientManagement = () => {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showImportExport, setShowImportExport] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -77,13 +80,22 @@ export const ClientManagement = () => {
             <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
             <p className="text-gray-600">Manage your client database and contact information</p>
           </div>
-          <button 
-            onClick={() => navigate('/clients/new')}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </button>
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => setShowImportExport(true)}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import/Export
+            </button>
+            <button 
+              onClick={() => navigate('/clients/new')}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -213,6 +225,14 @@ export const ClientManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Import/Export Modal */}
+      {showImportExport && (
+        <ClientImportExport
+          onClose={() => setShowImportExport(false)}
+          onImportComplete={loadClients}
+        />
+      )}
     </div>
   );
 };
