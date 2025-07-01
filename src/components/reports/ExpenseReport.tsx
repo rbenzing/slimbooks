@@ -1,18 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, Save } from 'lucide-react';
+import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
 import { expenseOperations } from '../../lib/database';
 
 interface ExpenseReportProps {
-  dateRange: DateRange;
   onBack: () => void;
-  onSave: (reportData: any, reportType: ReportType) => void;
+  onSave: (reportData: any, reportType: ReportType, dateRange: DateRange) => void;
 }
 
-export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack, onSave }) => {
+export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0],
+    preset: 'this-month'
+  });
 
   useEffect(() => {
     generateReportData();
@@ -49,6 +53,51 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack,
     }
   };
 
+  const handleDatePresetChange = (preset: DateRange['preset']) => {
+    const today = new Date();
+    let start: Date;
+    let end: Date;
+
+    switch (preset) {
+      case 'this-month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = today;
+        break;
+      case 'last-month':
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'this-quarter':
+        const currentQuarter = Math.floor(today.getMonth() / 3);
+        start = new Date(today.getFullYear(), currentQuarter * 3, 1);
+        end = today;
+        break;
+      case 'last-quarter':
+        const lastQuarter = Math.floor(today.getMonth() / 3) - 1;
+        const year = lastQuarter < 0 ? today.getFullYear() - 1 : today.getFullYear();
+        const quarter = lastQuarter < 0 ? 3 : lastQuarter;
+        start = new Date(year, quarter * 3, 1);
+        end = new Date(year, (quarter + 1) * 3, 0);
+        break;
+      case 'this-year':
+        start = new Date(today.getFullYear(), 0, 1);
+        end = today;
+        break;
+      case 'last-year':
+        start = new Date(today.getFullYear() - 1, 0, 1);
+        end = new Date(today.getFullYear() - 1, 11, 31);
+        break;
+      default:
+        return;
+    }
+
+    setDateRange({
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+      preset
+    });
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -72,7 +121,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack,
 
   const handleSave = () => {
     if (reportData) {
-      onSave(reportData, 'expense');
+      onSave(reportData, 'expense', dateRange);
     }
   };
 
@@ -126,6 +175,56 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack,
         </div>
       </div>
 
+      {/* Date Range Selector */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <Calendar className="h-5 w-5 mr-2" />
+          Report Date Range
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quick Select
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={dateRange.preset}
+              onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+            >
+              <option value="this-month">This Month</option>
+              <option value="last-month">Last Month</option>
+              <option value="this-quarter">This Quarter</option>
+              <option value="last-quarter">Last Quarter</option>
+              <option value="this-year">This Year</option>
+              <option value="last-year">Last Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Start Date
+            </label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={dateRange.start}
+              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value, preset: 'custom' })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              End Date
+            </label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={dateRange.end}
+              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value, preset: 'custom' })}
+            />
+          </div>
+        </div>
+      </div>
+
       {reportData && (
         <>
           {/* Summary */}
@@ -163,7 +262,6 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack,
             </div>
           </div>
 
-          {/* Status Breakdown */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Expenses by Status</h3>
@@ -180,7 +278,6 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ dateRange, onBack,
             </div>
           </div>
 
-          {/* Detailed List */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Detailed Expense List</h3>
