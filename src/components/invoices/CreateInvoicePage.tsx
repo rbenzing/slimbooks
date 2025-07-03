@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X, Eye } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
 
 interface LineItem {
   id: string;
@@ -35,6 +36,24 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [originalFormData, setOriginalFormData] = useState<any>(null);
+
+  // Track if form has been modified
+  const currentState = {
+    selectedClient: selectedClient?.id || null,
+    invoiceData,
+    lineItems,
+    selectedTaxRate: selectedTaxRate?.id || null,
+    selectedShippingRate: selectedShippingRate?.id || null,
+    thankYouMessage
+  };
+  const isDirty = originalFormData ? JSON.stringify(currentState) !== JSON.stringify(originalFormData) : false;
+  
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty,
+    isEnabled: !viewOnly,
+    entityType: 'invoice'
+  });
 
   useEffect(() => {
     const allClients = clientOperations.getAll();
@@ -89,6 +108,18 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         invoice_number: `INV-${Date.now()}`
       }));
     }
+
+    // Set original form data for dirty checking
+    setTimeout(() => {
+      setOriginalFormData({
+        selectedClient: selectedClient?.id || null,
+        invoiceData,
+        lineItems,
+        selectedTaxRate: selectedTaxRate?.id || null,
+        selectedShippingRate: selectedShippingRate?.id || null,
+        thankYouMessage
+      });
+    }, 100);
   }, [editingInvoice]);
 
   const addLineItem = () => {
@@ -185,7 +216,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={onBack}
+            onClick={() => viewOnly ? onBack() : confirmNavigation('back')}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -420,6 +451,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           </div>
         </div>
       </div>
+      
+      {!viewOnly && <NavigationGuard />}
     </div>
   );
 };

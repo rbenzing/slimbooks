@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, User, Building, Mail, Phone, MapPin } from 'lucide-react';
 import { clientOperations } from '@/lib/database';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
+import { InternationalAddressForm } from '@/components/ui/InternationalAddressForm';
 
 interface ClientFormData {
   firstName: string;
@@ -13,6 +15,7 @@ interface ClientFormData {
   companyEmail: string;
   companyPhone: string;
   address: string;
+  address2: string;
   city: string;
   state: string;
   zipCode: string;
@@ -33,6 +36,7 @@ export const EditClientPage = () => {
     companyEmail: '',
     companyPhone: '',
     address: '',
+    address2: '',
     city: '',
     state: '',
     zipCode: '',
@@ -41,6 +45,16 @@ export const EditClientPage = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [originalFormData, setOriginalFormData] = useState<ClientFormData | null>(null);
+
+  // Check if form has been modified
+  const isDirty = originalFormData ? JSON.stringify(formData) !== JSON.stringify(originalFormData) : false;
+  
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty,
+    isEnabled: true,
+    entityType: 'client'
+  });
 
   useEffect(() => {
     if (isEditing && id) {
@@ -51,7 +65,7 @@ export const EditClientPage = () => {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        setFormData({
+        const clientData = {
           firstName,
           lastName,
           email: client.email,
@@ -60,12 +74,33 @@ export const EditClientPage = () => {
           companyEmail: '',
           companyPhone: '',
           address: client.address,
+          address2: '',
           city: client.city,
           state: client.state,
           zipCode: client.zipCode,
           country: client.country
-        });
+        };
+        setFormData(clientData);
+        setOriginalFormData(clientData);
       }
+    } else {
+      // For new clients, set original data after initial load
+      const initialData = {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        companyName: '',
+        companyEmail: '',
+        companyPhone: '',
+        address: '',
+        address2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: 'USA'
+      };
+      setOriginalFormData(initialData);
     }
   }, [id, isEditing]);
 
@@ -132,7 +167,7 @@ export const EditClientPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate('/clients')}
+              onClick={() => confirmNavigation('/clients')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="h-5 w-5 text-gray-600" />
@@ -280,44 +315,6 @@ export const EditClientPage = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                  <input
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) => handleInputChange('state', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Zip Code</label>
-                  <input
-                    type="text"
-                    value={formData.zipCode}
-                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
                 <select
                   value={formData.country}
@@ -328,12 +325,22 @@ export const EditClientPage = () => {
                   <option value="Canada">Canada</option>
                   <option value="UK">United Kingdom</option>
                   <option value="Australia">Australia</option>
+                  <option value="Germany">Germany</option>
+                  <option value="France">France</option>
                 </select>
               </div>
+              <InternationalAddressForm
+                country={formData.country}
+                formData={formData}
+                onChange={handleInputChange}
+                errors={errors}
+              />
             </div>
           </div>
         </div>
       </div>
+      
+      <NavigationGuard />
     </div>
   );
 };

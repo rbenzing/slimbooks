@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, X, Receipt } from 'lucide-react';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
 
 interface Expense {
   id?: number;
@@ -31,6 +32,29 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   });
 
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [originalFormData, setOriginalFormData] = useState<any>(null);
+
+  // Track if form has been modified
+  const isDirty = originalFormData ? JSON.stringify(formData) !== JSON.stringify(originalFormData) : false;
+  
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty,
+    isEnabled: true,
+    entityType: 'expense'
+  });
+
+  useEffect(() => {
+    const initialData = {
+      date: expense?.date || new Date().toISOString().split('T')[0],
+      merchant: expense?.merchant || '',
+      category: expense?.category || 'Office Supplies',
+      amount: expense?.amount?.toString() || '',
+      description: expense?.description || '',
+      receipt_url: expense?.receipt_url || '',
+      status: expense?.status || 'pending' as const
+    };
+    setOriginalFormData(initialData);
+  }, [expense]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +93,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         {/* Header */}
         <div className="flex items-center mb-6">
           <button
-            onClick={onCancel}
+            onClick={() => confirmNavigation('back')}
             className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
           >
             <ArrowLeft className="h-5 w-5 mr-1" />
@@ -221,7 +245,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             <div className="flex justify-end space-x-4 pt-4">
               <button
                 type="button"
-                onClick={onCancel}
+                onClick={() => confirmNavigation('back')}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
@@ -236,6 +260,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
           </form>
         </div>
       </div>
+      
+      <NavigationGuard />
     </div>
   );
 };

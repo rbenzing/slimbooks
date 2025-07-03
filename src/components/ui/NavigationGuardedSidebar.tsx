@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,20 +55,15 @@ const navigation = [
   },
 ];
 
-interface SidebarProps {
-  onNavigationAttempt?: (path: string) => void;
+interface NavigationGuardedSidebarProps {
+  onNavigate: (path: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
+export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> = ({ onNavigate }) => {
   const { logout, user } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingPath, setPendingPath] = useState<string>('');
-  
-  // Check if we're on a form page that needs navigation protection
-  const isOnFormPage = location.pathname.includes('/new') || location.pathname.includes('/edit') || 
-                       location.pathname.includes('/create');
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -88,22 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   };
 
   const handleNavigation = (path: string) => {
-    if (onNavigationAttempt && isOnFormPage) {
-      onNavigationAttempt(path);
-    } else {
-      navigate(path);
-    }
-  };
-
-  const handleConfirmNavigation = () => {
-    navigate(pendingPath);
-    setShowConfirmDialog(false);
-    setPendingPath('');
-  };
-
-  const handleCancelNavigation = () => {
-    setShowConfirmDialog(false);
-    setPendingPath('');
+    setPendingPath(path);
+    onNavigate(path);
   };
 
   return (
@@ -186,26 +167,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
           </button>
         </div>
       </div>
-
-      {/* Navigation Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to leave this page? Any unsaved changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelNavigation}>
-              No, Continue Editing
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmNavigation}>
-              Yes, Discard Changes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
