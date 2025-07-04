@@ -29,6 +29,14 @@ interface Invoice {
   type: string;
   created_at: string;
   updated_at: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  client_address?: string;
+  line_items?: string;
+  tax_amount?: number;
+  shipping_amount?: number;
+  notes?: string;
 }
 
 interface InvoiceTemplate {
@@ -42,6 +50,11 @@ interface InvoiceTemplate {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  line_items?: string;
+  tax_amount?: number;
+  shipping_amount?: number;
+  notes?: string;
+  payment_terms?: string;
 }
 
 interface Expense {
@@ -440,6 +453,20 @@ export const templateOperations = {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
   
+  getById: (id: number): (InvoiceTemplate & { client_name: string }) | undefined => {
+    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
+    const clients = getStorageData<Client>(CLIENTS_KEY);
+    const template = templates.find(t => t.id === id);
+    
+    if (!template) return undefined;
+    
+    const client = clients.find(c => c.id === template.client_id);
+    return {
+      ...template,
+      client_name: client?.name || 'Unknown Client'
+    };
+  },
+  
   create: (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>): { lastInsertRowid: number } => {
     const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
     const id = getNextId('templates');
@@ -459,7 +486,7 @@ export const templateOperations = {
     return { lastInsertRowid: id };
   },
   
-  update: (id: number, templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>): { changes: number } => {
+  update: (id: number, templateData: Partial<Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>>): { changes: number } => {
     const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
     const index = templates.findIndex(template => template.id === id);
     

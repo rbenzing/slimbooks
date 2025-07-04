@@ -1,5 +1,5 @@
 
-import { templateOperations, invoiceOperations } from '@/lib/database';
+import { templateOperations, invoiceOperations, clientOperations } from '@/lib/database';
 
 export const processRecurringInvoices = () => {
   const templates = templateOperations.getAll();
@@ -14,20 +14,31 @@ export const processRecurringInvoices = () => {
     if (nextInvoiceDate <= today) {
       console.log(`Creating recurring invoice for template: ${template.name}`);
       
+      // Get client information
+      const client = clientOperations.getById(template.client_id);
+      if (!client) {
+        console.error(`Client not found for template ${template.name}`);
+        return;
+      }
+      
       // Create the invoice
       const invoiceData = {
-        client_name: template.client_name,
-        client_email: template.client_email,
-        client_phone: template.client_phone,
-        client_address: template.client_address,
+        client_id: template.client_id,
+        template_id: template.id,
         amount: template.amount,
-        line_items: template.line_items,
-        tax_amount: template.tax_amount,
-        shipping_amount: template.shipping_amount,
-        notes: template.notes,
-        status: 'draft',
+        status: 'draft' as const,
         invoice_number: generateInvoiceNumber(),
-        due_date: calculateDueDate(template.payment_terms)
+        due_date: calculateDueDate(template.payment_terms || 'net_30'),
+        description: template.description,
+        type: 'invoice' as const,
+        client_name: client.name,
+        client_email: client.email,
+        client_phone: client.phone,
+        client_address: `${client.address}, ${client.city}, ${client.state} ${client.zipCode}`,
+        line_items: template.line_items || '[]',
+        tax_amount: template.tax_amount || 0,
+        shipping_amount: template.shipping_amount || 0,
+        notes: template.notes || ''
       };
 
       invoiceOperations.create(invoiceData);
@@ -37,7 +48,6 @@ export const processRecurringInvoices = () => {
       
       // Update the template with the new next invoice date
       templateOperations.update(template.id, {
-        ...template,
         next_invoice_date: nextDate.toISOString().split('T')[0]
       });
 
