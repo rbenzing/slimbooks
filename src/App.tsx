@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './contexts/AuthContext';
@@ -16,12 +16,41 @@ import { Settings } from './components/Settings';
 import { LoginForm } from './components/LoginForm';
 import NotFound from './pages/NotFound';
 import { Toaster } from './components/ui/sonner';
+import { processRecurringInvoices } from './utils/recurringProcessor';
 import './App.css';
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const { isAuthenticated } = useAuth();
+
+  // Apply theme on app load
+  useEffect(() => {
+    const theme = localStorage.getItem('theme') || 'system';
+    const root = document.documentElement;
+    
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.toggle('dark', systemTheme === 'dark');
+    } else {
+      root.classList.toggle('dark', theme === 'dark');
+    }
+  }, []);
+
+  // Process recurring invoices on app load and periodically
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Process immediately on load
+      processRecurringInvoices();
+      
+      // Set up interval to check every hour
+      const interval = setInterval(() => {
+        processRecurringInvoices();
+      }, 60 * 60 * 1000); // 1 hour in milliseconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (

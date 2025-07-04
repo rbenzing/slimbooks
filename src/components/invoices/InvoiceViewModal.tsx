@@ -16,11 +16,60 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
   const shippingAmount = invoice.shipping_amount || 0;
   const subtotal = invoice.amount - taxAmount - shippingAmount;
 
+  // Get template from localStorage or default to modern-blue
+  const template = localStorage.getItem('invoiceTemplate') || 'modern-blue';
+
+  const getTemplateStyles = () => {
+    switch (template) {
+      case 'classic-white':
+        return {
+          container: 'bg-white',
+          header: 'bg-gray-50 border-b-2 border-gray-200',
+          title: 'text-gray-800',
+          accent: 'text-gray-600',
+          tableHeader: 'bg-gray-100 border-gray-300',
+          statusColors: {
+            paid: 'bg-green-50 text-green-700 border-green-200',
+            sent: 'bg-blue-50 text-blue-700 border-blue-200',
+            draft: 'bg-gray-50 text-gray-700 border-gray-200'
+          }
+        };
+      case 'professional-gray':
+        return {
+          container: 'bg-gray-50',
+          header: 'bg-gray-800 text-white',
+          title: 'text-white',
+          accent: 'text-gray-300',
+          tableHeader: 'bg-gray-200 border-gray-400',
+          statusColors: {
+            paid: 'bg-green-100 text-green-900',
+            sent: 'bg-blue-100 text-blue-900',
+            draft: 'bg-yellow-100 text-yellow-900'
+          }
+        };
+      default: // modern-blue
+        return {
+          container: 'bg-white',
+          header: 'bg-blue-50 border-b-2 border-blue-200',
+          title: 'text-blue-900',
+          accent: 'text-blue-600',
+          tableHeader: 'bg-blue-50 border-blue-300',
+          statusColors: {
+            paid: 'bg-green-100 text-green-800',
+            sent: 'bg-blue-100 text-blue-800',
+            draft: 'bg-yellow-100 text-yellow-800'
+          }
+        };
+    }
+  };
+
+  const styles = getTemplateStyles();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Invoice Details</h2>
+      <div className={`${styles.container} rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto`}>
+        <div className={`flex justify-between items-center p-6 ${styles.header}`}>
+          <h2 className={`text-2xl font-bold ${styles.title}`}>Invoice Details</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -33,7 +82,7 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
           {/* Invoice Header */}
           <div className="flex justify-between items-start mb-8">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">INVOICE</h3>
+              <h3 className={`text-xl font-bold mb-2 ${styles.title}`}>INVOICE</h3>
               <div className="space-y-1 text-sm text-gray-600">
                 <p><strong>Invoice #:</strong> {invoice.invoice_number}</p>
                 <p><strong>Date:</strong> {new Date(invoice.created_at).toLocaleDateString()}</p>
@@ -44,9 +93,9 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
               <div className="text-sm text-gray-600">
                 <p><strong>Status:</strong> 
                   <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                    invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                    invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
+                    invoice.status === 'paid' ? styles.statusColors.paid :
+                    invoice.status === 'sent' ? styles.statusColors.sent :
+                    styles.statusColors.draft
                   }`}>
                     {invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft'}
                   </span>
@@ -74,7 +123,7 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
           <div className="mb-8">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-gray-300">
+                <tr className={`border-b-2 ${styles.tableHeader}`}>
                   <th className="text-left py-3 font-semibold">Description</th>
                   <th className="text-center py-3 font-semibold w-20">Qty</th>
                   <th className="text-right py-3 font-semibold w-24">Rate</th>
