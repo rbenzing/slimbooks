@@ -8,7 +8,6 @@ export const InvoiceManagement = () => {
   const [activeTab, setActiveTab] = useState('invoices');
   const location = useLocation();
 
-  // Set active tab based on URL hash or default to invoices
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     if (hash === 'templates') {
@@ -19,7 +18,7 @@ export const InvoiceManagement = () => {
   }, [location.hash]);
 
   return (
-    <div className="h-full bg-gray-100">
+    <div className="h-full bg-gray-100 dark:bg-gray-900">
       <div className="p-6">
         {activeTab === 'invoices' && <InvoicesTab />}
         {activeTab === 'templates' && <TemplatesTab />}

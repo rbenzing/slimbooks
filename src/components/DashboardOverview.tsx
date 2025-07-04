@@ -1,169 +1,175 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  FileText, 
-  DollarSign, 
-  TrendingUp
-} from 'lucide-react';
-import { clientOperations, invoiceOperations } from '@/lib/database';
+import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { DashboardChart } from './DashboardChart';
+import { invoiceOperations, clientOperations, expenseOperations } from '../lib/database';
 
 export const DashboardOverview = () => {
-  const [clients, setClients] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
   const [stats, setStats] = useState({
+    totalRevenue: 0,
     totalClients: 0,
-    activeInvoices: 0,
-    overdueCount: 0,
-    monthlyRevenue: 0,
-    paidInvoices: 0
+    totalInvoices: 0,
+    pendingInvoices: 0,
+    paidInvoices: 0,
+    overdueInvoices: 0,
+    totalExpenses: 0,
+    recentInvoices: [] as any[]
   });
 
   useEffect(() => {
-    const allClients = clientOperations.getAll();
-    const allInvoices = invoiceOperations.getAll();
-    
-    setClients(allClients);
-    setInvoices(allInvoices);
-
-    // Calculate stats
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const activeInvoices = allInvoices.filter(inv => inv.status !== 'paid');
-    const overdueInvoices = allInvoices.filter(inv => {
-      const dueDate = new Date(inv.due_date);
-      return inv.status !== 'paid' && dueDate < now;
-    });
-
-    const paidThisMonth = allInvoices.filter(inv => {
-      const createdDate = new Date(inv.created_at);
-      return inv.status === 'paid' && 
-             createdDate.getMonth() === currentMonth && 
-             createdDate.getFullYear() === currentYear;
-    });
-
-    const monthlyRevenue = paidThisMonth.reduce((sum, inv) => sum + inv.amount, 0);
-
-    setStats({
-      totalClients: allClients.length,
-      activeInvoices: activeInvoices.length,
-      overdueCount: overdueInvoices.length,
-      monthlyRevenue,
-      paidInvoices: paidThisMonth.length
-    });
+    loadDashboardData();
   }, []);
 
-  const statsData = [
-    { 
-      name: 'Total Clients', 
-      value: stats.totalClients.toString(), 
-      change: '+2 this month', 
-      icon: Users, 
-      color: 'bg-blue-500' 
-    },
-    { 
-      name: 'Active Invoices', 
-      value: stats.activeInvoices.toString(), 
-      change: `${stats.overdueCount} overdue`, 
-      icon: FileText, 
-      color: 'bg-green-500' 
-    },
-    { 
-      name: 'Monthly Revenue', 
-      value: `$${stats.monthlyRevenue.toLocaleString()}`, 
-      change: `${stats.paidInvoices} invoices paid`, 
-      icon: DollarSign, 
-      color: 'bg-purple-500' 
-    },
-    { 
-      name: 'Growth Rate', 
-      value: '18%', 
-      change: 'Year over year', 
-      icon: TrendingUp, 
-      color: 'bg-orange-500' 
-    },
-  ];
+  const loadDashboardData = () => {
+    try {
+      const invoices = invoiceOperations.getAll();
+      const clients = clientOperations.getAll();
+      const expenses = expenseOperations.getAll();
 
-  // Recent activity from invoices
-  const recentActivity = invoices.slice(0, 4).map(invoice => ({
-    type: invoice.status === 'paid' ? 'invoice' : invoice.status === 'overdue' ? 'overdue' : 'invoice',
-    client: invoice.client_name,
-    action: invoice.status === 'paid' 
-      ? `Invoice ${invoice.invoice_number} paid`
-      : invoice.status === 'overdue'
-      ? `Invoice ${invoice.invoice_number} overdue`
-      : `Invoice ${invoice.invoice_number} sent`,
-    time: new Date(invoice.created_at).toLocaleDateString(),
-    status: invoice.status === 'paid' ? 'success' : invoice.status === 'overdue' ? 'warning' : 'info'
-  }));
+      const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+      const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length;
+      const paidInvoices = invoices.filter(inv => inv.status === 'paid').length;
+      const overdueInvoices = invoices.filter(inv => {
+        const dueDate = new Date(inv.due_date);
+        return inv.status === 'pending' && dueDate < new Date();
+      }).length;
+      
+      const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const recentInvoices = invoices.slice(0, 5);
+
+      setStats({
+        totalRevenue,
+        totalClients: clients.length,
+        totalInvoices: invoices.length,
+        pendingInvoices,
+        paidInvoices,
+        overdueInvoices,
+        totalExpenses,
+        recentInvoices
+      });
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
+  };
 
   return (
-    <div className="h-full bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome back! Here's what's happening with your business.</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Welcome back! Here's an overview of your business.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {statsData.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.name} className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className={`${stat.color} p-3 rounded-lg`}>
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                    </div>
-                    <div className="ml-4 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                        <dd className="text-2xl font-semibold text-gray-900">{stat.value}</dd>
-                        <dd className="text-sm text-gray-600">{stat.change}</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${stats.totalRevenue.toFixed(2)}</p>
               </div>
-            );
-          })}
+              <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Clients</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalClients}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Invoices</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalInvoices}</p>
+              </div>
+              <FileText className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${stats.totalExpenses.toFixed(2)}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
         </div>
 
-        {/* Chart and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Chart */}
-          <DashboardChart invoices={invoices} />
-
-          {/* Recent Activity */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full ${
-                      activity.status === 'success' ? 'bg-green-400' :
-                      activity.status === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.client}</p>
-                      <p className="text-sm text-gray-600">{activity.action}</p>
-                      <p className="text-xs text-gray-400">{activity.time}</p>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-sm text-gray-500">No recent activity</p>
-                )}
+        {/* Invoice Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Invoices</p>
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingInvoices}</p>
               </div>
+              <Calendar className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Paid Invoices</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.paidInvoices}</p>
+              </div>
+              <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue Invoices</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.overdueInvoices}</p>
+              </div>
+              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Chart and Recent Invoices */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
+            <DashboardChart />
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Recent Invoices</h3>
+            <div className="space-y-3">
+              {stats.recentInvoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{invoice.client_name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">#{invoice.invoice_number}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">${invoice.amount.toFixed(2)}</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      invoice.status === 'paid' 
+                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                        : invoice.status === 'pending'
+                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                        : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                    }`}>
+                      {invoice.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {stats.recentInvoices.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">No invoices yet</p>
+              )}
             </div>
           </div>
         </div>

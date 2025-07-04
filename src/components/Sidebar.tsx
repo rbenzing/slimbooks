@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -66,13 +65,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if we're on a form page that needs navigation protection
   const isOnFormPage = location.pathname.includes('/new') || location.pathname.includes('/edit') || 
                        location.pathname.includes('/create');
 
-  // Use the form navigation hook for invoice forms
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
-    isDirty: true, // We'll assume forms are dirty when on form pages
+    isDirty: true,
     isEnabled: isOnFormPage && (location.pathname.includes('/invoices') || location.pathname.includes('/recurring')),
     entityType: 'invoice'
   });
@@ -105,13 +102,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   };
 
   return (
-    <div className="w-full bg-white shadow-lg h-full flex flex-col">
+    <div className="w-full bg-white dark:bg-gray-800 shadow-lg h-full flex flex-col">
       <div className="flex h-full flex-col">
         {/* Logo/Header */}
-        <div className="flex h-16 items-center border-b border-gray-200 px-6">
+        <div className="flex h-16 items-center border-b border-gray-200 dark:border-gray-700 px-6">
           <div className="flex items-center space-x-2">
-            <CreditCard className="h-8 w-8 text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-900">ClientBill Pro</h1>
+            <CreditCard className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">ClientBill Pro</h1>
           </div>
         </div>
 
@@ -127,14 +124,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
                   className={cn(
                     'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     parentActive && !item.subItems
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                   )}
                 >
                   <Icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      parentActive && !item.subItems ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
+                      parentActive && !item.subItems 
+                        ? 'text-blue-600 dark:text-blue-400' 
+                        : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'
                     )}
                   />
                   {item.name}
@@ -152,8 +151,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
                           className={cn(
                             'group flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors',
                             subActive
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                           )}
                         >
                           {subItem.name}
@@ -168,16 +167,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center mb-3">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Welcome, {user?.username}</p>
-              <p className="text-xs text-gray-500">Administrator</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Welcome, {user?.username}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
@@ -185,7 +184,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         </div>
       </div>
 
-      {/* Navigation Guard */}
       <NavigationGuard />
     </div>
   );
