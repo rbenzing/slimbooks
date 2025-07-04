@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X } from 'lucide-react';
 import { clientOperations, invoiceOperations, templateOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
 
 interface LineItem {
   id: string;
@@ -35,6 +36,16 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
+
+  // Check if form has unsaved changes
+  const isDirty = selectedClient !== null || templateData.name.trim() !== '' || 
+                  lineItems.some(item => item.description.trim() !== '');
+
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty,
+    isEnabled: true,
+    entityType: 'invoice'
+  });
 
   useEffect(() => {
     const allClients = clientOperations.getAll();
@@ -151,7 +162,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={onBack}
+            onClick={() => confirmNavigation('back')}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -174,7 +185,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
           <div className="flex justify-between items-start mb-8">
             <CompanyHeader companyLogo={companyLogo} onLogoUpload={handleLogoUpload} />
             <div className="text-right">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">RECURRING INVOICE TEMPLATE</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">RECURRING TEMPLATE</h2>
               <div className="space-y-1">
                 <div>
                   <label className="text-sm text-gray-600">Template Name *</label>
@@ -375,6 +386,8 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
           </div>
         </div>
       </div>
+
+      <NavigationGuard />
     </div>
   );
 };

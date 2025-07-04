@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -12,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +35,7 @@ const navigation = [
     path: '/invoices',
     subItems: [
       { id: 'sent-invoices', name: 'Sent Invoices', path: '/invoices#invoices' },
-      { id: 'recurring-templates', name: 'Recurring Templates', path: '/invoices#templates' }
+      { id: 'recurring-templates', name: 'Recurring', path: '/invoices#templates' }
     ]
   },
   { id: 'expenses', name: 'Expenses', icon: Receipt, path: '/expenses' },
@@ -63,12 +65,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingPath, setPendingPath] = useState<string>('');
   
   // Check if we're on a form page that needs navigation protection
   const isOnFormPage = location.pathname.includes('/new') || location.pathname.includes('/edit') || 
                        location.pathname.includes('/create');
+
+  // Use the form navigation hook for invoice forms
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty: true, // We'll assume forms are dirty when on form pages
+    isEnabled: isOnFormPage && (location.pathname.includes('/invoices') || location.pathname.includes('/recurring')),
+    entityType: 'invoice'
+  });
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -90,20 +97,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   const handleNavigation = (path: string) => {
     if (onNavigationAttempt && isOnFormPage) {
       onNavigationAttempt(path);
+    } else if (isOnFormPage && (location.pathname.includes('/invoices') || location.pathname.includes('/recurring'))) {
+      confirmNavigation(path);
     } else {
       navigate(path);
     }
-  };
-
-  const handleConfirmNavigation = () => {
-    navigate(pendingPath);
-    setShowConfirmDialog(false);
-    setPendingPath('');
-  };
-
-  const handleCancelNavigation = () => {
-    setShowConfirmDialog(false);
-    setPendingPath('');
   };
 
   return (
@@ -187,25 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         </div>
       </div>
 
-      {/* Navigation Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to leave this page? Any unsaved changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelNavigation}>
-              No, Continue Editing
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmNavigation}>
-              Yes, Discard Changes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Navigation Guard */}
+      <NavigationGuard />
     </div>
   );
 };
