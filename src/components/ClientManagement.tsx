@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Users, Building, Mail, Phone } from 'lucide-react';
 import { ClientForm } from './ClientForm';
-import { EditClientPage } from './clients/EditClientPage';
 import { ClientImportExport } from './clients/ClientImportExport';
 import { clientOperations } from '../lib/database';
 import { toast } from 'sonner';
@@ -16,9 +15,8 @@ interface Client {
   address: string;
   city: string;
   state: string;
-  zip_code: string;
+  zipCode: string;
   country: string;
-  notes: string;
   created_at: string;
   updated_at: string;
 }
@@ -52,6 +50,7 @@ export const ClientManagement: React.FC = () => {
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
+    setShowCreateForm(true);
   };
 
   const handleSaveClient = (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
@@ -94,17 +93,6 @@ export const ClientManagement: React.FC = () => {
         client={editingClient}
         onSave={handleSaveClient}
         onCancel={handleCloseForm}
-      />
-    );
-  }
-
-  if (editingClient && !showCreateForm) {
-    return (
-      <EditClientPage
-        client={editingClient}
-        onSave={handleSaveClient}
-        onCancel={() => setEditingClient(null)}
-        onDelete={handleDeleteClient}
       />
     );
   }

@@ -11,9 +11,8 @@ interface Client {
   address: string;
   city: string;
   state: string;
-  zip_code: string;
+  zipCode: string;
   country: string;
-  notes: string;
 }
 
 interface ClientFormProps {
@@ -33,9 +32,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
     address: '',
     city: '',
     state: '',
-    zip_code: '',
-    country: 'USA',
-    notes: ''
+    zipCode: '',
+    country: 'USA'
   });
 
   useEffect(() => {
@@ -48,9 +46,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
         address: client.address || '',
         city: client.city || '',
         state: client.state || '',
-        zip_code: client.zip_code || '',
-        country: client.country || 'USA',
-        notes: client.notes || ''
+        zipCode: client.zipCode || '',
+        country: client.country || 'USA'
       });
     } else {
       setFormData({
@@ -61,9 +58,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
         address: '',
         city: '',
         state: '',
-        zip_code: '',
-        country: 'USA',
-        notes: ''
+        zipCode: '',
+        country: 'USA'
       });
     }
   }, [client]);
@@ -169,8 +165,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
               <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
               <input
                 type="text"
-                value={formData.zip_code}
-                onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                value={formData.zipCode}
+                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -189,16 +185,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
               <option value="DEU">Germany</option>
               <option value="FRA">France</option>
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
