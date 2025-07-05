@@ -11,19 +11,21 @@ interface Client {
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   country: string;
+  notes: string;
 }
 
 interface ClientFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (client: Client) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  onSave: (client: Omit<Client, 'id'>) => void;
+  onCancel: () => void;
   client?: Client | null;
 }
 
-export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave, client }) => {
-  const [formData, setFormData] = useState<Client>({
+export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, onSave, onCancel, client }) => {
+  const [formData, setFormData] = useState<Omit<Client, 'id'>>({
     name: '',
     email: '',
     phone: '',
@@ -31,13 +33,25 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
     address: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: 'USA'
+    zip_code: '',
+    country: 'USA',
+    notes: ''
   });
 
   useEffect(() => {
     if (client) {
-      setFormData(client);
+      setFormData({
+        name: client.name || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        company: client.company || '',
+        address: client.address || '',
+        city: client.city || '',
+        state: client.state || '',
+        zip_code: client.zip_code || '',
+        country: client.country || 'USA',
+        notes: client.notes || ''
+      });
     } else {
       setFormData({
         name: '',
@@ -47,8 +61,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
         address: '',
         city: '',
         state: '',
-        zipCode: '',
-        country: 'USA'
+        zip_code: '',
+        country: 'USA',
+        notes: ''
       });
     }
   }, [client]);
@@ -56,7 +71,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
-    onClose();
+    if (onClose) onClose();
+  };
+
+  const handleCancel = () => {
+    if (onClose) onClose();
+    onCancel();
   };
 
   if (!isOpen) return null;
@@ -66,7 +86,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">{client ? 'Edit Client' : 'Add New Client'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -149,8 +169,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
               <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
               <input
                 type="text"
-                value={formData.zipCode}
-                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                value={formData.zip_code}
+                onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -171,10 +191,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSave,
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
             >
               Cancel

@@ -13,7 +13,8 @@ export const DashboardOverview = () => {
     paidInvoices: 0,
     overdueInvoices: 0,
     totalExpenses: 0,
-    recentInvoices: [] as any[]
+    recentInvoices: [] as any[],
+    allInvoices: [] as any[]
   });
 
   useEffect(() => {
@@ -45,7 +46,8 @@ export const DashboardOverview = () => {
         paidInvoices,
         overdueInvoices,
         totalExpenses,
-        recentInvoices
+        recentInvoices,
+        allInvoices: invoices
       });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -141,7 +143,7 @@ export const DashboardOverview = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
-            <DashboardChart />
+            <DashboardChart invoices={stats.allInvoices} />
           </div>
 
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

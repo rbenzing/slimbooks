@@ -17,6 +17,7 @@ interface Client {
   city: string;
   state: string;
   zip_code: string;
+  country: string;
   notes: string;
   created_at: string;
   updated_at: string;
