@@ -54,9 +54,23 @@ export const EditInvoicePage = () => {
 
     try {
       const updatedInvoice = {
-        ...formData,
+        invoice_number: invoice.invoice_number,
         client_id: selectedClient.id,
-        amount: parseFloat(formData.amount)
+        template_id: invoice.template_id,
+        amount: parseFloat(formData.amount),
+        status: formData.status,
+        due_date: formData.due_date,
+        description: formData.description,
+        stripe_invoice_id: invoice.stripe_invoice_id,
+        type: invoice.type,
+        client_name: invoice.client_name,
+        client_email: invoice.client_email,
+        client_phone: invoice.client_phone,
+        client_address: invoice.client_address,
+        line_items: invoice.line_items,
+        tax_amount: invoice.tax_amount,
+        shipping_amount: invoice.shipping_amount,
+        notes: formData.notes
       };
 
       invoiceOperations.update(parseInt(id!), updatedInvoice);
