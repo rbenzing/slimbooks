@@ -4,6 +4,7 @@ import { clientOperations, invoiceOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
+import { useNavigate } from 'react-router-dom';
 
 interface LineItem {
   id: string;
@@ -20,6 +21,7 @@ interface CreateInvoicePageProps {
 }
 
 export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, editingInvoice, viewOnly = false }) => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState({
@@ -172,6 +174,14 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     return true;
   };
 
+  const handleBackClick = () => {
+    if (viewOnly) {
+      navigate('/invoices');
+    } else {
+      confirmNavigation('/invoices');
+    }
+  };
+
   const handleSave = () => {
     if (!isValidForSave() || viewOnly) {
       return;
@@ -191,7 +201,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       } else {
         invoiceOperations.create(invoicePayload);
       }
-      onBack();
+      navigate('/invoices');
     } catch (error) {
       console.error('Error saving invoice:', error);
       alert('Error saving invoice. Please try again.');
@@ -211,13 +221,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => viewOnly ? onBack() : confirmNavigation('back')}
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            onClick={handleBackClick}
+            className="flex items-center text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Invoices
@@ -227,14 +237,14 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
               <button
                 onClick={handleSave}
                 disabled={!isValidForSave()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
               >
                 {editingInvoice ? 'Update Invoice' : 'Save Invoice'}
               </button>
             </div>
           )}
           {viewOnly && (
-            <div className="flex items-center text-blue-600">
+            <div className="flex items-center text-primary">
               <Eye className="h-4 w-4 mr-2" />
               <span className="font-medium">View Mode</span>
             </div>
@@ -242,31 +252,31 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         </div>
 
         {/* Invoice Layout */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-card rounded-lg shadow-lg p-8 border">
           {/* Company Header */}
           <div className="flex justify-between items-start mb-8">
             <CompanyHeader companyLogo={companyLogo} onLogoUpload={viewOnly ? undefined : handleLogoUpload} />
             <div className="text-right">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h2>
+              <h2 className="text-3xl font-bold text-card-foreground mb-2">INVOICE</h2>
               <div className="space-y-1">
                 <div>
-                  <label className="text-sm text-gray-600">Invoice # *</label>
+                  <label className="text-sm text-muted-foreground">Invoice # *</label>
                   <input
                     type="text"
                     value={invoiceData.invoice_number}
                     onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, invoice_number: e.target.value})}
-                    className={`block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right ${viewOnly ? 'bg-gray-50' : ''}`}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                     required
                     disabled={viewOnly}
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600">Due Date</label>
+                  <label className="text-sm text-muted-foreground">Due Date</label>
                   <input
                     type="date"
                     value={invoiceData.due_date}
                     onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, due_date: e.target.value})}
-                    className={`block w-full border-0 border-b border-gray-300 focus:border-blue-500 focus:ring-0 text-right ${viewOnly ? 'bg-gray-50' : ''}`}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                     disabled={viewOnly}
                   />
                 </div>
@@ -288,24 +298,24 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           <div className="mb-8">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="text-left py-3 font-semibold">Description *</th>
-                  <th className="text-center py-3 font-semibold w-20">Qty</th>
-                  <th className="text-right py-3 font-semibold w-24">Rate</th>
-                  <th className="text-right py-3 font-semibold w-24">Amount</th>
+                <tr className="border-b-2 border-border">
+                  <th className="text-left py-3 font-semibold text-card-foreground">Description *</th>
+                  <th className="text-center py-3 font-semibold w-20 text-card-foreground">Qty</th>
+                  <th className="text-right py-3 font-semibold w-24 text-card-foreground">Rate</th>
+                  <th className="text-right py-3 font-semibold w-24 text-card-foreground">Amount</th>
                   {!viewOnly && <th className="w-8"></th>}
                 </tr>
               </thead>
               <tbody>
                 {lineItems.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-200">
+                  <tr key={item.id} className="border-b border-border">
                     <td className="py-3">
                       <input
                         type="text"
                         value={item.description}
                         onChange={(e) => !viewOnly && updateLineItem(item.id, 'description', e.target.value)}
                         placeholder="Enter description *"
-                        className={`w-full border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
+                        className={`w-full border-0 focus:ring-0 p-0 bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                         required
                         disabled={viewOnly}
                       />
@@ -315,7 +325,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                         type="number"
                         value={item.quantity}
                         onChange={(e) => !viewOnly && updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        className={`w-full text-center border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
+                        className={`w-full text-center border-0 focus:ring-0 p-0 bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                         min="0"
                         step="0.01"
                         disabled={viewOnly}
@@ -326,13 +336,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                         type="number"
                         value={item.rate}
                         onChange={(e) => !viewOnly && updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                        className={`w-full text-right border-0 focus:ring-0 p-0 ${viewOnly ? 'bg-gray-50' : ''}`}
+                        className={`w-full text-right border-0 focus:ring-0 p-0 bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                         min="0"
                         step="0.01"
                         disabled={viewOnly}
                       />
                     </td>
-                    <td className="py-3 text-right font-medium">
+                    <td className="py-3 text-right font-medium text-card-foreground">
                       ${item.amount.toFixed(2)}
                     </td>
                     {!viewOnly && (
@@ -340,7 +350,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                         {lineItems.length > 1 && (
                           <button
                             onClick={() => removeLineItem(item.id)}
-                            className="text-red-400 hover:text-red-600"
+                            className="text-destructive hover:text-destructive/80"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -355,7 +365,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             {!viewOnly && (
               <button
                 onClick={addLineItem}
-                className="mt-3 flex items-center text-blue-600 hover:text-blue-700"
+                className="mt-3 flex items-center text-primary hover:text-primary/80"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Line Item
@@ -367,7 +377,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           <div className="flex justify-between mb-8">
             <div className="w-1/2 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate</label>
+                <label className="block text-sm font-medium text-card-foreground mb-1">Tax Rate</label>
                 <select
                   value={selectedTaxRate?.id || ''}
                   onChange={(e) => {
@@ -376,7 +386,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       setSelectedTaxRate(rate || null);
                     }
                   }}
-                  className={`w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : 'bg-white'}`}
+                  className={`w-48 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground ${viewOnly ? 'bg-muted' : ''}`}
                   disabled={viewOnly}
                 >
                   <option value="">No Tax</option>
@@ -389,7 +399,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shipping</label>
+                <label className="block text-sm font-medium text-card-foreground mb-1">Shipping</label>
                 <select
                   value={selectedShippingRate?.id || ''}
                   onChange={(e) => {
@@ -398,7 +408,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       setSelectedShippingRate(rate || null);
                     }
                   }}
-                  className={`w-48 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : 'bg-white'}`}
+                  className={`w-48 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground ${viewOnly ? 'bg-muted' : ''}`}
                   disabled={viewOnly}
                 >
                   <option value="">No Shipping</option>
@@ -413,23 +423,23 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             
             <div className="w-64">
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex justify-between text-card-foreground">
                   <span>Subtotal:</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 {selectedTaxRate && selectedTaxRate.rate > 0 && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-card-foreground">
                     <span>Tax ({selectedTaxRate.name}):</span>
                     <span>${taxAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {selectedShippingRate && selectedShippingRate.amount > 0 && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-card-foreground">
                     <span>Shipping ({selectedShippingRate.name}):</span>
                     <span>${shippingAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <div className="border-t border-border pt-2 flex justify-between font-bold text-lg text-card-foreground">
                   <span>Total:</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
@@ -438,13 +448,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           </div>
 
           {/* Thank You Message */}
-          <div className="border-t pt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Thank You Message</label>
+          <div className="border-t border-border pt-6">
+            <label className="block text-sm font-medium text-card-foreground mb-2">Thank You Message</label>
             <textarea
               value={thankYouMessage}
               onChange={(e) => !viewOnly && setThankYouMessage(e.target.value)}
               rows={3}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${viewOnly ? 'bg-gray-50' : ''}`}
+              className={`w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground ${viewOnly ? 'bg-muted' : ''}`}
               placeholder="Add a personal message to your client..."
               disabled={viewOnly}
             />

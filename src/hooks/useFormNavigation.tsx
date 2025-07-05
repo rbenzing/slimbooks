@@ -23,12 +23,16 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
   const location = useLocation();
   const pendingNavigationRef = useRef<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const isNavigatingRef = useRef(false);
 
   useEffect(() => {
     // Only enable beforeunload for create pages, not edit pages
     if (!isEnabled || !isDirty || location.pathname.includes('/edit/')) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Don't show browser dialog if we're handling navigation internally
+      if (isNavigatingRef.current) return;
+      
       e.preventDefault();
       e.returnValue = '';
     };
@@ -50,6 +54,8 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
       return;
     }
 
+    // Flag that we're handling navigation internally
+    isNavigatingRef.current = true;
     pendingNavigationRef.current = targetPath;
     setShowDialog(true);
   };
@@ -63,11 +69,13 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
       }
       pendingNavigationRef.current = null;
     }
+    isNavigatingRef.current = false;
     setShowDialog(false);
   };
 
   const handleCancelNavigation = () => {
     pendingNavigationRef.current = null;
+    isNavigatingRef.current = false;
     setShowDialog(false);
   };
 
