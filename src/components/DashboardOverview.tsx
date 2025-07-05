@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
-import { DashboardChart } from './DashboardChart';
+import DashboardChart from './DashboardChart';
 import { invoiceOperations, clientOperations, expenseOperations } from '../lib/database';
 
 export const DashboardOverview = () => {
