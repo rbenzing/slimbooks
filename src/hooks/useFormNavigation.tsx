@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -24,7 +25,8 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
   const [showDialog, setShowDialog] = useState(false);
 
   useEffect(() => {
-    if (!isEnabled || !isDirty) return;
+    // Only enable beforeunload for create pages, not edit pages
+    if (!isEnabled || !isDirty || location.pathname.includes('/edit/')) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -36,7 +38,7 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isDirty, isEnabled]);
+  }, [isDirty, isEnabled, location.pathname]);
 
   const confirmNavigation = (targetPath: string) => {
     if (!isEnabled || !isDirty) {

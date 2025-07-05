@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -79,6 +80,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
       return location.pathname === '/';
     }
     if (path.includes('#')) {
+      // Special handling for invoice sub-items
+      if (path === '/invoices#invoices') {
+        // Active for main invoices page, create, and edit (but not recurring)
+        return (location.pathname === '/invoices' && location.hash === '#invoices') ||
+               (location.pathname === '/invoices' && !location.hash) ||
+               (location.pathname.includes('/invoices/create')) ||
+               (location.pathname.includes('/invoices/edit/'));
+      }
+      if (path === '/invoices#templates') {
+        // Active for recurring templates
+        return (location.pathname === '/invoices' && location.hash === '#templates') ||
+               location.pathname.includes('/recurring-invoices');
+      }
       return location.pathname + location.hash === path;
     }
     return location.pathname.startsWith(path);
@@ -87,6 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   const isParentActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/';
+    }
+    if (path === '/invoices') {
+      // Parent is active for all invoice-related pages
+      return location.pathname.startsWith('/invoices') || location.pathname.includes('/recurring-invoices');
     }
     return location.pathname.startsWith(path);
   };
@@ -102,13 +120,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 shadow-lg h-full flex flex-col">
+    <div className="w-full bg-card shadow-lg h-full flex flex-col">
       <div className="flex h-full flex-col">
         {/* Logo/Header */}
-        <div className="flex h-16 items-center border-b border-gray-200 dark:border-gray-700 px-6">
+        <div className="flex h-16 items-center border-b border-border px-6">
           <div className="flex items-center space-x-2">
-            <CreditCard className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">ClientBill Pro</h1>
+            <CreditCard className="h-8 w-8 text-primary" />
+            <h1 className="text-xl font-bold text-card-foreground">ClientBill Pro</h1>
           </div>
         </div>
 
@@ -124,16 +142,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
                   className={cn(
                     'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     parentActive && !item.subItems
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'bg-accent text-accent-foreground border border-border'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                 >
                   <Icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
                       parentActive && !item.subItems 
-                        ? 'text-blue-600 dark:text-blue-400' 
-                        : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'
+                        ? 'text-primary' 
+                        : 'text-muted-foreground group-hover:text-muted-foreground'
                     )}
                   />
                   {item.name}
@@ -151,8 +169,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
                           className={cn(
                             'group flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors',
                             subActive
-                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                              ? 'bg-accent text-accent-foreground border border-border'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           )}
                         >
                           {subItem.name}
@@ -167,16 +185,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="border-t border-border p-4">
           <div className="flex items-center mb-3">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Welcome, {user?.username}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+              <p className="text-sm font-medium text-card-foreground">Welcome, {user?.username}</p>
+              <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out

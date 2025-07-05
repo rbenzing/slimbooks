@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { invoiceOperations, clientOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
+import { useFormNavigation } from '@/hooks/useFormNavigation';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();
@@ -18,6 +19,13 @@ export const EditInvoicePage = () => {
     due_date: '',
     description: '',
     notes: ''
+  });
+  const [isDirty, setIsDirty] = useState(false);
+
+  const { confirmNavigation, NavigationGuard } = useFormNavigation({
+    isDirty,
+    isEnabled: true,
+    entityType: 'invoice'
   });
 
   useEffect(() => {
@@ -45,6 +53,21 @@ export const EditInvoicePage = () => {
       setLoading(false);
     }
   }, [id]);
+
+  // Track form changes
+  useEffect(() => {
+    if (invoice) {
+      const hasChanges = 
+        formData.amount !== (invoice.amount?.toString() || '') ||
+        formData.status !== (invoice.status || 'draft') ||
+        formData.due_date !== (invoice.due_date || '') ||
+        formData.description !== (invoice.description || '') ||
+        formData.notes !== (invoice.notes || '') ||
+        selectedClient?.id !== invoice.client_id;
+      
+      setIsDirty(hasChanges);
+    }
+  }, [formData, selectedClient, invoice]);
 
   const handleSave = () => {
     if (!selectedClient) {
@@ -74,6 +97,7 @@ export const EditInvoicePage = () => {
       };
 
       invoiceOperations.update(parseInt(id!), updatedInvoice);
+      setIsDirty(false);
       navigate('/invoices');
     } catch (error) {
       console.error('Error updating invoice:', error);
@@ -93,22 +117,26 @@ export const EditInvoicePage = () => {
     }
   };
 
+  const handleFormChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!invoice) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Invoice not found</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Invoice not found</h2>
           <button
             onClick={() => navigate('/invoices')}
-            className="text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-primary hover:underline"
           >
             Return to invoices
           </button>
@@ -118,23 +146,23 @@ export const EditInvoicePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate('/invoices')}
-              className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              onClick={() => confirmNavigation('back')}
+              className="flex items-center text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
               Back to Invoices
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl font-bold text-foreground">
                 Edit Invoice #{invoice.invoice_number || invoice.id}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted-foreground">
                 Created {new Date(invoice.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -142,14 +170,14 @@ export const EditInvoicePage = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={handleDelete}
-              className="flex items-center px-4 py-2 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="flex items-center px-4 py-2 text-destructive border border-destructive rounded-lg hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
             >
               <Save className="h-4 w-4 mr-2" />
               Save Changes
@@ -160,32 +188,32 @@ export const EditInvoicePage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Invoice Details */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Invoice Details</h3>
+            <div className="bg-card p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Invoice Details</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-card-foreground mb-1">
                     Amount *
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => handleFormChange('amount', e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-card-foreground mb-1">
                     Status
                   </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => handleFormChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="draft">Draft</option>
                     <option value="sent">Sent</option>
@@ -195,38 +223,38 @@ export const EditInvoicePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-card-foreground mb-1">
                     Due Date *
                   </label>
                   <input
                     type="date"
                     value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => handleFormChange('due_date', e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-card-foreground mb-1">
                     Description
                   </label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     rows={3}
                     placeholder="Invoice description..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-card-foreground mb-1">
                     Notes
                   </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => handleFormChange('notes', e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     rows={3}
                     placeholder="Additional notes..."
                   />
@@ -237,7 +265,7 @@ export const EditInvoicePage = () => {
 
           {/* Right Column - Client Information */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-card p-6 rounded-lg shadow-sm border">
               <ClientSelector
                 clients={clients}
                 selectedClient={selectedClient}
@@ -247,19 +275,19 @@ export const EditInvoicePage = () => {
             </div>
 
             {/* Invoice Summary */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Invoice Summary</h3>
+            <div className="bg-card p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Invoice Summary</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Invoice Number:</span>
-                  <span className="text-gray-900 dark:text-gray-100">#{invoice.invoice_number || invoice.id}</span>
+                  <span className="text-muted-foreground">Invoice Number:</span>
+                  <span className="text-card-foreground">#{invoice.invoice_number || invoice.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Created:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{new Date(invoice.created_at).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground">Created:</span>
+                  <span className="text-card-foreground">{new Date(invoice.created_at).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                  <span className="text-muted-foreground">Status:</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     formData.status === 'paid' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
                     formData.status === 'sent' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
@@ -268,10 +296,10 @@ export const EditInvoicePage = () => {
                     {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
                   </span>
                 </div>
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                <div className="border-t border-border pt-2 mt-2">
                   <div className="flex justify-between font-semibold">
-                    <span className="text-gray-900 dark:text-gray-100">Total Amount:</span>
-                    <span className="text-gray-900 dark:text-gray-100">${formData.amount || '0.00'}</span>
+                    <span className="text-card-foreground">Total Amount:</span>
+                    <span className="text-card-foreground">${formData.amount || '0.00'}</span>
                   </div>
                 </div>
               </div>
@@ -279,6 +307,7 @@ export const EditInvoicePage = () => {
           </div>
         </div>
       </div>
+      <NavigationGuard />
     </div>
   );
 };
