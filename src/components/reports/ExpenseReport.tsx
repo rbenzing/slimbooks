@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
 import { expenseOperations } from '../../lib/database';
+import { themeClasses, getButtonClasses } from '../../lib/utils';
+import { formatDate, formatDateRange } from '@/utils/dateFormatting';
 
 interface ExpenseReportProps {
   onBack: () => void;
@@ -105,18 +107,8 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     }).format(amount);
   };
 
-  const formatDateRange = () => {
-    const start = new Date(dateRange.start).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    const end = new Date(dateRange.end).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    return `${start} - ${end}`;
+  const getFormattedDateRange = () => {
+    return formatDateRange(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -127,193 +119,196 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center">
-          <button onClick={onBack} className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
-            <ArrowLeft className="h-5 w-5 mr-1" />
-            Back to Reports
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Generating Expense Report...</h1>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Please wait while we generate your report...</p>
+      <div className={themeClasses.page}>
+        <div className={themeClasses.pageContainer}>
+          <div className="flex items-center">
+            <button onClick={onBack} className={`flex items-center ${themeClasses.mutedText} hover:text-foreground mr-4`}>
+              <ArrowLeft className={`${themeClasses.iconSmall} mr-1`} />
+              Back to Reports
+            </button>
+            <h1 className={themeClasses.pageTitle}>Generating Expense Report...</h1>
+          </div>
+          <div className={`${themeClasses.card} p-12 text-center`}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className={`mt-4 ${themeClasses.mutedText}`}>Please wait while we generate your report...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-          >
-            <ArrowLeft className="h-5 w-5 mr-1" />
-            Back to Reports
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Expense Report</h1>
-            <p className="text-gray-600">{formatDateRange()}</p>
-          </div>
-        </div>
-        <div className="flex space-x-3">
-          <button 
-            onClick={handleSave}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Report
-          </button>
-          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Date Range Selector */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-          <Calendar className="h-5 w-5 mr-2" />
-          Report Date Range
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Quick Select
-            </label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={dateRange.preset}
-              onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={onBack}
+              className={`flex items-center ${themeClasses.mutedText} hover:text-foreground mr-4`}
             >
-              <option value="this-month">This Month</option>
-              <option value="last-month">Last Month</option>
-              <option value="this-quarter">This Quarter</option>
-              <option value="last-quarter">Last Quarter</option>
-              <option value="this-year">This Year</option>
-              <option value="last-year">Last Year</option>
-              <option value="custom">Custom Range</option>
-            </select>
+              <ArrowLeft className={`${themeClasses.iconSmall} mr-1`} />
+              Back to Reports
+            </button>
+            <div>
+              <h1 className={themeClasses.pageTitle}>Expense Report</h1>
+              <p className={themeClasses.pageSubtitle}>{getFormattedDateRange()}</p>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={dateRange.start}
-              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value, preset: 'custom' })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
-            </label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={dateRange.end}
-              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value, preset: 'custom' })}
-            />
+          <div className="flex space-x-3">
+            <button
+              onClick={handleSave}
+              className={getButtonClasses('primary')}
+            >
+              <Save className={themeClasses.iconButton} />
+              Save Report
+            </button>
+            <button className={getButtonClasses('secondary')}>
+              <Download className={themeClasses.iconButton} />
+              Export PDF
+            </button>
           </div>
         </div>
-      </div>
 
-      {reportData && (
-        <>
-          {/* Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Expenses</h3>
-              <p className="text-3xl font-bold text-red-600">{formatCurrency(reportData.totalAmount)}</p>
+        {/* Date Range Selector */}
+        <div className={themeClasses.card}>
+          <h3 className={`${themeClasses.cardTitle} mb-4 flex items-center`}>
+            <Calendar className={`${themeClasses.iconSmall} mr-2`} />
+            Report Date Range
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
+                Quick Select
+              </label>
+              <select
+                className={themeClasses.select}
+                value={dateRange.preset}
+                onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+              >
+                <option value="this-month">This Month</option>
+                <option value="last-month">Last Month</option>
+                <option value="this-quarter">This Quarter</option>
+                <option value="last-quarter">Last Quarter</option>
+                <option value="this-year">This Year</option>
+                <option value="last-year">Last Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Transactions</h3>
-              <p className="text-3xl font-bold text-blue-600">{reportData.totalCount}</p>
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                className={themeClasses.dateInput}
+                value={dateRange.start}
+                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value, preset: 'custom' })}
+              />
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Average Amount</h3>
-              <p className="text-3xl font-bold text-gray-900">
-                {formatCurrency(reportData.totalCount > 0 ? reportData.totalAmount / reportData.totalCount : 0)}
-              </p>
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
+                End Date
+              </label>
+              <input
+                type="date"
+                className={themeClasses.dateInput}
+                value={dateRange.end}
+                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value, preset: 'custom' })}
+              />
             </div>
           </div>
+        </div>
 
-          {/* Category Breakdown */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Expenses by Category</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {Object.entries(reportData.expensesByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center py-2">
-                    <span className="text-gray-700 font-medium">{category}</span>
-                    <span className="font-semibold text-gray-900">{formatCurrency(amount as number)}</span>
-                  </div>
-                ))}
+        {reportData && (
+          <>
+            {/* Summary */}
+            <div className={themeClasses.statsGridThree}>
+              <div className={themeClasses.statCard}>
+                <h3 className={`${themeClasses.statLabel} mb-2`}>Total Expenses</h3>
+                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.totalAmount)}</p>
+              </div>
+              <div className={themeClasses.statCard}>
+                <h3 className={`${themeClasses.statLabel} mb-2`}>Total Transactions</h3>
+                <p className={`${themeClasses.statValue} text-blue-600 dark:text-blue-400`}>{reportData.totalCount}</p>
+              </div>
+              <div className={themeClasses.statCard}>
+                <h3 className={`${themeClasses.statLabel} mb-2`}>Average Amount</h3>
+                <p className={themeClasses.statValue}>
+                  {formatCurrency(reportData.totalCount > 0 ? reportData.totalAmount / reportData.totalCount : 0)}
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Expenses by Status</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {Object.entries(reportData.expensesByStatus).map(([status, amount]) => (
-                  <div key={status} className="flex justify-between items-center py-2">
-                    <span className="text-gray-700 font-medium capitalize">{status}</span>
-                    <span className="font-semibold text-gray-900">{formatCurrency(amount as number)}</span>
-                  </div>
-                ))}
+            {/* Category Breakdown */}
+            <div className={themeClasses.card}>
+              <div className={themeClasses.cardHeader}>
+                <h3 className={themeClasses.cardTitle}>Expenses by Category</h3>
+              </div>
+              <div>
+                <div className="space-y-4">
+                  {Object.entries(reportData.expensesByCategory).map(([category, amount]) => (
+                    <div key={category} className="flex justify-between items-center py-2">
+                      <span className={`${themeClasses.bodyText} font-medium`}>{category}</span>
+                      <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Detailed Expense List</h3>
+            <div className={themeClasses.card}>
+              <div className={themeClasses.cardHeader}>
+                <h3 className={themeClasses.cardTitle}>Expenses by Status</h3>
+              </div>
+              <div>
+                <div className="space-y-4">
+                  {Object.entries(reportData.expensesByStatus).map(([status, amount]) => (
+                    <div key={status} className="flex justify-between items-center py-2">
+                      <span className={`${themeClasses.bodyText} font-medium capitalize`}>{status}</span>
+                      <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Merchant</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {reportData.expenses.map((expense: any) => (
-                    <tr key={expense.id}>
-                      <td className="py-4 px-6 text-sm text-gray-900">
-                        {new Date(expense.date).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-6 text-sm text-gray-900">{expense.merchant}</td>
-                      <td className="py-4 px-6 text-sm text-gray-900">{expense.category}</td>
-                      <td className="py-4 px-6 text-sm font-medium text-gray-900">
-                        {formatCurrency(expense.amount)}
-                      </td>
-                      <td className="py-4 px-6 text-sm">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          expense.status === 'pending' ? 'bg-orange-100 text-orange-800' :
-                          expense.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
-                        </span>
-                      </td>
+
+            <div className={themeClasses.table}>
+              <div className={themeClasses.cardHeader}>
+                <h3 className={themeClasses.cardTitle}>Detailed Expense List</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={themeClasses.tableHeader}>
+                    <tr>
+                      <th className={themeClasses.tableHeaderCell}>Date</th>
+                      <th className={themeClasses.tableHeaderCell}>Merchant</th>
+                      <th className={themeClasses.tableHeaderCell}>Category</th>
+                      <th className={themeClasses.tableHeaderCell}>Amount</th>
+                      <th className={themeClasses.tableHeaderCell}>Status</th>
                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {reportData.expenses.map((expense: any) => (
+                      <tr key={expense.id} className={themeClasses.tableRow}>
+                        <td className={themeClasses.tableCell}>
+                          {formatDate(expense.date)}
+                        </td>
+                        <td className={themeClasses.tableCell}>{expense.merchant}</td>
+                        <td className={themeClasses.tableCell}>{expense.category}</td>
+                        <td className={`${themeClasses.tableCell} font-medium`}>
+                          {formatCurrency(expense.amount)}
+                        </td>
+                        <td className={themeClasses.tableCell}>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            expense.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                            expense.status === 'approved' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                            'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          }`}>
+                            {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                          </span>
+                        </td>
+                      </tr>
                   ))}
                 </tbody>
               </table>
@@ -321,6 +316,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
           </div>
         </>
       )}
+      </div>
     </div>
   );
 };

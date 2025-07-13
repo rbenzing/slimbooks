@@ -88,13 +88,13 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
   };
 
   return (
-    <div className="w-full bg-white shadow-lg h-full flex flex-col">
+    <div className="w-full bg-card shadow-lg h-full flex flex-col border-r border-border">
       <div className="flex h-full flex-col">
         {/* Logo/Header */}
-        <div className="flex h-16 items-center border-b border-gray-200 px-6">
+        <div className="flex h-16 items-center border-b border-border px-6">
           <div className="flex items-center space-x-2">
             <CreditCard className="h-8 w-8 text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-900">ClientBill Pro</h1>
+            <h1 className="text-xl font-bold text-foreground">ClientBill Pro</h1>
           </div>
         </div>
 
@@ -110,14 +110,14 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
                   className={cn(
                     'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     parentActive && !item.subItems
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                 >
                   <Icon
                     className={cn(
                       'mr-3 h-5 w-5 flex-shrink-0',
-                      parentActive && !item.subItems ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
+                      parentActive && !item.subItems ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground group-hover:text-accent-foreground'
                     )}
                   />
                   {item.name}
@@ -135,8 +135,8 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
                           className={cn(
                             'group flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors',
                             subActive
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           )}
                         >
                           {subItem.name}
@@ -151,16 +151,16 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-border p-4">
           <div className="flex items-center mb-3">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Welcome, {user?.username}</p>
-              <p className="text-xs text-gray-500">Administrator</p>
+              <p className="text-sm font-medium text-foreground">Welcome, {user?.username}</p>
+              <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={logout}
-            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out

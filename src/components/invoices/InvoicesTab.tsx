@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { invoiceOperations } from '@/lib/database';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
+import { getStatusColor } from '@/lib/utils';
+import { formatDate } from '@/utils/dateFormatting';
 
 export const InvoicesTab = () => {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
@@ -72,8 +76,7 @@ export const InvoicesTab = () => {
   };
 
   const handleEdit = (invoice: any) => {
-    setEditingInvoice(invoice);
-    window.location.href = `/invoices/edit/${invoice.id}`;
+    navigate(`/invoices/edit/${invoice.id}`);
   };
 
   const handleView = (invoice: any) => {
@@ -88,29 +91,29 @@ export const InvoicesTab = () => {
   const renderPanelView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredInvoices.map((invoice) => (
-        <div key={invoice.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div key={invoice.id} className="bg-card rounded-lg shadow-sm border border-border p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{invoice.invoice_number || `Invoice #${invoice.id}`}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{invoice.client_name}</p>
+              <h3 className="font-semibold text-foreground">{invoice.invoice_number || `Invoice #${invoice.id}`}</h3>
+              <p className="text-sm text-muted-foreground">{invoice.client_name}</p>
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={() => handleView(invoice)}
-                className="p-1 text-gray-400 hover:text-blue-600"
+                className="p-1 text-muted-foreground hover:text-white"
                 title="View Invoice"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit(invoice)}
-                className="p-1 text-gray-400 hover:text-blue-600"
+                className="p-1 text-muted-foreground hover:text-blue-600"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleDelete(invoice.id)}
-                className="p-1 text-gray-400 hover:text-red-600"
+                className="p-1 text-muted-foreground hover:text-red-600"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -118,32 +121,28 @@ export const InvoicesTab = () => {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4 mr-2" />
               <span>${invoice.amount.toFixed(2)}</span>
             </div>
-            
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+
+            <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>{new Date(invoice.created_at).toLocaleDateString()}</span>
+              <span>{formatDate(invoice.created_at)}</span>
             </div>
 
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center text-sm text-muted-foreground">
               <User className="h-4 w-4 mr-2" />
               <span>{invoice.client_name}</span>
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-border">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Created {new Date(invoice.created_at).toLocaleDateString()}
+              <span className="text-xs text-muted-foreground">
+                Created {formatDate(invoice.created_at)}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                invoice.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                invoice.status === 'sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-              }`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status || 'draft')}`}>
                 {invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft'}
               </span>
             </div>
@@ -154,59 +153,55 @@ export const InvoicesTab = () => {
   );
 
   const renderTableView = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Invoice #</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Client</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Created</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Invoice #</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Client</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Amount</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Status</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Created</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-border">
             {filteredInvoices.map((invoice) => (
               <tr key={invoice.id}>
-                <td className="py-4 px-6 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <td className="py-4 px-6 text-sm font-medium text-card-foreground">
                   {invoice.invoice_number || `Invoice #${invoice.id}`}
                 </td>
-                <td className="py-4 px-6 text-sm text-gray-900 dark:text-gray-100">{invoice.client_name}</td>
-                <td className="py-4 px-6 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <td className="py-4 px-6 text-sm text-card-foreground">{invoice.client_name}</td>
+                <td className="py-4 px-6 text-sm font-medium text-card-foreground">
                   ${invoice.amount.toFixed(2)}
                 </td>
                 <td className="py-4 px-6 text-sm">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    invoice.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    invoice.status === 'sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  }`}>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status || 'draft')}`}>
                     {invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft'}
                   </span>
                 </td>
-                <td className="py-4 px-6 text-sm text-gray-900 dark:text-gray-100">
-                  {new Date(invoice.created_at).toLocaleDateString()}
+                <td className="py-4 px-6 text-sm text-card-foreground">
+                  {formatDate(invoice.created_at)}
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleView(invoice)}
-                      className="p-1 text-gray-400 hover:text-blue-600"
+                      className="p-1 text-muted-foreground hover:text-white"
                       title="View Invoice"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleEdit(invoice)}
-                      className="p-1 text-gray-400 hover:text-blue-600"
+                      className="p-1 text-muted-foreground hover:text-blue-600"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(invoice.id)}
-                      className="p-1 text-gray-400 hover:text-red-600"
+                      className="p-1 text-muted-foreground hover:text-red-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -225,12 +220,12 @@ export const InvoicesTab = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Sent Invoices</h2>
-          <p className="text-gray-600 dark:text-gray-400">Manage your invoices and track payments</p>
+          <h2 className="text-xl font-semibold text-foreground">Sent Invoices</h2>
+          <p className="text-muted-foreground">Manage your invoices and track payments</p>
         </div>
         <button
           onClick={handleCreateNew}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Invoice
@@ -239,37 +234,37 @@ export const InvoicesTab = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Invoices</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Invoices</p>
               <p className="text-2xl font-bold text-blue-600">{totalInvoices}</p>
             </div>
             <DollarSign className="h-8 w-8 text-blue-600" />
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Amount</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">${totalAmount.toFixed(2)}</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+              <p className="text-2xl font-bold text-foreground">${totalAmount.toFixed(2)}</p>
             </div>
             <Calendar className="h-8 w-8 text-green-600" />
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Paid Amount</p>
+              <p className="text-sm font-medium text-muted-foreground">Paid Amount</p>
               <p className="text-2xl font-bold text-green-600">${paidAmount.toFixed(2)}</p>
             </div>
             <User className="h-8 w-8 text-orange-600" />
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Amount</p>
+              <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
               <p className="text-2xl font-bold text-yellow-600">${pendingAmount.toFixed(2)}</p>
             </div>
             <DollarSign className="h-8 w-8 text-yellow-600" />
@@ -278,22 +273,22 @@ export const InvoicesTab = () => {
       </div>
 
       {/* Search, Filters and View Toggle */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+      <div className="bg-card p-6 rounded-lg shadow-sm border border-border mb-6">
         <div className="flex items-center space-x-4">
           {/* Left column - Search and Filters (80%) */}
           <div className="flex-1 flex space-x-4">
             <div className="flex-1 relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search invoices..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <select 
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            <select
+              className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -302,8 +297,8 @@ export const InvoicesTab = () => {
               <option value="sent">Sent</option>
               <option value="paid">Paid</option>
             </select>
-            <select 
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            <select
+              className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               value={clientFilter}
               onChange={(e) => setClientFilter(e.target.value)}
             >
@@ -319,9 +314,9 @@ export const InvoicesTab = () => {
             <button
               onClick={() => setViewMode('panel')}
               className={`p-2 rounded-lg border ${
-                viewMode === 'panel' 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                viewMode === 'panel'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
               }`}
               title="Panel View"
             >
@@ -330,9 +325,9 @@ export const InvoicesTab = () => {
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg border ${
-                viewMode === 'table' 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                viewMode === 'table'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
               }`}
               title="Table View"
             >
@@ -347,18 +342,18 @@ export const InvoicesTab = () => {
 
       {filteredInvoices.length === 0 && (
         <div className="col-span-full text-center py-12">
-          <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No invoices found</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {searchTerm || statusFilter !== 'all' || clientFilter !== 'all' 
-              ? 'Try adjusting your search or filters' 
+          <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No invoices found</h3>
+          <p className="text-muted-foreground mb-4">
+            {searchTerm || statusFilter !== 'all' || clientFilter !== 'all'
+              ? 'Try adjusting your search or filters'
               : 'Create your first invoice to get started'
             }
           </p>
           {!searchTerm && statusFilter === 'all' && clientFilter === 'all' && (
             <button
               onClick={handleCreateNew}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Invoice

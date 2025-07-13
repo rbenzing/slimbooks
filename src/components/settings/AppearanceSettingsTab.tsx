@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { themeClasses } from '@/lib/utils';
 
 export const AppearanceSettingsTab = () => {
   const [theme, setTheme] = useState(() => {
@@ -46,15 +47,15 @@ export const AppearanceSettingsTab = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">Appearance</h3>
+    <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+      <h3 className="text-lg font-medium text-card-foreground mb-6">Appearance</h3>
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme</label>
-          <select 
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Theme</label>
+          <select
             value={theme}
             onChange={(e) => handleThemeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className={`w-full ${themeClasses.select}`}
           >
             <option value="system">System</option>
             <option value="light">Light</option>
@@ -62,20 +63,18 @@ export const AppearanceSettingsTab = () => {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Invoice Template</label>
-          <select 
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Invoice Template</label>
+          <select
             value={invoiceTemplate}
             onChange={(e) => handleInvoiceTemplateChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className={`w-full ${themeClasses.select}`}
           >
             <option value="modern-blue">Modern Blue</option>
             <option value="classic-white">Classic White</option>
             <option value="professional-gray">Professional Gray</option>
           </select>
         </div>
-        <button className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">
-          Save Changes
-        </button>
+
       </div>
     </div>
   );

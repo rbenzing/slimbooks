@@ -359,30 +359,36 @@ export const clientOperations = {
 
 // Invoice operations
 export const invoiceOperations = {
-  getAll: (): (Invoice & { client_name: string })[] => {
+  getAll: (): (Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[] => {
     const invoices = getStorageData<Invoice>(INVOICES_KEY);
     const clients = getStorageData<Client>(CLIENTS_KEY);
-    
+
     return invoices.map(invoice => {
       const client = clients.find(c => c.id === invoice.client_id);
       return {
         ...invoice,
-        client_name: client?.name || 'Unknown Client'
+        client_name: client?.name || 'Unknown Client',
+        client_email: invoice.client_email || client?.email,
+        client_phone: invoice.client_phone || client?.phone,
+        client_address: invoice.client_address || (client ? `${client.address}, ${client.city}, ${client.state} ${client.zipCode}` : undefined)
       };
     }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
   
-  getById: (id: number): (Invoice & { client_name: string }) | undefined => {
+  getById: (id: number): (Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string }) | undefined => {
     const invoices = getStorageData<Invoice>(INVOICES_KEY);
     const clients = getStorageData<Client>(CLIENTS_KEY);
     const invoice = invoices.find(inv => inv.id === id);
-    
+
     if (!invoice) return undefined;
-    
+
     const client = clients.find(c => c.id === invoice.client_id);
     return {
       ...invoice,
-      client_name: client?.name || 'Unknown Client'
+      client_name: client?.name || 'Unknown Client',
+      client_email: invoice.client_email || client?.email,
+      client_phone: invoice.client_phone || client?.phone,
+      client_address: invoice.client_address || (client ? `${client.address}, ${client.city}, ${client.state} ${client.zipCode}` : undefined)
     };
   },
   

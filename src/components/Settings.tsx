@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Save } from 'lucide-react';
 import { TaxSettings } from './settings/TaxSettings';
 import { ShippingSettings } from './settings/ShippingSettings';
 import { CompanySettings } from './settings/CompanySettings';
@@ -8,9 +9,12 @@ import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
 import { StripeSettingsTab } from './settings/StripeSettingsTab';
 import { NotificationSettingsTab } from './settings/NotificationSettingsTab';
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab';
+import { themeClasses, getButtonClasses } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -22,13 +26,36 @@ export const Settings = () => {
     }
   }, [location.hash]);
 
+  const handleSaveSettings = async () => {
+    setIsLoading(true);
+    try {
+      // Simulate save operation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="h-full bg-gray-100 dark:bg-gray-900">
-      <div className="p-6 space-y-6">
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your application preferences and integrations</p>
+        <div className={themeClasses.sectionHeader}>
+          <div>
+            <h1 className={themeClasses.sectionTitle}>Settings</h1>
+            <p className={themeClasses.sectionSubtitle}>Manage your application preferences and integrations</p>
+          </div>
+          <button
+            onClick={handleSaveSettings}
+            disabled={isLoading}
+            className={getButtonClasses('primary')}
+          >
+            <Save className={themeClasses.iconButton} />
+            {isLoading ? 'Saving...' : 'Save Settings'}
+          </button>
         </div>
 
         {/* Content */}

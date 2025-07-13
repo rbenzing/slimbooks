@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { clientOperations } from '@/lib/database';
+import { themeClasses } from '@/lib/utils';
 
 interface InvoiceFormProps {
   isOpen: boolean;
@@ -53,10 +54,22 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedClient = clients.find(c => c.id === parseInt(formData.client_id));
     onSave({
       ...formData,
       client_id: parseInt(formData.client_id),
-      amount: parseFloat(formData.amount)
+      amount: parseFloat(formData.amount),
+      client_name: selectedClient?.name,
+      client_email: selectedClient?.email,
+      client_phone: selectedClient?.phone,
+      client_address: selectedClient ? `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}` : undefined,
+      line_items: JSON.stringify([{
+        id: '1',
+        description: formData.description,
+        quantity: 1,
+        rate: parseFloat(formData.amount),
+        amount: parseFloat(formData.amount)
+      }])
     });
   };
 
@@ -80,7 +93,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
                 required
                 value={formData.client_id}
                 onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full ${themeClasses.select}`}
               >
                 <option value="">Select a client</option>
                 {clients.map((client) => (
@@ -110,7 +123,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full ${themeClasses.select}`}
               >
                 <option value="draft">Draft</option>
                 <option value="sent">Sent</option>

@@ -16,9 +16,10 @@ interface UseFormNavigationProps {
   isDirty: boolean;
   isEnabled: boolean;
   entityType: 'client' | 'invoice' | 'expense';
+  onCancel?: () => void;
 }
 
-export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNavigationProps) => {
+export const useFormNavigation = ({ isDirty, isEnabled, entityType, onCancel }: UseFormNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const pendingNavigationRef = useRef<string | null>(null);
@@ -64,6 +65,8 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType }: UseFormNav
     if (pendingNavigationRef.current) {
       if (pendingNavigationRef.current === 'back') {
         window.history.back();
+      } else if (pendingNavigationRef.current === 'cancel' && onCancel) {
+        onCancel();
       } else {
         navigate(pendingNavigationRef.current);
       }

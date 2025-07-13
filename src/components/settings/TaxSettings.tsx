@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { themeClasses } from '@/lib/utils';
 
 interface TaxRate {
   id: string;
@@ -80,12 +81,12 @@ export const TaxSettings = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-card rounded-lg shadow-sm border border-border p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Tax Rates</h3>
+        <h3 className="text-lg font-medium text-card-foreground">Tax Rates</h3>
         <button
           onClick={addTaxRate}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Tax Rate
@@ -94,32 +95,32 @@ export const TaxSettings = () => {
 
       <div className="space-y-3">
         {taxRates.map((rate) => (
-          <div key={rate.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+          <div key={rate.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
             {isEditing === rate.id ? (
               <div className="flex items-center space-x-3 flex-1">
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="px-3 py-1 border border-gray-300 rounded"
+                  className={themeClasses.input.replace('w-full', '')}
                 />
                 <input
                   type="number"
                   step="0.01"
                   value={editForm.rate}
                   onChange={(e) => setEditForm({ ...editForm, rate: parseFloat(e.target.value) || 0 })}
-                  className="px-3 py-1 border border-gray-300 rounded w-20"
+                  className={`${themeClasses.input.replace('w-full', '')} w-20`}
                 />
-                <span className="text-sm text-gray-600">%</span>
+                <span className="text-sm text-muted-foreground">%</span>
                 <button
                   onClick={saveEdit}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-sm"
+                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setIsEditing(null)}
-                  className="px-3 py-1 bg-gray-400 text-white rounded text-sm"
+                  className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
                 >
                   Cancel
                 </button>
@@ -128,34 +129,34 @@ export const TaxSettings = () => {
               <>
                 <div className="flex items-center space-x-3">
                   <div>
-                    <span className="font-medium">{rate.name}</span>
+                    <span className="font-medium text-card-foreground">{rate.name}</span>
                     {rate.isDefault && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                      <span className="ml-2 px-2 py-1 bg-primary/10 text-primary text-xs rounded">
                         Default
                       </span>
                     )}
                   </div>
-                  <span className="text-gray-600">{rate.rate}%</span>
+                  <span className="text-muted-foreground">{rate.rate}%</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   {!rate.isDefault && (
                     <button
                       onClick={() => setDefault(rate.id)}
-                      className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-sm"
+                      className="px-2 py-1 text-primary hover:bg-accent hover:text-accent-foreground rounded text-sm"
                     >
                       Set Default
                     </button>
                   )}
                   <button
                     onClick={() => startEdit(rate)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
+                    className="p-1 text-muted-foreground hover:text-foreground"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   {rate.id !== '1' && (
                     <button
                       onClick={() => deleteTaxRate(rate.id)}
-                      className="p-1 text-red-400 hover:text-red-600"
+                      className="p-1 text-destructive hover:text-destructive/80"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

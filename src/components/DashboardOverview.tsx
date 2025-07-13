@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
 import { invoiceOperations, clientOperations, expenseOperations } from '../lib/database';
+import { themeClasses, getIconColorClasses, getStatusColor } from '../lib/utils';
 
 export const DashboardOverview = () => {
   const [stats, setStats] = useState({
@@ -55,122 +56,118 @@ export const DashboardOverview = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="p-6 space-y-6">
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Welcome back! Here's an overview of your business.</p>
+        <div className={themeClasses.pageHeader}>
+          <h1 className={themeClasses.pageTitle}>Dashboard</h1>
+          <p className={themeClasses.pageSubtitle}>Welcome back! Here's an overview of your business.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+        <div className={themeClasses.statsGrid}>
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${stats.totalRevenue.toFixed(2)}</p>
+                <p className={themeClasses.statLabel}>Total Revenue</p>
+                <p className={themeClasses.statValue}>${stats.totalRevenue.toFixed(2)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <DollarSign className={`${themeClasses.iconLarge} ${getIconColorClasses('green')}`} />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Clients</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalClients}</p>
+                <p className={themeClasses.statLabel}>Total Clients</p>
+                <p className={themeClasses.statValue}>{stats.totalClients}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <Users className={`${themeClasses.iconLarge} ${getIconColorClasses('blue')}`} />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Invoices</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalInvoices}</p>
+                <p className={themeClasses.statLabel}>Total Invoices</p>
+                <p className={themeClasses.statValue}>{stats.totalInvoices}</p>
               </div>
-              <FileText className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              <FileText className={`${themeClasses.iconLarge} ${getIconColorClasses('purple')}`} />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${stats.totalExpenses.toFixed(2)}</p>
+                <p className={themeClasses.statLabel}>Total Expenses</p>
+                <p className={themeClasses.statValue}>${stats.totalExpenses.toFixed(2)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <TrendingUp className={`${themeClasses.iconLarge} ${getIconColorClasses('red')}`} />
             </div>
           </div>
         </div>
 
         {/* Invoice Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+        <div className={themeClasses.statsGridThree}>
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Invoices</p>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingInvoices}</p>
+                <p className={themeClasses.statLabel}>Pending Invoices</p>
+                <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-yellow-foreground))'}}>{stats.pendingInvoices}</p>
               </div>
-              <Calendar className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+              <Calendar className={`${themeClasses.iconMedium} ${getIconColorClasses('yellow')}`} />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Paid Invoices</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.paidInvoices}</p>
+                <p className={themeClasses.statLabel}>Paid Invoices</p>
+                <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-green-foreground))'}}>{stats.paidInvoices}</p>
               </div>
-              <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <FileText className={`${themeClasses.iconMedium} ${getIconColorClasses('green')}`} />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue Invoices</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.overdueInvoices}</p>
+                <p className={themeClasses.statLabel}>Overdue Invoices</p>
+                <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-red-foreground))'}}>{stats.overdueInvoices}</p>
               </div>
-              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              <AlertCircle className={`${themeClasses.iconMedium} ${getIconColorClasses('red')}`} />
             </div>
           </div>
         </div>
 
         {/* Chart and Recent Invoices */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
-            <DashboardChart invoices={stats.allInvoices} />
+        <div className={themeClasses.contentGrid}>
+          <div className={themeClasses.card}>
+            <h3 className={themeClasses.cardTitle}>Revenue Trend</h3>
+            <div className="mt-4">
+              <DashboardChart invoices={stats.allInvoices} />
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Recent Invoices</h3>
-            <div className="space-y-3">
+          <div className={themeClasses.card}>
+            <h3 className={themeClasses.cardTitle}>Recent Invoices</h3>
+            <div className="space-y-3 mt-4">
               {stats.recentInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div key={invoice.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{invoice.client_name}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">#{invoice.invoice_number}</p>
+                    <p className={`font-medium ${themeClasses.bodyText}`}>{invoice.client_name}</p>
+                    <p className={themeClasses.smallText}>#{invoice.invoice_number}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-gray-100">${invoice.amount.toFixed(2)}</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      invoice.status === 'paid' 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                        : invoice.status === 'pending'
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                        : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                    }`}>
+                    <p className={`font-medium ${themeClasses.bodyText}`}>${invoice.amount.toFixed(2)}</p>
+                    <span className={getStatusColor(invoice.status)}>
                       {invoice.status}
                     </span>
                   </div>
                 </div>
               ))}
               {stats.recentInvoices.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">No invoices yet</p>
+                <p className={`${themeClasses.mutedText} text-center py-4`}>No invoices yet</p>
               )}
             </div>
           </div>

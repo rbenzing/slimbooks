@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Calendar, DollarSign } from 'lucide-react';
 import { templateOperations } from '@/lib/database';
 import { TemplateForm } from './TemplateForm';
 import { CreateRecurringInvoicePage } from './CreateRecurringInvoicePage';
+import { formatDate } from '@/utils/dateFormatting';
 
 export const TemplatesTab = () => {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -119,7 +120,7 @@ export const TemplatesTab = () => {
               </div>
 
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Next: {new Date(template.next_invoice_date).toLocaleDateString()}
+                Next: {formatDate(template.next_invoice_date)}
               </div>
 
               {template.description && (
@@ -130,7 +131,7 @@ export const TemplatesTab = () => {
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Created {new Date(template.created_at).toLocaleDateString()}
+                  Created {formatDate(template.created_at)}
                 </span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200">
                   Active

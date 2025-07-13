@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
+import { themeClasses } from '@/lib/utils';
 
 interface CompanyHeaderProps {
   companyLogo: string;
@@ -43,11 +44,11 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
 
   return (
     <div className="flex items-center space-x-4">
-      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-400 cursor-pointer relative overflow-hidden">
+      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border hover:border-primary cursor-pointer relative overflow-hidden">
         {displayLogo ? (
           <img src={displayLogo} alt="Company Logo" className="w-full h-full object-cover" />
         ) : (
-          <Upload className="h-6 w-6 text-gray-400" />
+          <Upload className="h-6 w-6 text-muted-foreground" />
         )}
         <input
           type="file"
@@ -57,9 +58,9 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
         />
       </div>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{companySettings.companyName}</h1>
-        <p className="text-gray-600">{companySettings.address}</p>
-        <p className="text-gray-600">{companySettings.city}, {companySettings.state} {companySettings.zipCode}</p>
+        <h1 className="text-2xl font-bold text-card-foreground">{companySettings.companyName}</h1>
+        <p className="text-muted-foreground">{companySettings.address}</p>
+        <p className="text-muted-foreground">{companySettings.city}, {companySettings.state} {companySettings.zipCode}</p>
       </div>
     </div>
   );

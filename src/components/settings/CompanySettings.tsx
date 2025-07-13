@@ -29,8 +29,6 @@ export const CompanySettings = () => {
     brandingImage: ''
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-
   useEffect(() => {
     const saved = localStorage.getItem('company_settings');
     if (saved) {
@@ -49,16 +47,9 @@ export const CompanySettings = () => {
     }
   }, []);
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    try {
-      localStorage.setItem('company_settings', JSON.stringify(settings));
-      console.log('Company settings saved successfully');
-    } catch (error) {
-      console.error('Error saving company settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const saveSettings = (newSettings: CompanySettings) => {
+    setSettings(newSettings);
+    localStorage.setItem('company_settings', JSON.stringify(newSettings));
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,41 +58,37 @@ export const CompanySettings = () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setSettings({ ...settings, brandingImage: result });
+        const newSettings = { ...settings, brandingImage: result };
+        saveSettings(newSettings);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleInputChange = (field: keyof CompanySettings, value: string) => {
-    setSettings({ ...settings, [field]: value });
+    const newSettings = { ...settings, [field]: value };
+    saveSettings(newSettings);
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-card rounded-lg shadow-sm border border-border p-6">
       <div className="flex items-center mb-6">
-        <Building className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Company Information</h3>
+        <Building className="h-5 w-5 text-primary mr-2" />
+        <h3 className="text-lg font-medium text-card-foreground">Company Information</h3>
       </div>
-      
+
       <div className="space-y-6">
-        <BrandingImageSection 
+        <BrandingImageSection
           settings={settings}
           onImageUpload={handleImageUpload}
         />
 
-        <CompanyDetailsSection 
+        <CompanyDetailsSection
           settings={settings}
           onInputChange={handleInputChange}
         />
 
-        <button 
-          onClick={handleSave}
-          disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? 'Saving...' : 'Save Company Settings'}
-        </button>
+
       </div>
     </div>
   );

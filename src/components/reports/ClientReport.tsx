@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
 import { clientOperations, invoiceOperations } from '../../lib/database';
+import { themeClasses } from '@/lib/utils';
+import { formatDateRange } from '@/utils/dateFormatting';
 
 interface ClientReportProps {
   onBack: () => void;
@@ -120,18 +122,8 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     }).format(amount);
   };
 
-  const formatDateRange = () => {
-    const start = new Date(dateRange.start).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    const end = new Date(dateRange.end).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    return `${start} - ${end}`;
+  const getFormattedDateRange = () => {
+    return formatDateRange(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -144,35 +136,36 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center">
-          <button onClick={onBack} className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
+          <button onClick={onBack} className="flex items-center text-muted-foreground hover:text-foreground mr-4">
             <ArrowLeft className="h-5 w-5 mr-1" />
             Back to Reports
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Generating Client Report...</h1>
+          <h1 className="text-2xl font-bold text-foreground">Generating Client Report...</h1>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Please wait while we generate your report...</p>
+          <p className="mt-4 text-muted-foreground">Please wait while we generate your report...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-          >
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={onBack}
+              className="flex items-center text-muted-foreground hover:text-foreground mr-4"
+            >
             <ArrowLeft className="h-5 w-5 mr-1" />
             Back to Reports
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Client Report</h1>
-            <p className="text-gray-600">{formatDateRange()}</p>
+            <h1 className="text-2xl font-bold text-foreground">Client Report</h1>
+            <p className="text-muted-foreground">{getFormattedDateRange()}</p>
           </div>
         </div>
         <div className="flex space-x-3">
@@ -191,18 +184,18 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
       </div>
 
       {/* Date Range Selector */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
+        <h3 className="text-lg font-medium text-foreground mb-4 flex items-center">
           <Calendar className="h-5 w-5 mr-2" />
           Report Date Range
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Quick Select
             </label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full ${themeClasses.select}`}
               value={dateRange.preset}
               onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
             >
@@ -216,23 +209,23 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Start Date
             </label>
             <input
               type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={themeClasses.dateInput}
               value={dateRange.start}
               onChange={(e) => setDateRange({ ...dateRange, start: e.target.value, preset: 'custom' })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               End Date
             </label>
             <input
               type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={themeClasses.dateInput}
               value={dateRange.end}
               onChange={(e) => setDateRange({ ...dateRange, end: e.target.value, preset: 'custom' })}
             />
@@ -243,57 +236,57 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
       {reportData && (
         <>
           {/* Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Clients</h3>
-              <p className="text-3xl font-bold text-blue-600">{reportData.totalClients}</p>
+          <div className={themeClasses.statsGrid}>
+            <div className={themeClasses.statCard}>
+              <h3 className={`${themeClasses.statLabel} mb-2`}>Active Clients</h3>
+              <p className={`${themeClasses.statValue} text-blue-600 dark:text-blue-400`}>{reportData.totalClients}</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Revenue</h3>
-              <p className="text-3xl font-bold text-gray-900">{formatCurrency(reportData.totalRevenue)}</p>
+            <div className={themeClasses.statCard}>
+              <h3 className={`${themeClasses.statLabel} mb-2`}>Total Revenue</h3>
+              <p className={themeClasses.statValue}>{formatCurrency(reportData.totalRevenue)}</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Paid Revenue</h3>
-              <p className="text-3xl font-bold text-green-600">{formatCurrency(reportData.totalPaidRevenue)}</p>
+            <div className={themeClasses.statCard}>
+              <h3 className={`${themeClasses.statLabel} mb-2`}>Paid Revenue</h3>
+              <p className={`${themeClasses.statValue} text-green-600 dark:text-green-400`}>{formatCurrency(reportData.totalPaidRevenue)}</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Pending Revenue</h3>
-              <p className="text-3xl font-bold text-yellow-600">{formatCurrency(reportData.totalPendingRevenue)}</p>
+            <div className={themeClasses.statCard}>
+              <h3 className={`${themeClasses.statLabel} mb-2`}>Pending Revenue</h3>
+              <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>{formatCurrency(reportData.totalPendingRevenue)}</p>
             </div>
           </div>
 
           {/* Client Details */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Client Performance</h3>
+          <div className={themeClasses.table}>
+            <div className={themeClasses.cardHeader}>
+              <h3 className={themeClasses.cardTitle}>Client Performance</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className={themeClasses.tableHeader}>
                   <tr>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Client</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Company</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Invoices</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Paid</th>
-                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Pending</th>
+                    <th className={themeClasses.tableHeaderCell}>Client</th>
+                    <th className={themeClasses.tableHeaderCell}>Company</th>
+                    <th className={themeClasses.tableHeaderCell}>Invoices</th>
+                    <th className={themeClasses.tableHeaderCell}>Total Revenue</th>
+                    <th className={themeClasses.tableHeaderCell}>Paid</th>
+                    <th className={themeClasses.tableHeaderCell}>Pending</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-border">
                   {reportData.clients.map((client: any) => (
-                    <tr key={client.id}>
-                      <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                    <tr key={client.id} className={themeClasses.tableRow}>
+                      <td className={`${themeClasses.tableCell} font-medium`}>
                         {client.name}
                       </td>
-                      <td className="py-4 px-6 text-sm text-gray-900">{client.company}</td>
-                      <td className="py-4 px-6 text-sm text-gray-900">{client.totalInvoices}</td>
-                      <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                      <td className={themeClasses.tableCell}>{client.company}</td>
+                      <td className={themeClasses.tableCell}>{client.totalInvoices}</td>
+                      <td className={`${themeClasses.tableCell} font-medium`}>
                         {formatCurrency(client.totalRevenue)}
                       </td>
-                      <td className="py-4 px-6 text-sm text-green-600 font-medium">
+                      <td className={`${themeClasses.tableCell} text-green-600 dark:text-green-400 font-medium`}>
                         {formatCurrency(client.paidRevenue)}
                       </td>
-                      <td className="py-4 px-6 text-sm text-yellow-600 font-medium">
+                      <td className={`${themeClasses.tableCell} text-yellow-600 dark:text-yellow-400 font-medium`}>
                         {formatCurrency(client.pendingRevenue)}
                       </td>
                     </tr>
@@ -304,6 +297,7 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
           </div>
         </>
       )}
+      </div>
     </div>
   );
 };

@@ -1,5 +1,7 @@
 
 import { templateOperations, invoiceOperations, clientOperations } from '@/lib/database';
+import { generateInvoiceNumber } from '@/utils/invoiceNumbering';
+import { formatDate } from '@/utils/dateFormatting';
 
 export const processRecurringInvoices = () => {
   const templates = templateOperations.getAll();
@@ -51,16 +53,12 @@ export const processRecurringInvoices = () => {
         next_invoice_date: nextDate.toISOString().split('T')[0]
       });
 
-      console.log(`Next invoice for ${template.name} scheduled for: ${nextDate.toLocaleDateString()}`);
+      console.log(`Next invoice for ${template.name} scheduled for: ${formatDate(nextDate)}`);
     }
   });
 };
 
-const generateInvoiceNumber = () => {
-  const existingInvoices = invoiceOperations.getAll();
-  const invoiceCount = existingInvoices.length + 1;
-  return `INV-${String(invoiceCount).padStart(4, '0')}`;
-};
+// Remove the old generateInvoiceNumber function since we're now importing it from utils
 
 const calculateDueDate = (paymentTerms: string) => {
   const today = new Date();

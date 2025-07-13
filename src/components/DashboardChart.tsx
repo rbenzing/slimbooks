@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { themeClasses } from '../lib/utils';
 
 interface DashboardChartProps {
   invoices: any[];
@@ -38,42 +39,40 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices }) => {
   const data = generateChartData();
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenue Overview</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="dark:stroke-gray-600" />
-          <XAxis 
-            dataKey="month" 
-            stroke="#6b7280" 
-            className="dark:stroke-gray-400"
-            tick={{ fill: 'currentColor' }}
-          />
-          <YAxis 
-            stroke="#6b7280" 
-            className="dark:stroke-gray-400"
-            tick={{ fill: 'currentColor' }}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'var(--color-background)', 
-              border: '1px solid var(--color-border)',
-              borderRadius: '0.5rem',
-              color: 'var(--color-foreground)'
-            }}
-            labelStyle={{ color: 'var(--color-foreground)' }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="revenue" 
-            stroke="#3b82f6" 
-            strokeWidth={2}
-            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" opacity={0.3} />
+        <XAxis
+          dataKey="month"
+          stroke="hsl(var(--muted-foreground))"
+          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          fontSize={12}
+        />
+        <YAxis
+          stroke="hsl(var(--muted-foreground))"
+          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          fontSize={12}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '0.5rem',
+            color: 'hsl(var(--card-foreground))',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+          }}
+          labelStyle={{ color: 'hsl(var(--card-foreground))' }}
+        />
+        <Line
+          type="monotone"
+          dataKey="revenue"
+          stroke="hsl(var(--dashboard-stat-blue-foreground))"
+          strokeWidth={2}
+          dot={{ fill: 'hsl(var(--dashboard-stat-blue-foreground))', strokeWidth: 2, r: 4 }}
+          activeDot={{ r: 6, stroke: 'hsl(var(--dashboard-stat-blue-foreground))', strokeWidth: 2 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 };
 

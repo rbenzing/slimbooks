@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { Edit, Receipt, Eye, Trash2 } from 'lucide-react';
+import { getStatusColor } from '@/lib/utils';
+import { formatDate } from '@/utils/dateFormatting';
 
 interface Expense {
   id: number;
@@ -18,25 +20,12 @@ interface ExpensesListProps {
   expenses: Expense[];
   onEditExpense: (expense: Expense) => void;
   onDeleteExpense: (id: number) => void;
+  onViewExpense: (expense: Expense) => void;
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpense, onDeleteExpense }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-orange-100 text-orange-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'reimbursed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpense, onDeleteExpense, onViewExpense }) => {
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  // Using imported formatDate function
 
   const handleDelete = (id: number, merchant: string) => {
     if (window.confirm(`Are you sure you want to delete the expense from ${merchant}?`)) {
@@ -45,54 +34,54 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Date
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Merchant
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Category
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Amount
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Receipt
               </th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {expenses.map((expense) => (
-              <tr key={expense.id} className="hover:bg-gray-50">
-                <td className="py-4 px-6 text-sm text-gray-900">
+              <tr key={expense.id} className="hover:bg-muted/50">
+                <td className="py-4 px-6 text-sm text-foreground">
                   {formatDate(expense.date)}
                 </td>
                 <td className="py-4 px-6">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{expense.merchant}</div>
+                    <div className="text-sm font-medium text-foreground">{expense.merchant}</div>
                     {expense.description && (
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                      <div className="text-sm text-muted-foreground truncate max-w-xs">
                         {expense.description}
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="py-4 px-6 text-sm text-gray-900">
+                <td className="py-4 px-6 text-sm text-foreground">
                   {expense.category}
                 </td>
-                <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                <td className="py-4 px-6 text-sm font-medium text-foreground">
                   ${expense.amount.toFixed(2)}
                 </td>
                 <td className="py-4 px-6">
@@ -106,27 +95,28 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
                       <Receipt className="h-4 w-4" />
                     </button>
                   ) : (
-                    <span className="text-gray-400 text-sm">None</span>
+                    <span className="text-muted-foreground text-sm">None</span>
                   )}
                 </td>
                 <td className="py-4 px-6">
                   <div className="flex space-x-2">
                     <button
                       onClick={() => onEditExpense(expense)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="p-1 text-muted-foreground hover:text-blue-600"
                       title="Edit expense"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      className="text-gray-600 hover:text-gray-800"
+                      onClick={() => onViewExpense(expense)}
+                      className="p-1 text-muted-foreground hover:text-white"
                       title="View details"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(expense.id, expense.merchant)}
-                      className="text-red-600 hover:text-red-800"
+                      className="p-1 text-muted-foreground hover:text-red-600"
                       title="Delete expense"
                     >
                       <Trash2 className="h-4 w-4" />

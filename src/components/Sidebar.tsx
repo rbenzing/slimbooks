@@ -93,6 +93,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         return (location.pathname === '/invoices' && location.hash === '#templates') ||
                location.pathname.includes('/recurring-invoices');
       }
+      // Special handling for settings sub-items
+      if (path === '/settings#company') {
+        // Company is active when on /settings with no hash (default) or with #company hash
+        return (location.pathname === '/settings' && location.hash === '#company') ||
+               (location.pathname === '/settings' && !location.hash);
+      }
       return location.pathname + location.hash === path;
     }
     return location.pathname.startsWith(path);

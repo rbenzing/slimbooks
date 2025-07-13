@@ -24,7 +24,7 @@ export const InvoiceManagement = () => {
   }, [location.hash, location.pathname]);
 
   return (
-    <div className="h-full bg-gray-100 dark:bg-gray-900">
+    <div className="h-full bg-background">
       <div className="p-6">
         {activeTab === 'invoices' && <InvoicesTab />}
         {activeTab === 'templates' && <TemplatesTab />}

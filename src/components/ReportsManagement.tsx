@@ -6,7 +6,9 @@ import { ExpenseReport } from './reports/ExpenseReport';
 import { InvoiceReport } from './reports/InvoiceReport';
 import { ClientReport } from './reports/ClientReport';
 import { reportOperations } from '../lib/database';
+import { themeClasses } from '../lib/utils';
 import { toast } from 'sonner';
+import { formatDate, formatDateRange } from '@/utils/dateFormatting';
 
 export type ReportType = 'profit-loss' | 'expense' | 'invoice' | 'client';
 
@@ -101,18 +103,8 @@ export const ReportsManagement: React.FC = () => {
     }
   };
 
-  const formatDateRange = (dateRange: DateRange) => {
-    const start = new Date(dateRange.start).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-    const end = new Date(dateRange.end).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-    return `${start} - ${end}`;
+  const getFormattedDateRange = (dateRange: DateRange) => {
+    return formatDateRange(dateRange.start, dateRange.end);
   };
 
   const renderReport = () => {
@@ -135,79 +127,79 @@ export const ReportsManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-muted-foreground">Generate insights from your business data</p>
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
+        {/* Header */}
+        <div className={themeClasses.pageHeader}>
+          <h1 className={themeClasses.pageTitle}>Reports</h1>
+          <p className={themeClasses.pageSubtitle}>Generate insights from your business data</p>
         </div>
-      </div>
 
-      {/* Report Types Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {reportTypes.map((report) => {
-          const Icon = report.icon;
-          return (
-            <div
-              key={report.id}
-              className="bg-card p-6 rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedReport(report.id)}
-            >
-              <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-lg ${report.color}`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-card-foreground mb-2">{report.name}</h3>
-                  <p className="text-muted-foreground mb-4">{report.description}</p>
-                  <button className="flex items-center text-primary hover:text-primary/80 font-medium">
-                    Generate Report
-                    <BarChart className="h-4 w-4 ml-1" />
-                  </button>
+        {/* Report Types Grid */}
+        <div className={themeClasses.cardsGrid}>
+          {reportTypes.map((report) => {
+            const Icon = report.icon;
+            return (
+              <div
+                key={report.id}
+                className={themeClasses.cardHover}
+                onClick={() => setSelectedReport(report.id)}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className={`p-3 rounded-lg ${report.color}`}>
+                    <Icon className={`${themeClasses.iconMedium} text-white`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`${themeClasses.cardTitle} mb-2`}>{report.name}</h3>
+                    <p className={`${themeClasses.mutedText} mb-4`}>{report.description}</p>
+                    <button className="flex items-center text-primary hover:text-primary/80 font-medium">
+                      Generate Report
+                      <BarChart className={`${themeClasses.iconSmall} ml-1`} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Saved Reports */}
-      <div className="bg-card rounded-lg shadow-sm border border-border">
-        <div className="p-6 border-b border-border">
-          <h3 className="text-lg font-medium text-card-foreground">Saved Reports</h3>
+            );
+          })}
         </div>
-        <div className="p-6">
-          {savedReports.length > 0 ? (
-            <div className="space-y-4">
-              {savedReports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-card-foreground">{report.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(report.created_at).toLocaleDateString()}
-                    </p>
+
+        {/* Saved Reports */}
+        <div className={themeClasses.card}>
+          <div className={themeClasses.cardHeader}>
+            <h3 className={themeClasses.cardTitle}>Saved Reports</h3>
+          </div>
+          <div>
+            {savedReports.length > 0 ? (
+              <div className="space-y-4">
+                {savedReports.map((report) => (
+                  <div key={report.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className={`font-medium ${themeClasses.bodyText}`}>{report.name}</h4>
+                      <p className={themeClasses.smallText}>
+                        Created: {formatDate(report.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button className="text-primary hover:text-primary/80 p-2">
+                        <Download className={themeClasses.iconSmall} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteReport(report.id, report.name)}
+                        className="text-destructive hover:text-destructive/80 p-2"
+                      >
+                        <Trash2 className={themeClasses.iconSmall} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button className="text-primary hover:text-primary/80 p-2">
-                      <Download className="h-4 w-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteReport(report.id, report.name)}
-                      className="text-destructive hover:text-destructive/80 p-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No saved reports. Generate your first report above.</p>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className={`${themeClasses.iconLarge} ${themeClasses.mutedText} mx-auto mb-4`} />
+                <p className={themeClasses.mutedText}>No saved reports. Generate your first report above.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

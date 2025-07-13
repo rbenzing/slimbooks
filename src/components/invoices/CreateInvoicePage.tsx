@@ -5,6 +5,8 @@ import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
+import { themeClasses } from '@/lib/utils';
+import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/invoiceNumbering';
 
 interface LineItem {
   id: string;
@@ -107,7 +109,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     } else {
       setInvoiceData(prev => ({
         ...prev,
-        invoice_number: `INV-${Date.now()}`
+        invoice_number: generateTemporaryInvoiceNumber()
       }));
     }
 
@@ -192,14 +194,27 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       client_id: selectedClient.id,
       amount: total,
       description: lineItems.map(item => item.description).join(', '),
-      type: 'one-time'
+      type: 'one-time',
+      client_name: selectedClient.name,
+      client_email: selectedClient.email,
+      client_phone: selectedClient.phone,
+      client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+      line_items: JSON.stringify(lineItems),
+      tax_amount: taxAmount,
+      shipping_amount: shippingAmount,
+      notes: thankYouMessage
     };
 
     try {
       if (editingInvoice) {
         invoiceOperations.update(editingInvoice.id, invoicePayload);
       } else {
-        invoiceOperations.create(invoicePayload);
+        // Generate a proper invoice number when creating new invoices
+        const finalInvoicePayload = {
+          ...invoicePayload,
+          invoice_number: generateInvoiceNumber()
+        };
+        invoiceOperations.create(finalInvoicePayload);
       }
       navigate('/invoices');
     } catch (error) {
@@ -276,7 +291,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     type="date"
                     value={invoiceData.due_date}
                     onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, due_date: e.target.value})}
-                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark] ${viewOnly ? 'bg-muted' : ''}`}
                     disabled={viewOnly}
                   />
                 </div>
@@ -386,7 +401,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       setSelectedTaxRate(rate || null);
                     }
                   }}
-                  className={`w-48 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                  className={`w-48 ${themeClasses.select} ${viewOnly ? 'bg-muted' : ''}`}
                   disabled={viewOnly}
                 >
                   <option value="">No Tax</option>
@@ -408,7 +423,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       setSelectedShippingRate(rate || null);
                     }
                   }}
-                  className={`w-48 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                  className={`w-48 ${themeClasses.select} ${viewOnly ? 'bg-muted' : ''}`}
                   disabled={viewOnly}
                 >
                   <option value="">No Shipping</option>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { themeClasses } from '@/lib/utils';
 
 interface AddressField {
   key: string;
@@ -100,8 +101,8 @@ export const InternationalAddressForm: React.FC<InternationalAddressFormProps> =
             <select
               value={formData[field.key] || ''}
               onChange={(e) => onChange(field.key, e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors[field.key] ? 'border-red-300' : 'border-gray-300'
+              className={`w-full ${themeClasses.select} ${
+                errors[field.key] ? 'border-red-300' : ''
               }`}
             >
               <option value="">Select {field.label}</option>

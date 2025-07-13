@@ -9,6 +9,7 @@ import { ClientManagement } from './components/ClientManagement';
 import { EditClientPage } from './components/clients/EditClientPage';
 import { InvoiceManagement } from './components/InvoiceManagement';
 import { CreateInvoicePage } from './components/invoices/CreateInvoicePage';
+import { EditInvoicePage } from './components/invoices/EditInvoicePage';
 import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurringInvoicePage';
 import { ExpenseManagement } from './components/ExpenseManagement';
 import { ReportsManagement } from './components/ReportsManagement';
@@ -54,7 +55,7 @@ const App = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <LoginForm />
       </div>
     );
@@ -63,11 +64,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="h-screen w-full flex bg-gray-100 overflow-hidden">
+        <div className="h-screen w-full flex bg-background overflow-hidden">
           <div className="w-[14%] min-w-[200px]">
             <Sidebar />
           </div>
-          <main className="w-[86%] h-full overflow-y-auto bg-gray-100">
+          <main className="w-[86%] h-full overflow-y-auto bg-background">
             <Routes>
               <Route path="/" element={<DashboardOverview />} />
               <Route path="/clients" element={<ClientManagement />} />
@@ -75,7 +76,7 @@ const App = () => {
               <Route path="/clients/edit/:id" element={<EditClientPage />} />
               <Route path="/invoices" element={<InvoiceManagement />} />
               <Route path="/invoices/create" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
-              <Route path="/invoices/edit/:id" element={<CreateInvoicePage onBack={() => window.history.back()} />} />
+              <Route path="/invoices/edit/:id" element={<EditInvoicePage />} />
               <Route path="/recurring-invoices/create" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
               <Route path="/recurring-invoices/edit/:id" element={<CreateRecurringInvoicePage onBack={() => window.history.back()} />} />
               <Route path="/expenses" element={<ExpenseManagement />} />
