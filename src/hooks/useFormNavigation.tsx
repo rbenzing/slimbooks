@@ -15,7 +15,7 @@ import {
 interface UseFormNavigationProps {
   isDirty: boolean;
   isEnabled: boolean;
-  entityType: 'client' | 'invoice' | 'expense';
+  entityType: 'client' | 'invoice' | 'expense' | 'template';
   onCancel?: () => void;
 }
 
@@ -27,8 +27,8 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType, onCancel }: 
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
-    // Only enable beforeunload for create pages, not edit pages
-    if (!isEnabled || !isDirty || location.pathname.includes('/edit/')) return;
+    // Enable beforeunload for both create and edit pages
+    if (!isEnabled || !isDirty) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // Don't show browser dialog if we're handling navigation internally
@@ -47,7 +47,9 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType, onCancel }: 
 
   const confirmNavigation = (targetPath: string) => {
     if (!isEnabled || !isDirty) {
-      if (targetPath === 'back') {
+      if (targetPath === 'back' && onCancel) {
+        onCancel();
+      } else if (targetPath === 'back') {
         window.history.back();
       } else {
         navigate(targetPath);
@@ -63,7 +65,9 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType, onCancel }: 
 
   const handleConfirmNavigation = () => {
     if (pendingNavigationRef.current) {
-      if (pendingNavigationRef.current === 'back') {
+      if (pendingNavigationRef.current === 'back' && onCancel) {
+        onCancel();
+      } else if (pendingNavigationRef.current === 'back') {
         window.history.back();
       } else if (pendingNavigationRef.current === 'cancel' && onCancel) {
         onCancel();
@@ -88,8 +92,9 @@ export const useFormNavigation = ({ isDirty, isEnabled, entityType, onCancel }: 
         <AlertDialogHeader>
           <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel {entityType === 'client' ? 'adding/editing this client' : 
-              entityType === 'invoice' ? 'adding/editing this invoice' : 'adding/editing this expense'}? 
+            Are you sure you want to cancel {entityType === 'client' ? 'adding/editing this client' :
+              entityType === 'invoice' ? 'adding/editing this invoice' :
+              entityType === 'template' ? 'adding/editing this template' : 'adding/editing this expense'}?
             Any unsaved changes will be lost.
           </AlertDialogDescription>
         </AlertDialogHeader>

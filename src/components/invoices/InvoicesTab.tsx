@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { invoiceOperations } from '@/lib/database';
 import { InvoiceForm } from './InvoiceForm';
@@ -217,20 +217,7 @@ export const InvoicesTab = () => {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Sent Invoices</h2>
-          <p className="text-muted-foreground">Manage your invoices and track payments</p>
-        </div>
-        <button
-          onClick={handleCreateNew}
-          className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Invoice
-        </button>
-      </div>
+
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -240,7 +227,7 @@ export const InvoicesTab = () => {
               <p className="text-sm font-medium text-muted-foreground">Total Invoices</p>
               <p className="text-2xl font-bold text-blue-600">{totalInvoices}</p>
             </div>
-            <DollarSign className="h-8 w-8 text-blue-600" />
+            <FileText className="h-8 w-8 text-blue-600" />
           </div>
         </div>
         <div className="bg-card p-6 rounded-lg shadow-sm border border-border">

@@ -37,16 +37,16 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
-
-  // Check if form has unsaved changes
-  const isDirty = selectedClient !== null || templateData.name.trim() !== '' || 
-                  lineItems.some(item => item.description.trim() !== '');
+  const [isDirty, setIsDirty] = useState(false);
 
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
     isDirty,
     isEnabled: true,
-    entityType: 'invoice'
+    entityType: 'template',
+    onCancel: onBack
   });
+
+
 
   useEffect(() => {
     const allClients = clientOperations.getAll();
@@ -68,6 +68,65 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
     }
   }, [editingTemplate]);
+
+  // Load editing template data
+  useEffect(() => {
+    if (editingTemplate) {
+      // Load template data
+      setTemplateData({
+        name: editingTemplate.name || '',
+        frequency: editingTemplate.frequency || 'monthly',
+        next_invoice_date: editingTemplate.next_invoice_date || '',
+        status: editingTemplate.status || 'active'
+      });
+
+      // Load client
+      if (editingTemplate.client_id) {
+        const client = clientOperations.getById(editingTemplate.client_id);
+        setSelectedClient(client);
+      }
+
+      // Load line items
+      if (editingTemplate.line_items) {
+        try {
+          const items = JSON.parse(editingTemplate.line_items);
+          setLineItems(items);
+        } catch (error) {
+          console.error('Error parsing line items:', error);
+        }
+      }
+
+      // Load thank you message
+      if (editingTemplate.notes) {
+        setThankYouMessage(editingTemplate.notes);
+      }
+    }
+  }, [editingTemplate]);
+
+  // Track form changes - set dirty when any field changes
+  useEffect(() => {
+    if (editingTemplate) {
+      // For editing, check if current values differ from original template
+      const hasChanges =
+        templateData.name !== (editingTemplate.name || '') ||
+        templateData.frequency !== (editingTemplate.frequency || 'monthly') ||
+        templateData.next_invoice_date !== (editingTemplate.next_invoice_date || '') ||
+        templateData.status !== (editingTemplate.status || 'active') ||
+        selectedClient?.id !== editingTemplate.client_id ||
+        thankYouMessage !== (editingTemplate.notes || 'Thank you for your business!') ||
+        JSON.stringify(lineItems) !== (editingTemplate.line_items || JSON.stringify([{ id: '1', description: '', quantity: 1, rate: 0, amount: 0 }]));
+
+      setIsDirty(hasChanges);
+    } else {
+      // For creating new template, check if any fields have content
+      const hasContent =
+        selectedClient !== null ||
+        templateData.name.trim() !== '' ||
+        lineItems.some(item => item.description.trim() !== '');
+
+      setIsDirty(hasContent);
+    }
+  }, [editingTemplate, templateData, selectedClient, lineItems, thankYouMessage]);
 
   const addLineItem = () => {
     const newItem: LineItem = {
@@ -143,6 +202,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       } else {
         templateOperations.create(templatePayload);
       }
+      setIsDirty(false); // Reset dirty state after successful save
       onBack();
     } catch (error) {
       console.error('Error saving template:', error);

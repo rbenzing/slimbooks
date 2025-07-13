@@ -51,7 +51,12 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     selectedShippingRate: selectedShippingRate?.id || null,
     thankYouMessage
   };
-  const isDirty = originalFormData ? JSON.stringify(currentState) !== JSON.stringify(originalFormData) : false;
+  const isDirty = originalFormData ?
+    JSON.stringify(currentState) !== JSON.stringify(originalFormData) :
+    // For new invoices, check if any meaningful fields have content
+    selectedClient !== null ||
+    lineItems.some(item => item.description.trim() !== '') ||
+    thankYouMessage !== 'Thank you for your business!';
   
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
     isDirty,
@@ -113,17 +118,19 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       }));
     }
 
-    // Set original form data for dirty checking
-    setTimeout(() => {
-      setOriginalFormData({
-        selectedClient: selectedClient?.id || null,
-        invoiceData,
-        lineItems,
-        selectedTaxRate: selectedTaxRate?.id || null,
-        selectedShippingRate: selectedShippingRate?.id || null,
-        thankYouMessage
-      });
-    }, 100);
+    // Set original form data for dirty checking only when editing
+    if (editingInvoice) {
+      setTimeout(() => {
+        setOriginalFormData({
+          selectedClient: selectedClient?.id || null,
+          invoiceData,
+          lineItems,
+          selectedTaxRate: selectedTaxRate?.id || null,
+          selectedShippingRate: selectedShippingRate?.id || null,
+          thankYouMessage
+        });
+      }, 100);
+    }
   }, [editingInvoice]);
 
   const addLineItem = () => {

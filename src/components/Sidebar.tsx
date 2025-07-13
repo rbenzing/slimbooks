@@ -28,15 +28,11 @@ import {
 const navigation = [
   { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { id: 'clients', name: 'Clients', icon: Users, path: '/clients' },
-  { 
-    id: 'invoices', 
-    name: 'Invoices', 
-    icon: FileText, 
-    path: '/invoices',
-    subItems: [
-      { id: 'sent-invoices', name: 'Sent Invoices', path: '/invoices#invoices' },
-      { id: 'recurring-templates', name: 'Recurring', path: '/invoices#templates' }
-    ]
+  {
+    id: 'invoices',
+    name: 'Invoices',
+    icon: FileText,
+    path: '/invoices#invoices'
   },
   { id: 'expenses', name: 'Expenses', icon: Receipt, path: '/expenses' },
   { id: 'reports', name: 'Reports', icon: BarChart, path: '/reports' },
@@ -121,6 +117,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
     } else if (isOnFormPage && (location.pathname.includes('/invoices') || location.pathname.includes('/recurring'))) {
       confirmNavigation(path);
     } else {
+      // Smart navigation for hash-based routes to prevent white flash
+      if (path.includes('#')) {
+        const [basePath, hash] = path.split('#');
+        if (location.pathname === basePath) {
+          // Already on the same route, just update the hash
+          window.location.hash = hash;
+          return;
+        }
+      }
       navigate(path);
     }
   };

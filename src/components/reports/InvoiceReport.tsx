@@ -40,6 +40,11 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
         return acc;
       }, {} as Record<string, number>);
 
+      const invoicesByClient = invoices.reduce((acc, invoice) => {
+        acc[invoice.client_name] = (acc[invoice.client_name] || 0) + invoice.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
       const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
       const paidAmount = invoices
         .filter(invoice => invoice.status === 'paid')
@@ -51,6 +56,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
       setReportData({
         invoices,
         invoicesByStatus,
+        invoicesByClient,
         totalAmount,
         paidAmount,
         pendingAmount,
@@ -124,8 +130,6 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
       onSave(reportData, 'invoice', dateRange);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -252,52 +256,89 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
               </div>
             </div>
 
-            {/* Status Breakdown */}
-            <div className={themeClasses.card}>
-              <div className={themeClasses.cardHeader}>
-                <h3 className={themeClasses.cardTitle}>Invoices by Status</h3>
+            {/* Status Breakdown and Client Breakdown - Two Column Layout */}
+            <div className={themeClasses.contentGrid}>
+              {/* Status Breakdown */}
+              <div className={themeClasses.card}>
+                <div className={themeClasses.cardHeader}>
+                  <h3 className={themeClasses.cardTitle}>Invoices by Status</h3>
+                </div>
+                <div className={themeClasses.cardContent}>
+                  <div className="space-y-4">
+                    {Object.entries(reportData.invoicesByStatus).map(([status, amount]) => {
+                      const percentage = reportData.totalAmount > 0 ? ((amount as number) / reportData.totalAmount * 100) : 0;
+                      return (
+                        <div key={status} className="flex justify-between items-center py-2">
+                          <span className={`${themeClasses.bodyText} font-medium capitalize flex-1`}>{status}</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="space-y-4">
-                  {Object.entries(reportData.invoicesByStatus).map(([status, amount]) => (
-                    <div key={status} className="flex justify-between items-center py-2">
-                      <span className={`${themeClasses.bodyText} font-medium capitalize`}>{status}</span>
-                      <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
-                    </div>
-                  ))}
+
+              {/* Client Breakdown */}
+              <div className={themeClasses.card}>
+                <div className={themeClasses.cardHeader}>
+                  <h3 className={themeClasses.cardTitle}>Top Clients by Revenue</h3>
+                </div>
+                <div className={themeClasses.cardContent}>
+                  <div className="space-y-4">
+                    {Object.entries(reportData.invoicesByClient || {}).slice(0, 5).map(([client, amount]) => {
+                      const percentage = reportData.totalAmount > 0 ? ((amount as number) / reportData.totalAmount * 100) : 0;
+                      return (
+                        <div key={client} className="flex justify-between items-center py-2">
+                          <span className={`${themeClasses.bodyText} font-medium flex-1`}>{client}</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Detailed List */}
-            <div className={themeClasses.table}>
+            {/* Detailed Invoice List */}
+            <div className={themeClasses.card}>
               <div className={themeClasses.cardHeader}>
                 <h3 className={themeClasses.cardTitle}>Detailed Invoice List</h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className={themeClasses.tableHeader}>
-                    <tr>
-                      <th className={themeClasses.tableHeaderCell}>Invoice #</th>
-                      <th className={themeClasses.tableHeaderCell}>Client</th>
-                      <th className={themeClasses.tableHeaderCell}>Amount</th>
-                      <th className={themeClasses.tableHeaderCell}>Status</th>
-                      <th className={themeClasses.tableHeaderCell}>Due Date</th>
-                      <th className={themeClasses.tableHeaderCell}>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reportData.invoices.map((invoice: any) => (
-                      <tr key={invoice.id} className={themeClasses.tableRow}>
-                        <td className={`${themeClasses.tableCell} font-medium`}>
-                          {invoice.invoice_number}
-                        </td>
-                        <td className={themeClasses.tableCell}>{invoice.client_name}</td>
-                        <td className={`${themeClasses.tableCell} font-medium`}>
-                          {formatCurrency(invoice.amount)}
-                        </td>
-                        <td className={themeClasses.tableCell}>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
+              <div className={themeClasses.cardContent}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className={themeClasses.tableHeader}>
+                      <tr>
+                        <th className={themeClasses.tableHeaderCell}>Invoice #</th>
+                        <th className={themeClasses.tableHeaderCell}>Client</th>
+                        <th className={themeClasses.tableHeaderCell}>Amount</th>
+                        <th className={themeClasses.tableHeaderCell}>Status</th>
+                        <th className={themeClasses.tableHeaderCell}>Due Date</th>
+                        <th className={themeClasses.tableHeaderCell}>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {reportData.invoices.map((invoice: any) => (
+                        <tr key={invoice.id} className={themeClasses.tableRow}>
+                          <td className={`${themeClasses.tableCell} font-medium`}>
+                            {invoice.invoice_number}
+                          </td>
+                          <td className={themeClasses.tableCell}>{invoice.client_name}</td>
+                          <td className={`${themeClasses.tableCell} font-medium`}>
+                            {formatCurrency(invoice.amount)}
+                          </td>
+                          <td className={themeClasses.tableCell}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
                             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                           </span>
                         </td>
@@ -313,6 +354,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
               </table>
             </div>
           </div>
+        </div>
         </>
       )}
       </div>

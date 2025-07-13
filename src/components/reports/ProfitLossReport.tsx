@@ -243,24 +243,37 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
               <div className={themeClasses.cardHeader}>
                 <h3 className={themeClasses.cardTitle}>Detailed Breakdown</h3>
               </div>
-              <div>
+              <div className={themeClasses.cardContent}>
                 <div className="space-y-8">
                   {/* Revenue Section */}
                   <div>
                     <h4 className={`text-lg font-semibold ${themeClasses.bodyText} mb-4`}>Revenue</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center py-2">
-                        <span className={themeClasses.mutedText}>Invoice Revenue</span>
-                        <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.invoices)}</span>
+                        <span className={`${themeClasses.mutedText} flex-1`}>Invoice Revenue</span>
+                        <div className="flex items-center space-x-4 min-w-0">
+                          <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.invoices)}</span>
+                          <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                            {reportData.revenue.total > 0 ? ((reportData.revenue.invoices / reportData.revenue.total) * 100).toFixed(1) : 0}%
+                          </span>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center py-2">
-                        <span className={themeClasses.mutedText}>Other Income</span>
-                        <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.otherIncome)}</span>
+                        <span className={`${themeClasses.mutedText} flex-1`}>Other Income</span>
+                        <div className="flex items-center space-x-4 min-w-0">
+                          <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.otherIncome)}</span>
+                          <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                            {reportData.revenue.total > 0 ? ((reportData.revenue.otherIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%
+                          </span>
+                        </div>
                       </div>
                       <div className="border-t border-border pt-2">
                         <div className="flex justify-between items-center py-2">
-                          <span className={`font-semibold ${themeClasses.bodyText}`}>Total Revenue</span>
-                          <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(reportData.revenue.total)}</span>
+                          <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Revenue</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(reportData.revenue.total)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -272,17 +285,26 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                     <div className="space-y-3">
                       {Object.entries(reportData.expenses).map(([category, amount]) => {
                         if (category === 'total') return null;
+                        const percentage = reportData.expenses.total > 0 ? ((amount as number) / reportData.expenses.total * 100) : 0;
                         return (
                           <div key={category} className="flex justify-between items-center py-2">
-                            <span className={themeClasses.mutedText}>{category}</span>
-                            <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`${themeClasses.mutedText} flex-1`}>{category}</span>
+                            <div className="flex items-center space-x-4 min-w-0">
+                              <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                              <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                                {percentage.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
                       <div className="border-t border-border pt-2">
                         <div className="flex justify-between items-center py-2">
-                          <span className={`font-semibold ${themeClasses.bodyText}`}>Total Expenses</span>
-                          <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(reportData.expenses.total)}</span>
+                          <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Expenses</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(reportData.expenses.total)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -291,10 +313,15 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                   {/* Net Income */}
                   <div className="border-t-2 border-border pt-4">
                     <div className="flex justify-between items-center py-2">
-                      <span className={`text-xl font-bold ${themeClasses.bodyText}`}>Net Income</span>
-                      <span className={`text-xl font-bold ${reportData.netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {formatCurrency(reportData.netIncome)}
-                      </span>
+                      <span className={`text-xl font-bold ${themeClasses.bodyText} flex-1`}>Net Income</span>
+                      <div className="flex items-center space-x-4 min-w-0">
+                        <span className={`text-xl font-bold ${reportData.netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {formatCurrency(reportData.netIncome)}
+                        </span>
+                        <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                          {reportData.revenue.total > 0 ? ((reportData.netIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

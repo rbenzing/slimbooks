@@ -160,7 +160,12 @@ export const EditInvoicePage = () => {
 
       invoiceOperations.update(parseInt(id!), updatedInvoice);
       setIsDirty(false);
-      navigate('/invoices');
+      // Navigate back to the appropriate page based on invoice type
+      if (invoice.template_id) {
+        navigate('/invoices#templates');
+      } else {
+        navigate('/invoices');
+      }
     } catch (error) {
       console.error('Error updating invoice:', error);
       alert('Error updating invoice');
@@ -171,7 +176,12 @@ export const EditInvoicePage = () => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
         invoiceOperations.delete(parseInt(id!));
-        navigate('/invoices');
+        // Navigate back to the appropriate page based on invoice type
+        if (invoice.template_id) {
+          navigate('/invoices#templates');
+        } else {
+          navigate('/invoices');
+        }
       } catch (error) {
         console.error('Error deleting invoice:', error);
         alert('Error deleting invoice');
@@ -259,11 +269,14 @@ export const EditInvoicePage = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigate('/invoices')}
+            onClick={() => {
+              const targetPath = invoice.template_id ? '/invoices#templates' : '/invoices';
+              confirmNavigation(targetPath);
+            }}
             className="flex items-center text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Invoices
+            {invoice.template_id ? 'Back to Templates' : 'Back to Invoices'}
           </button>
           <div className="flex space-x-3">
             <button
@@ -481,6 +494,8 @@ export const EditInvoicePage = () => {
           </div>
         </div>
       </div>
+
+      <NavigationGuard />
     </div>
   );
 };

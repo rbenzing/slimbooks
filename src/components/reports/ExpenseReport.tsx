@@ -240,80 +240,103 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
               </div>
             </div>
 
-            {/* Category Breakdown */}
-            <div className={themeClasses.card}>
-              <div className={themeClasses.cardHeader}>
-                <h3 className={themeClasses.cardTitle}>Expenses by Category</h3>
+            {/* Category and Status Breakdown - Two Column Layout */}
+            <div className={themeClasses.contentGrid}>
+              {/* Category Breakdown */}
+              <div className={themeClasses.card}>
+                <div className={themeClasses.cardHeader}>
+                  <h3 className={themeClasses.cardTitle}>Expenses by Category</h3>
+                </div>
+                <div className={themeClasses.cardContent}>
+                  <div className="space-y-4">
+                    {Object.entries(reportData.expensesByCategory).map(([category, amount]) => {
+                      const percentage = reportData.totalAmount > 0 ? ((amount as number) / reportData.totalAmount * 100) : 0;
+                      return (
+                        <div key={category} className="flex justify-between items-center py-2">
+                          <span className={`${themeClasses.bodyText} font-medium flex-1`}>{category}</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="space-y-4">
-                  {Object.entries(reportData.expensesByCategory).map(([category, amount]) => (
-                    <div key={category} className="flex justify-between items-center py-2">
-                      <span className={`${themeClasses.bodyText} font-medium`}>{category}</span>
-                      <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
-                    </div>
-                  ))}
+
+              {/* Status Breakdown */}
+              <div className={themeClasses.card}>
+                <div className={themeClasses.cardHeader}>
+                  <h3 className={themeClasses.cardTitle}>Expenses by Status</h3>
+                </div>
+                <div className={themeClasses.cardContent}>
+                  <div className="space-y-4">
+                    {Object.entries(reportData.expensesByStatus).map(([status, amount]) => {
+                      const percentage = reportData.totalAmount > 0 ? ((amount as number) / reportData.totalAmount * 100) : 0;
+                      return (
+                        <div key={status} className="flex justify-between items-center py-2">
+                          <span className={`${themeClasses.bodyText} font-medium capitalize flex-1`}>{status}</span>
+                          <div className="flex items-center space-x-4 min-w-0">
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Detailed Expense List */}
             <div className={themeClasses.card}>
-              <div className={themeClasses.cardHeader}>
-                <h3 className={themeClasses.cardTitle}>Expenses by Status</h3>
-              </div>
-              <div>
-                <div className="space-y-4">
-                  {Object.entries(reportData.expensesByStatus).map(([status, amount]) => (
-                    <div key={status} className="flex justify-between items-center py-2">
-                      <span className={`${themeClasses.bodyText} font-medium capitalize`}>{status}</span>
-                      <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className={themeClasses.table}>
               <div className={themeClasses.cardHeader}>
                 <h3 className={themeClasses.cardTitle}>Detailed Expense List</h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className={themeClasses.tableHeader}>
-                    <tr>
-                      <th className={themeClasses.tableHeaderCell}>Date</th>
-                      <th className={themeClasses.tableHeaderCell}>Merchant</th>
-                      <th className={themeClasses.tableHeaderCell}>Category</th>
-                      <th className={themeClasses.tableHeaderCell}>Amount</th>
-                      <th className={themeClasses.tableHeaderCell}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reportData.expenses.map((expense: any) => (
-                      <tr key={expense.id} className={themeClasses.tableRow}>
-                        <td className={themeClasses.tableCell}>
-                          {formatDate(expense.date)}
-                        </td>
-                        <td className={themeClasses.tableCell}>{expense.merchant}</td>
-                        <td className={themeClasses.tableCell}>{expense.category}</td>
-                        <td className={`${themeClasses.tableCell} font-medium`}>
-                          {formatCurrency(expense.amount)}
-                        </td>
-                        <td className={themeClasses.tableCell}>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            expense.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                            expense.status === 'approved' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                            'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                          }`}>
-                            {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
-                          </span>
-                        </td>
+              <div className={themeClasses.cardContent}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className={themeClasses.tableHeader}>
+                      <tr>
+                        <th className={themeClasses.tableHeaderCell}>Date</th>
+                        <th className={themeClasses.tableHeaderCell}>Merchant</th>
+                        <th className={themeClasses.tableHeaderCell}>Category</th>
+                        <th className={themeClasses.tableHeaderCell}>Amount</th>
+                        <th className={themeClasses.tableHeaderCell}>Status</th>
                       </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {reportData.expenses.map((expense: any) => (
+                        <tr key={expense.id} className={themeClasses.tableRow}>
+                          <td className={themeClasses.tableCell}>
+                            {formatDate(expense.date)}
+                          </td>
+                          <td className={themeClasses.tableCell}>{expense.merchant}</td>
+                          <td className={themeClasses.tableCell}>{expense.category}</td>
+                          <td className={`${themeClasses.tableCell} font-medium`}>
+                            {formatCurrency(expense.amount)}
+                          </td>
+                          <td className={themeClasses.tableCell}>
+                            <span className={`${themeClasses.badgeInfo} ${
+                              expense.status === 'pending' ? themeClasses.badgeWarning :
+                              expense.status === 'approved' ? themeClasses.badgeSuccess :
+                              themeClasses.badgeInfo
+                            }`}>
+                              {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                            </span>
+                          </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
         </>
       )}
       </div>

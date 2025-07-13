@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
 import { clientOperations, invoiceOperations } from '../../lib/database';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses, getButtonClasses } from '@/lib/utils';
 import { formatDateRange } from '@/utils/dateFormatting';
 
 interface ClientReportProps {
@@ -158,30 +158,30 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
           <div className="flex items-center">
             <button
               onClick={onBack}
-              className="flex items-center text-muted-foreground hover:text-foreground mr-4"
+              className={`flex items-center ${themeClasses.mutedText} hover:text-foreground mr-4`}
             >
-            <ArrowLeft className="h-5 w-5 mr-1" />
-            Back to Reports
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Client Report</h1>
-            <p className="text-muted-foreground">{getFormattedDateRange()}</p>
+              <ArrowLeft className={`${themeClasses.iconSmall} mr-1`} />
+              Back to Reports
+            </button>
+            <div>
+              <h1 className={themeClasses.pageTitle}>Client Report</h1>
+              <p className={themeClasses.pageSubtitle}>{getFormattedDateRange()}</p>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleSave}
+              className={getButtonClasses('primary')}
+            >
+              <Save className={themeClasses.iconButton} />
+              Save Report
+            </button>
+            <button className={getButtonClasses('secondary')}>
+              <Download className={themeClasses.iconButton} />
+              Export PDF
+            </button>
           </div>
         </div>
-        <div className="flex space-x-3">
-          <button 
-            onClick={handleSave}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Report
-          </button>
-          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </button>
-        </div>
-      </div>
 
       {/* Date Range Selector */}
       <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
@@ -256,43 +256,45 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
           </div>
 
           {/* Client Details */}
-          <div className={themeClasses.table}>
+          <div className={themeClasses.card}>
             <div className={themeClasses.cardHeader}>
               <h3 className={themeClasses.cardTitle}>Client Performance</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className={themeClasses.tableHeader}>
-                  <tr>
-                    <th className={themeClasses.tableHeaderCell}>Client</th>
-                    <th className={themeClasses.tableHeaderCell}>Company</th>
-                    <th className={themeClasses.tableHeaderCell}>Invoices</th>
-                    <th className={themeClasses.tableHeaderCell}>Total Revenue</th>
-                    <th className={themeClasses.tableHeaderCell}>Paid</th>
-                    <th className={themeClasses.tableHeaderCell}>Pending</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {reportData.clients.map((client: any) => (
-                    <tr key={client.id} className={themeClasses.tableRow}>
-                      <td className={`${themeClasses.tableCell} font-medium`}>
-                        {client.name}
-                      </td>
-                      <td className={themeClasses.tableCell}>{client.company}</td>
-                      <td className={themeClasses.tableCell}>{client.totalInvoices}</td>
-                      <td className={`${themeClasses.tableCell} font-medium`}>
-                        {formatCurrency(client.totalRevenue)}
-                      </td>
-                      <td className={`${themeClasses.tableCell} text-green-600 dark:text-green-400 font-medium`}>
-                        {formatCurrency(client.paidRevenue)}
-                      </td>
-                      <td className={`${themeClasses.tableCell} text-yellow-600 dark:text-yellow-400 font-medium`}>
-                        {formatCurrency(client.pendingRevenue)}
-                      </td>
+            <div className={themeClasses.cardContent}>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={themeClasses.tableHeader}>
+                    <tr>
+                      <th className={themeClasses.tableHeaderCell}>Client</th>
+                      <th className={themeClasses.tableHeaderCell}>Company</th>
+                      <th className={themeClasses.tableHeaderCell}>Invoices</th>
+                      <th className={themeClasses.tableHeaderCell}>Total Revenue</th>
+                      <th className={themeClasses.tableHeaderCell}>Paid</th>
+                      <th className={themeClasses.tableHeaderCell}>Pending</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {reportData.clients.map((client: any) => (
+                      <tr key={client.id} className={themeClasses.tableRow}>
+                        <td className={`${themeClasses.tableCell} font-medium`}>
+                          {client.name}
+                        </td>
+                        <td className={themeClasses.tableCell}>{client.company}</td>
+                        <td className={themeClasses.tableCell}>{client.totalInvoices}</td>
+                        <td className={`${themeClasses.tableCell} font-medium`}>
+                          {formatCurrency(client.totalRevenue)}
+                        </td>
+                        <td className={`${themeClasses.tableCell} text-green-600 dark:text-green-400 font-medium`}>
+                          {formatCurrency(client.paidRevenue)}
+                        </td>
+                        <td className={`${themeClasses.tableCell} text-yellow-600 dark:text-yellow-400 font-medium`}>
+                          {formatCurrency(client.pendingRevenue)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>

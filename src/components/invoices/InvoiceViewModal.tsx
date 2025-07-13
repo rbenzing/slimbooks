@@ -260,13 +260,13 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
             </div>
           </div>
 
-          {/* Notes */}
-          {invoice.notes && (
-            <div className={`border-t ${styles.tableBorder} pt-6`}>
-              <h4 className={`font-semibold mb-2 ${styles.contentText}`}>Notes:</h4>
-              <p className={`text-sm ${styles.contentText} opacity-80`}>{invoice.notes}</p>
-            </div>
-          )}
+          {/* Thank You Message */}
+          <div className={`border-t ${styles.tableBorder} pt-6`}>
+            <h4 className={`font-semibold mb-2 ${styles.contentText}`}>Thank You Message:</h4>
+            <p className={`text-sm ${styles.contentText} opacity-80`}>
+              {invoice.notes || 'Thank you for your business!'}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { ClientImportExport } from './clients/ClientImportExport';
 import { clientOperations } from '../lib/database';
 import { toast } from 'sonner';
 import { formatDate } from '@/utils/dateFormatting';
+import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/utils';
 
 interface Client {
   id: number;
@@ -91,49 +92,49 @@ export const ClientManagement: React.FC = () => {
   };
 
   const renderTableView = () => (
-    <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+    <div className={themeClasses.card}>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-muted/50">
+          <thead className={themeClasses.tableHeader}>
             <tr>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Name</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Company</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Email</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Phone</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Created</th>
-              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase">Actions</th>
+              <th className={themeClasses.tableHeaderCell}>Name</th>
+              <th className={themeClasses.tableHeaderCell}>Company</th>
+              <th className={themeClasses.tableHeaderCell}>Email</th>
+              <th className={themeClasses.tableHeaderCell}>Phone</th>
+              <th className={themeClasses.tableHeaderCell}>Created</th>
+              <th className={themeClasses.tableHeaderCell}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className={themeClasses.tableBody}>
             {filteredClients.map((client) => (
-              <tr key={client.id} className="hover:bg-muted/50">
-                <td className="py-4 px-6 text-sm font-medium text-card-foreground">
+              <tr key={client.id} className={themeClasses.tableRow}>
+                <td className={`${themeClasses.tableCell} font-medium`}>
                   {client.name}
                 </td>
-                <td className="py-4 px-6 text-sm text-card-foreground">
+                <td className={themeClasses.tableCell}>
                   {client.company}
                 </td>
-                <td className="py-4 px-6 text-sm text-card-foreground">
+                <td className={themeClasses.tableCell}>
                   {client.email}
                 </td>
-                <td className="py-4 px-6 text-sm text-card-foreground">
+                <td className={themeClasses.tableCell}>
                   {client.phone || 'N/A'}
                 </td>
-                <td className="py-4 px-6 text-sm text-card-foreground">
+                <td className={themeClasses.tableCell}>
                   {formatDate(client.created_at)}
                 </td>
-                <td className="py-4 px-6 text-sm">
+                <td className={themeClasses.tableCell}>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleEditClient(client)}
-                      className="p-1 text-muted-foreground hover:text-blue-600"
+                      className="p-1 text-muted-foreground hover:text-white"
                       title="Edit Client"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClientWithConfirm(client.id, client.name)}
-                      className="p-1 text-muted-foreground hover:text-red-600"
+                      className="p-1 text-muted-foreground hover:text-white"
                       title="Delete Client"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -158,24 +159,24 @@ export const ClientManagement: React.FC = () => {
       {filteredClients.map((client) => (
         <div
           key={client.id}
-          className="bg-card p-6 rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow"
+          className={themeClasses.cardHover}
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-card-foreground">{client.name}</h3>
-              <p className="text-muted-foreground">{client.company}</p>
+              <h3 className={themeClasses.cardTitle}>{client.name}</h3>
+              <p className={themeClasses.mutedText}>{client.company}</p>
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={() => handleEditClient(client)}
-                className="p-1 text-muted-foreground hover:text-blue-600"
+                className="p-1 text-muted-foreground hover:text-white"
                 title="Edit Client"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleDeleteClientWithConfirm(client.id, client.name)}
-                className="p-1 text-muted-foreground hover:text-red-600"
+                className="p-1 text-muted-foreground hover:text-white"
                 title="Delete Client"
               >
                 <Trash2 className="h-4 w-4" />
@@ -184,21 +185,21 @@ export const ClientManagement: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Mail className="h-4 w-4 mr-2" />
+            <div className={`flex items-center text-sm ${themeClasses.mutedText}`}>
+              <Mail className={`${themeClasses.iconSmall} mr-2`} />
               <span className="truncate">{client.email}</span>
             </div>
 
             {client.phone && (
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 mr-2" />
+              <div className={`flex items-center text-sm ${themeClasses.mutedText}`}>
+                <Phone className={`${themeClasses.iconSmall} mr-2`} />
                 <span>{client.phone}</span>
               </div>
             )}
           </div>
 
           <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground">
+            <p className={`text-xs ${themeClasses.mutedText}`}>
               Added {formatDate(client.created_at)}
             </p>
           </div>
@@ -218,82 +219,82 @@ export const ClientManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-6 space-y-6">
+    <div className={themeClasses.page}>
+      <div className={themeClasses.pageContainer}>
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className={themeClasses.sectionHeader}>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-            <p className="text-muted-foreground">Manage your client relationships</p>
+            <h1 className={themeClasses.sectionTitle}>Clients</h1>
+            <p className={themeClasses.sectionSubtitle}>Manage your client relationships</p>
           </div>
           <div className="flex space-x-3">
-            <button 
+            <button
               onClick={() => setShowImportExport(true)}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className={getButtonClasses('secondary')}
             >
-              <Building className="h-4 w-4 mr-2" />
+              <Building className={themeClasses.iconButton} />
               Import/Export
             </button>
-            <button 
+            <button
               onClick={handleCreateClient}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className={getButtonClasses('primary')}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className={themeClasses.iconButton} />
               Add Client
             </button>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
-            <div className="flex items-center justify-between">
+        <div className={themeClasses.statsGrid}>
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-                <p className="text-3xl font-bold text-card-foreground">{clients.length}</p>
+                <p className={themeClasses.statLabel}>Total Clients</p>
+                <p className={themeClasses.statValue}>{clients.length}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <Users className={`${themeClasses.iconLarge} ${getIconColorClasses('blue')}`} />
             </div>
           </div>
-          <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active This Month</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{Math.floor(clients.length * 0.7)}</p>
+                <p className={themeClasses.statLabel}>Active This Month</p>
+                <p className={`${themeClasses.statValueMedium} ${getIconColorClasses('green')}`}>{Math.floor(clients.length * 0.7)}</p>
               </div>
-              <Building className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <Building className={`${themeClasses.iconLarge} ${getIconColorClasses('green')}`} />
             </div>
           </div>
-          <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">New This Month</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{Math.floor(clients.length * 0.2)}</p>
+                <p className={themeClasses.statLabel}>New This Month</p>
+                <p className={`${themeClasses.statValueMedium} ${getIconColorClasses('purple')}`}>{Math.floor(clients.length * 0.2)}</p>
               </div>
-              <Mail className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              <Mail className={`${themeClasses.iconLarge} ${getIconColorClasses('purple')}`} />
             </div>
           </div>
-          <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
-            <div className="flex items-center justify-between">
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Response Rate</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">94%</p>
+                <p className={themeClasses.statLabel}>Response Rate</p>
+                <p className={`${themeClasses.statValueMedium} ${getIconColorClasses('orange')}`}>94%</p>
               </div>
-              <Phone className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              <Phone className={`${themeClasses.iconLarge} ${getIconColorClasses('orange')}`} />
             </div>
           </div>
         </div>
 
         {/* Search and View Toggle */}
-        <div className="bg-card p-6 rounded-lg shadow-sm border border-border">
+        <div className={themeClasses.searchContainer}>
           <div className="flex justify-between items-center">
             {/* Left section - Search */}
             <div className="relative max-w-md flex-1 mr-6">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className={themeClasses.searchIcon} />
               <input
                 type="text"
                 placeholder="Search clients..."
-                className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                className={themeClasses.searchInput}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

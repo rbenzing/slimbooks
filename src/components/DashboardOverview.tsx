@@ -143,10 +143,7 @@ export const DashboardOverview = () => {
         {/* Chart and Recent Invoices */}
         <div className={themeClasses.contentGrid}>
           <div className={themeClasses.card}>
-            <h3 className={themeClasses.cardTitle}>Revenue Trend</h3>
-            <div className="mt-4">
-              <DashboardChart invoices={stats.allInvoices} />
-            </div>
+            <DashboardChart invoices={stats.allInvoices} title="Revenue Trend" />
           </div>
 
           <div className={themeClasses.card}>

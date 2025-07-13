@@ -53,6 +53,7 @@ export const themeClasses = {
   cardCompact: "bg-card text-card-foreground p-4 rounded-lg shadow-sm border border-border",
   cardHeader: "border-b border-border pb-4 mb-4",
   cardTitle: "text-lg font-medium text-card-foreground",
+  cardContent: "space-y-4",
   cardHover: "bg-card text-card-foreground p-6 rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer",
 
   // Statistics Cards - Dashboard stats styling
