@@ -1,206 +1,147 @@
 # Slimbooks
 
-A comprehensive billing and invoice management application built with React, TypeScript, and modern web technologies. Streamline your business operations with powerful client management, invoice generation, expense tracking, and financial reporting capabilities.
+A secure, self-hosted billing and invoice management application built with React, TypeScript, and SQLite. Perfect for small businesses and freelancers who want complete control over their financial data.
 
-## ✨ Features
+🔒 **Security-First** • 🐳 **Docker Ready** • 🥧 **Raspberry Pi Optimized**
 
-### 📊 Dashboard & Analytics
-- **Real-time Overview**: Monitor key business metrics at a glance
-- **Revenue Trends**: Track revenue patterns with interactive charts
-- **Financial Insights**: View MRR (Monthly Recurring Revenue), invoice statistics, and expense summaries
+## ✨ Key Features
 
-### 👥 Client Management
-- **Complete Client Profiles**: Store detailed client information including contact details, addresses, and company information
-- **Stripe Integration Ready**: Built-in support for Stripe customer management
-- **Search & Filter**: Quickly find clients with powerful search and filtering capabilities
-- **Bulk Operations**: Efficiently manage multiple clients
+### 💼 Business Management
+- **📊 Dashboard**: Real-time financial overview with interactive charts
+- **👥 Client Management**: Complete client profiles with contact details and history
+- **🧾 Professional Invoices**: Customizable templates with line items, taxes, and shipping
+- **💰 Expense Tracking**: Categorized expense management with receipt uploads
+- **📈 Financial Reports**: Revenue and expense analytics with date filtering
 
-### 🧾 Invoice Management
-- **Professional Invoices**: Create beautiful, customizable invoices with line items, taxes, and shipping
-- **Multiple Templates**: Choose from various invoice templates and themes
-- **Recurring Invoices**: Set up automated recurring billing for subscription-based services
-- **Invoice Tracking**: Monitor invoice status (draft, sent, paid) with real-time updates
-- **PDF Generation**: Generate professional PDF invoices for clients
+### 🔒 Security & Privacy
+- **🛡️ Enterprise Security**: Rate limiting, input validation, and security headers
+- **🔐 JWT Authentication**: Secure token-based authentication with 2FA support
+- **🏠 Self-Hosted**: Complete data ownership - no third-party data sharing
+- **🔒 Encrypted Storage**: Secure SQLite database with encrypted sensitive data
 
-### 🔄 Recurring Billing
-- **Template Management**: Create and manage recurring invoice templates
-- **Flexible Scheduling**: Support for weekly, monthly, quarterly, and yearly billing cycles
-- **Automated Processing**: Automatic generation of invoices based on schedules
-- **MRR Tracking**: Monitor Monthly Recurring Revenue and subscription metrics
+### 🚀 Deployment
+- **🐳 Docker Ready**: One-command deployment with Docker Compose
+- **🥧 Raspberry Pi**: Optimized for ARM devices and low-power systems
+- **⚡ Fast Setup**: Automated scripts for quick deployment
+- **📦 Portable**: SQLite database - easy backup and migration
 
-### 💰 Expense Management
-- **Expense Tracking**: Record and categorize business expenses
-- **Receipt Management**: Upload and store receipt images
-- **Status Workflow**: Track expenses through pending, approved, and reimbursed states
-- **Reporting**: Generate detailed expense reports for accounting
+## 🛠️ Tech Stack
 
-### 📈 Reports & Analytics
-- **Financial Reports**: Comprehensive revenue and expense reporting
-- **Date Range Filtering**: Analyze data across custom time periods
-- **Export Capabilities**: Export reports for external analysis
-- **Visual Charts**: Interactive charts and graphs for data visualization
+**Frontend**: React 18 + TypeScript + Vite
+**UI**: shadcn/ui + Tailwind CSS + Lucide Icons
+**Backend**: Node.js + Express + SQLite
+**Security**: Helmet + Rate Limiting + JWT + bcrypt
+**Deployment**: Docker + Docker Compose
+**Charts**: Recharts for analytics visualization
 
-### ⚙️ Settings & Customization
-- **Theme Support**: Light and dark mode with system preference detection
-- **Company Branding**: Customize invoices with company logos and information
-- **Date/Time Formatting**: Configurable date and time display preferences
-- **Invoice Templates**: Multiple professional invoice template options
+## 🚀 Quick Start
 
-## 🚀 Technology Stack
-
-- **Frontend Framework**: React 18 with TypeScript
-- **Build Tool**: Vite for fast development and optimized builds
-- **UI Components**: shadcn/ui with Radix UI primitives
-- **Styling**: Tailwind CSS with custom theme system
-- **Routing**: React Router v6 for navigation
-- **State Management**: React Query for server state management
-- **Charts**: Recharts for data visualization
-- **Icons**: Lucide React for consistent iconography
-- **Date Handling**: date-fns for date manipulation
-- **Form Management**: React Hook Form with Zod validation
-
-## 📦 Installation
-
-### Prerequisites
-- Node.js 18+ and npm (install with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
-- Git for version control
-
-### Quick Start
+### 🐳 Docker Deployment (Recommended)
 
 ```bash
 # Clone the repository
 git clone <your-repository-url>
 cd slimbooks
 
+# Generate secure secrets
+./scripts/generate-secrets.sh
+
+# Deploy with Docker
+./scripts/deploy.sh
+```
+
+Access your app at `http://localhost:8080`
+
+### 🥧 Raspberry Pi Setup
+
+```bash
+# Prepare your Raspberry Pi
+curl -fsSL https://raw.githubusercontent.com/yourusername/slimbooks/main/scripts/setup-raspberry-pi.sh | bash
+
+# Deploy the application
+./scripts/deploy.sh
+```
+
+### 💻 Development Setup
+
+```bash
 # Install dependencies
 npm install
 
-# Start the development server
+# Start development servers
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+Frontend: `http://localhost:8080` • Backend: `http://localhost:3002`
 
-### Build for Production
-
-```bash
-# Create optimized production build
-npm run build
-
-# Preview production build locally
-npm run start
-```
-
-## 🏗️ Project Structure
-
-```
-src/
-├── components/           # React components
-│   ├── ui/              # Reusable UI components (shadcn/ui)
-│   ├── invoices/        # Invoice-related components
-│   ├── expenses/        # Expense management components
-│   ├── reports/         # Reporting components
-│   └── settings/        # Settings and configuration
-├── contexts/            # React contexts (Auth, Theme)
-├── hooks/               # Custom React hooks
-├── lib/                 # Utility libraries and database operations
-├── pages/               # Page components
-├── utils/               # Utility functions
-└── types/               # TypeScript type definitions
-```
-
-## 🎨 Theme System
-
-The application features a comprehensive theme system supporting both light and dark modes:
-
-- **CSS Custom Properties**: Semantic color variables that adapt to theme changes
-- **Consistent Design**: Dashboard-inspired design patterns across all components
-- **Accessibility**: High contrast ratios and proper color semantics
-- **Customizable**: Easy to extend and modify theme variables
-
-See [THEME_SYSTEM.md](./THEME_SYSTEM.md) for detailed documentation.
-
-## 🔧 Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
-Create a `.env.local` file in the root directory:
+The application uses environment variables for secure configuration:
 
 ```env
-# Add your environment-specific variables here
-VITE_APP_NAME=Slimbooks
-VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key_here
+# Security (REQUIRED - change in production)
+JWT_SECRET=your-secure-64-character-secret
+JWT_REFRESH_SECRET=your-secure-refresh-secret
+SESSION_SECRET=your-secure-session-secret
+
+# Network
+CORS_ORIGIN=http://localhost:8080
+PORT=3002
+
+# Features
+ENABLE_2FA=true
+ENABLE_DEBUG_ENDPOINTS=false
 ```
+
+Use `./scripts/generate-secrets.sh` to create secure secrets automatically.
 
 ### Database
 
-The application currently uses localStorage for data persistence, making it perfect for:
-- Development and testing
-- Small business use cases
-- Offline-first applications
+- **SQLite**: Lightweight, serverless database perfect for self-hosting
+- **Automatic Backups**: Daily automated backups with rotation
+- **Data Portability**: Single file database for easy migration
+- **No External Dependencies**: Everything runs locally
 
-For production use, consider integrating with:
-- Stripe for payment processing
-- PostgreSQL or MySQL for data persistence
-- Firebase or Supabase for backend services
+## 🔒 Security Features
 
-## 📱 Features in Detail
+- **🛡️ Rate Limiting**: Protection against brute force attacks (100 req/15min)
+- **🔐 JWT Authentication**: Secure token-based auth with configurable expiration
+- **🚫 Input Validation**: Server-side validation prevents injection attacks
+- **🔒 Security Headers**: Comprehensive protection with Helmet.js
+- **👤 Account Lockout**: Automatic lockout after failed login attempts
+- **🔑 2FA Support**: Two-factor authentication for enhanced security
+- **📝 Audit Logging**: Request/response logging for security monitoring
 
-### Invoice Generation
-- **Line Items**: Add multiple products/services with quantities and rates
-- **Tax Calculation**: Automatic tax calculation with customizable rates
-- **Shipping Costs**: Include shipping and handling fees
-- **Professional Templates**: Multiple invoice designs to choose from
-- **Company Branding**: Add logos and company information
+## 📚 Documentation
 
-### Recurring Billing
-- **Template System**: Create reusable invoice templates
-- **Flexible Schedules**: Weekly, monthly, quarterly, yearly billing
-- **Automatic Processing**: Background processing of recurring invoices
-- **MRR Analytics**: Track Monthly Recurring Revenue growth
+- **[Deployment Guide](./documentation/DEPLOYMENT.md)**: Complete deployment instructions
+- **[Theme System](./THEME_SYSTEM.md)**: Customization and theming guide
+- **[Contributing](./CONTRIBUTING.md)**: Development and contribution guidelines
 
-### Client Management
-- **Complete Profiles**: Store all client information in one place
-- **Communication History**: Track interactions and invoice history
-- **Search & Filter**: Powerful search across all client data
-- **Export Capabilities**: Export client data for external use
+## 🔧 Management Commands
 
-## 🤝 Contributing
+```bash
+# View application logs
+docker-compose logs -f
 
-We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for details on:
-- Code of conduct
-- Development workflow
-- Pull request process
-- Coding standards
+# Backup database
+/usr/local/bin/slimbooks-backup
+
+# Update deployment
+./scripts/deploy.sh
+
+# Generate new secrets
+./scripts/generate-secrets.sh
+```
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## 🆘 Support
-
-- **Documentation**: Check our comprehensive docs and theme system guide
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Community**: Join our community discussions
-
-## 🗺️ Roadmap
-
-- [ ] Stripe payment integration
-- [ ] Email invoice delivery
-- [ ] Multi-currency support
-- [ ] Advanced reporting dashboard
-- [ ] Mobile app development
-- [ ] API development for third-party integrations
-- [ ] Multi-tenant support
-- [ ] Advanced user permissions
-
-## 🙏 Acknowledgments
-
-- Built with [shadcn/ui](https://ui.shadcn.com/) for beautiful, accessible components
-- Icons provided by [Lucide](https://lucide.dev/)
-- Charts powered by [Recharts](https://recharts.org/)
-- Styled with [Tailwind CSS](https://tailwindcss.com/)
+MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-**Made with ❤️ for small businesses and freelancers**
+**🏠 Self-hosted • 🔒 Secure • 🚀 Production-ready**
+
+Perfect for small businesses, freelancers, and anyone who values data privacy and control.
