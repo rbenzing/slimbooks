@@ -86,7 +86,7 @@ export class StripeService {
   private async getStripeSettings(): Promise<StripeSettings | null> {
     try {
       if (sqliteService.isReady()) {
-        return sqliteService.getSetting('stripe_settings');
+        return await sqliteService.getSetting('stripe_settings');
       }
     } catch (error) {
       console.error('Error loading Stripe settings:', error);

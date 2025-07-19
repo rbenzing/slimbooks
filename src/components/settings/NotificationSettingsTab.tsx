@@ -36,7 +36,7 @@ export const NotificationSettingsTab = () => {
         await sqliteService.initialize();
       }
 
-      const saved = sqliteService.getSetting('notification_settings');
+      const saved = await sqliteService.getSetting('notification_settings');
       if (saved) {
         setSettings({
           showToastNotifications: saved.showToastNotifications ?? true,
@@ -68,7 +68,7 @@ export const NotificationSettingsTab = () => {
         await sqliteService.initialize();
       }
 
-      sqliteService.setSetting('notification_settings', settingsToSave);
+      await sqliteService.setSetting('notification_settings', settingsToSave);
 
       // Apply settings immediately to the toast system
       applyToastSettings(settingsToSave);

@@ -113,7 +113,7 @@ export class StripeWebhookHandler {
         };
 
         // Store in a webhook_logs setting (in a real app, this would be a proper table)
-        const existingLogs = sqliteService.getSetting('webhook_logs') || [];
+        const existingLogs = await sqliteService.getSetting('webhook_logs') || [];
         existingLogs.push(logEntry);
         
         // Keep only the last 100 webhook logs
@@ -121,7 +121,7 @@ export class StripeWebhookHandler {
           existingLogs.splice(0, existingLogs.length - 100);
         }
         
-        sqliteService.setSetting('webhook_logs', existingLogs);
+        await sqliteService.setSetting('webhook_logs', existingLogs);
       }
     } catch (error) {
       console.error('Error logging webhook event:', error);
@@ -136,7 +136,7 @@ export class StripeWebhookHandler {
       const { sqliteService } = await import('@/lib/sqlite-service');
       
       if (sqliteService.isReady()) {
-        const logs = sqliteService.getSetting('webhook_logs') || [];
+        const logs = await sqliteService.getSetting('webhook_logs') || [];
         return logs.slice(-limit).reverse(); // Get most recent first
       }
     } catch (error) {

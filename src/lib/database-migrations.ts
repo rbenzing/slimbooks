@@ -143,7 +143,7 @@ export class DatabaseMigrations {
   private async checkColumnsExist(tableName: string, columnNames: string[]): Promise<boolean> {
     try {
       // Get table info
-      const tableInfo = sqliteService.all(`PRAGMA table_info(${tableName})`);
+      const tableInfo = await sqliteService.all(`PRAGMA table_info(${tableName})`);
       const existingColumns = tableInfo.map((row: any) => row.name);
       
       // Check if all required columns exist
@@ -162,7 +162,7 @@ export class DatabaseMigrations {
   async getSchemaVersion(): Promise<number> {
     try {
       // Try to get version from a settings table or use a default
-      const version = sqliteService.getSetting('schema_version');
+      const version = await sqliteService.getSetting('schema_version');
       return version ? parseInt(version) : 1;
     } catch (error) {
       return 1;
@@ -174,7 +174,7 @@ export class DatabaseMigrations {
    */
   async setSchemaVersion(version: number): Promise<void> {
     try {
-      sqliteService.setSetting('schema_version', version.toString());
+      await sqliteService.setSetting('schema_version', version.toString());
     } catch (error) {
       console.error('Error setting schema version:', error);
     }
@@ -188,16 +188,16 @@ export class DatabaseMigrations {
       console.log('Running data repair...');
 
       // Set default email_status for existing invoices
-      sqliteService.run(`
-        UPDATE invoices 
-        SET email_status = 'not_sent' 
+      await sqliteService.run(`
+        UPDATE invoices
+        SET email_status = 'not_sent'
         WHERE email_status IS NULL OR email_status = ''
       `);
 
       // Set default status for invoices without status
-      sqliteService.run(`
-        UPDATE invoices 
-        SET status = 'draft' 
+      await sqliteService.run(`
+        UPDATE invoices
+        SET status = 'draft'
         WHERE status IS NULL OR status = ''
       `);
 

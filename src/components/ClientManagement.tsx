@@ -5,7 +5,7 @@ import { ClientForm } from './ClientForm';
 import { ClientImportExport } from './clients/ClientImportExport';
 import { clientOperations } from '../lib/database';
 import { toast } from 'sonner';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/utils';
 
 interface Client {
@@ -126,7 +126,7 @@ export const ClientManagement: React.FC = () => {
                   {client.phone || 'N/A'}
                 </td>
                 <td className={themeClasses.tableCell}>
-                  {formatDate(client.created_at)}
+                  {formatDateSync(client.created_at)}
                 </td>
                 <td className={themeClasses.tableCell}>
                   <div className="flex space-x-2">
@@ -205,7 +205,7 @@ export const ClientManagement: React.FC = () => {
 
           <div className="mt-4 pt-4 border-t border-border">
             <p className={`text-xs ${themeClasses.mutedText}`}>
-              Added {formatDate(client.created_at)}
+              Added {formatDateSync(client.created_at)}
             </p>
           </div>
         </div>

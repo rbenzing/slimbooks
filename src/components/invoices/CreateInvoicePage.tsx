@@ -91,46 +91,47 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           setShippingRates(rates);
           setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
         }
+
+        // Load existing invoice data if editing
+        if (editingInvoice) {
+          setInvoiceData({
+            invoice_number: editingInvoice.invoice_number || '',
+            due_date: editingInvoice.due_date || '',
+            status: editingInvoice.status || 'draft'
+          });
+
+          // Find and set the client
+          const client = allClients.find(c => c.id === editingInvoice.client_id);
+          if (client) {
+            setSelectedClient(client);
+          }
+
+          // Parse line items from description (basic implementation)
+          // In a real app, you'd store line items separately
+          if (editingInvoice.description) {
+            const descriptions = editingInvoice.description.split(', ');
+            const items = descriptions.map((desc: string, index: number) => ({
+              id: (index + 1).toString(),
+              description: desc,
+              quantity: 1,
+              rate: editingInvoice.amount / descriptions.length,
+              amount: editingInvoice.amount / descriptions.length
+            }));
+            setLineItems(items);
+          }
+        } else {
+          const tempNumber = await generateTemporaryInvoiceNumber();
+          setInvoiceData(prev => ({
+            ...prev,
+            invoice_number: tempNumber
+          }));
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       }
     };
 
     loadData();
-    
-    // Load existing invoice data if editing
-    if (editingInvoice) {
-      setInvoiceData({
-        invoice_number: editingInvoice.invoice_number || '',
-        due_date: editingInvoice.due_date || '',
-        status: editingInvoice.status || 'draft'
-      });
-
-      // Find and set the client
-      const client = allClients.find(c => c.id === editingInvoice.client_id);
-      if (client) {
-        setSelectedClient(client);
-      }
-
-      // Parse line items from description (basic implementation)
-      // In a real app, you'd store line items separately
-      if (editingInvoice.description) {
-        const descriptions = editingInvoice.description.split(', ');
-        const items = descriptions.map((desc: string, index: number) => ({
-          id: (index + 1).toString(),
-          description: desc,
-          quantity: 1,
-          rate: editingInvoice.amount / descriptions.length,
-          amount: editingInvoice.amount / descriptions.length
-        }));
-        setLineItems(items);
-      }
-    } else {
-      setInvoiceData(prev => ({
-        ...prev,
-        invoice_number: generateTemporaryInvoiceNumber()
-      }));
-    }
 
     // Set original form data for dirty checking only when editing
     if (editingInvoice) {

@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
-import { expenseOperations } from '../../lib/database';
+import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
-import { formatDate, formatDateRange } from '@/utils/dateFormatting';
+import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 
 interface ExpenseReportProps {
   onBack: () => void;
@@ -22,32 +22,13 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
 
   useEffect(() => {
     generateReportData();
-  }, [dateRange]);
+  }, [dateRange.start, dateRange.end]);
 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const expenses = await expenseOperations.getByDateRange(dateRange.start, dateRange.end);
-
-      const expensesByCategory = expenses.reduce((acc, expense) => {
-        acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const expensesByStatus = expenses.reduce((acc, expense) => {
-        acc[expense.status] = (acc[expense.status] || 0) + expense.amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-
-      setReportData({
-        expenses,
-        expensesByCategory,
-        expensesByStatus,
-        totalAmount,
-        totalCount: expenses.length
-      });
+      const data = await reportOperations.generateExpenseData(dateRange.start, dateRange.end);
+      setReportData(data);
     } catch (error) {
       console.error('Error generating expense report data:', error);
     } finally {
@@ -100,15 +81,16 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    const safeAmount = amount || 0;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   const getFormattedDateRange = () => {
-    return formatDateRange(dateRange.start, dateRange.end);
+    return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -314,7 +296,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                       {reportData.expenses.map((expense: any) => (
                         <tr key={expense.id} className={themeClasses.tableRow}>
                           <td className={themeClasses.tableCell}>
-                            {formatDate(expense.date)}
+                            {formatDateSync(expense.date)}
                           </td>
                           <td className={themeClasses.tableCell}>{expense.merchant}</td>
                           <td className={themeClasses.tableCell}>{expense.category}</td>

@@ -1,6 +1,5 @@
 // SQLite-based database operations for Slimbooks application
 import { sqliteService } from './sqlite-service';
-import { dataMigration } from './data-migration';
 import { User } from '@/types/auth';
 
 // Interfaces (keeping the same structure for compatibility)
@@ -92,7 +91,7 @@ interface Report {
   created_at: string;
 }
 
-// Initialize database and run migration if needed
+// Initialize database
 let initializationPromise: Promise<void> | null = null;
 
 const ensureInitialized = async (): Promise<void> => {
@@ -100,12 +99,6 @@ const ensureInitialized = async (): Promise<void> => {
     initializationPromise = (async () => {
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
-      }
-      
-      // Run migration from localStorage if needed
-      const migrationResult = await dataMigration.migrateAllData();
-      if (migrationResult.errors.length > 0) {
-        console.warn('Migration completed with errors:', migrationResult.errors);
       }
     })();
   }
@@ -117,35 +110,34 @@ export const initDatabase = async () => {
   await ensureInitialized();
   
   // Check if data already exists
-  const existingClients = sqliteService.all('SELECT COUNT(*) as count FROM clients');
+  const existingClients = await sqliteService.all('SELECT COUNT(*) as count FROM clients');
   if (existingClients[0]?.count > 0) {
     return; // Already initialized
   }
 
   // Sample data will be inserted here if needed
-  console.log('Database initialized with SQLite');
 };
 
 // Client operations
 export const clientOperations = {
   getAll: async (): Promise<Client[]> => {
     await ensureInitialized();
-    return sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
+    return await sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
   },
-  
+
   getById: async (id: number): Promise<Client | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM clients WHERE id = ?', [id]);
+    const result = await sqliteService.get('SELECT * FROM clients WHERE id = ?', [id]);
     return result || undefined;
   },
   
   create: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     try {
       await ensureInitialized();
-      const id = sqliteService.getNextId('clients');
+      const id = await sqliteService.getNextId('clients');
       const now = new Date().toISOString();
 
-      sqliteService.run(`
+      await sqliteService.run(`
         INSERT INTO clients (id, name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
@@ -178,7 +170,7 @@ export const clientOperations = {
       const fields = Object.keys(clientData).map(key => `${key} = ?`).join(', ');
       const values = [...Object.values(clientData), id];
 
-      sqliteService.run(`UPDATE clients SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+      await sqliteService.run(`UPDATE clients SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
       return { changes: 1 };
     } catch (error) {
       console.error('Error updating client:', error);
@@ -189,7 +181,7 @@ export const clientOperations = {
   delete: async (id: number): Promise<{ changes: number }> => {
     try {
       await ensureInitialized();
-      sqliteService.run('DELETE FROM clients WHERE id = ?', [id]);
+      await sqliteService.run('DELETE FROM clients WHERE id = ?', [id]);
       return { changes: 1 };
     } catch (error) {
       console.error('Error deleting client:', error);
@@ -202,13 +194,13 @@ export const clientOperations = {
 export const invoiceOperations = {
   getAll: async (): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[]> => {
     await ensureInitialized();
-    return sqliteService.all(`
-      SELECT 
+    return await sqliteService.all(`
+      SELECT
         i.*,
         c.name as client_name,
-        COALESCE(i.client_email, c.email) as client_email,
-        COALESCE(i.client_phone, c.phone) as client_phone,
-        COALESCE(i.client_address, c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
+        c.email as client_email,
+        c.phone as client_phone,
+        (c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       ORDER BY i.created_at DESC
@@ -217,7 +209,7 @@ export const invoiceOperations = {
   
   getById: async (id: number): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string }) | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get(`
+    const result = await sqliteService.get(`
       SELECT 
         i.*,
         c.name as client_name,
@@ -233,10 +225,10 @@ export const invoiceOperations = {
   
   create: async (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = sqliteService.getNextId('invoices');
+    const id = await sqliteService.getNextId('invoices');
     const now = new Date().toISOString();
-    
-    sqliteService.run(`
+
+    await sqliteService.run(`
       INSERT INTO invoices (id, invoice_number, client_id, template_id, amount, status, due_date, description,
                            stripe_invoice_id, type, client_name, client_email, client_phone, client_address,
                            line_items, tax_amount, tax_rate_id, shipping_amount, shipping_rate_id, notes,
@@ -281,13 +273,13 @@ export const invoiceOperations = {
     const values = Object.values(invoiceData);
     values.push(id);
     
-    sqliteService.run(`UPDATE invoices SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+    await sqliteService.run(`UPDATE invoices SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
     return { changes: 1 };
   },
   
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    sqliteService.run('DELETE FROM invoices WHERE id = ?', [id]);
+    await sqliteService.run('DELETE FROM invoices WHERE id = ?', [id]);
     return { changes: 1 };
   }
 };
@@ -296,7 +288,7 @@ export const invoiceOperations = {
 export const templateOperations = {
   getAll: async (): Promise<(InvoiceTemplate & { client_name: string })[]> => {
     await ensureInitialized();
-    return sqliteService.all(`
+    return await sqliteService.all(`
       SELECT
         t.*,
         c.name as client_name
@@ -308,7 +300,7 @@ export const templateOperations = {
 
   getById: async (id: number): Promise<(InvoiceTemplate & { client_name: string }) | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get(`
+    const result = await sqliteService.get(`
       SELECT
         t.*,
         c.name as client_name
@@ -321,10 +313,10 @@ export const templateOperations = {
 
   create: async (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = sqliteService.getNextId('templates');
+    const id = await sqliteService.getNextId('templates');
     const now = new Date().toISOString();
 
-    sqliteService.run(`
+    await sqliteService.run(`
       INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
                             next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
                             shipping_amount, shipping_rate_id, notes, created_at, updated_at)
@@ -358,13 +350,13 @@ export const templateOperations = {
     const fields = Object.keys(templateData).map(key => `${key} = ?`).join(', ');
     const values = [...Object.values(templateData), id];
 
-    sqliteService.run(`UPDATE templates SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+    await sqliteService.run(`UPDATE templates SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
     return { changes: 1 };
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    sqliteService.run('DELETE FROM templates WHERE id = ?', [id]);
+    await sqliteService.run('DELETE FROM templates WHERE id = ?', [id]);
     return { changes: 1 };
   }
 };
@@ -373,18 +365,18 @@ export const templateOperations = {
 export const expenseOperations = {
   getAll: async (): Promise<Expense[]> => {
     await ensureInitialized();
-    return sqliteService.all('SELECT * FROM expenses ORDER BY date DESC, created_at DESC');
+    return await sqliteService.all('SELECT * FROM expenses ORDER BY date DESC, created_at DESC');
   },
 
   getById: async (id: number): Promise<Expense | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM expenses WHERE id = ?', [id]);
+    const result = await sqliteService.get('SELECT * FROM expenses WHERE id = ?', [id]);
     return result || undefined;
   },
 
   getByDateRange: async (startDate: string, endDate: string): Promise<Expense[]> => {
     await ensureInitialized();
-    return sqliteService.all(`
+    return await sqliteService.all(`
       SELECT * FROM expenses
       WHERE date(date) >= date(?) AND date(date) <= date(?)
       ORDER BY date DESC, created_at DESC
@@ -394,10 +386,10 @@ export const expenseOperations = {
   create: async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     try {
       await ensureInitialized();
-      const id = sqliteService.getNextId('expenses');
+      const id = await sqliteService.getNextId('expenses');
       const now = new Date().toISOString();
 
-      sqliteService.run(`
+      await sqliteService.run(`
         INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
@@ -428,7 +420,7 @@ export const expenseOperations = {
       const values = Object.values(expenseData);
       values.push(id);
 
-      sqliteService.run(`UPDATE expenses SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+      await sqliteService.run(`UPDATE expenses SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
       return { changes: 1 };
     } catch (error) {
       console.error('Error updating expense:', error);
@@ -439,7 +431,7 @@ export const expenseOperations = {
   delete: async (id: number): Promise<{ changes: number }> => {
     try {
       await ensureInitialized();
-      sqliteService.run('DELETE FROM expenses WHERE id = ?', [id]);
+      await sqliteService.run('DELETE FROM expenses WHERE id = ?', [id]);
       return { changes: 1 };
     } catch (error) {
       console.error('Error deleting expense:', error);
@@ -452,12 +444,12 @@ export const expenseOperations = {
 export const reportOperations = {
   getAll: async (): Promise<Report[]> => {
     await ensureInitialized();
-    return sqliteService.all('SELECT * FROM reports ORDER BY created_at DESC');
+    return await sqliteService.all('SELECT * FROM reports ORDER BY created_at DESC');
   },
 
   getById: async (id: number): Promise<Report | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM reports WHERE id = ?', [id]);
+    const result = await sqliteService.get('SELECT * FROM reports WHERE id = ?', [id]);
     if (result && result.data) {
       try {
         result.data = JSON.parse(result.data);
@@ -470,10 +462,10 @@ export const reportOperations = {
 
   create: async (reportData: Omit<Report, 'id' | 'created_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = sqliteService.getNextId('reports');
+    const id = await sqliteService.getNextId('reports');
     const now = new Date().toISOString();
 
-    sqliteService.run(`
+    await sqliteService.run(`
       INSERT INTO reports (id, name, type, date_range_start, date_range_end, data, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [
@@ -491,62 +483,78 @@ export const reportOperations = {
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    sqliteService.run('DELETE FROM reports WHERE id = ?', [id]);
+    await sqliteService.run('DELETE FROM reports WHERE id = ?', [id]);
     return { changes: 1 };
   },
 
   // Generate Profit & Loss Report Data
-  generateProfitLossData: async (startDate: string, endDate: string): Promise<any> => {
+  generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual'): Promise<any> => {
     await ensureInitialized();
 
     // Get invoices in date range
-    const invoices = sqliteService.all(`
+    const invoices = await sqliteService.all(`
       SELECT * FROM invoices
       WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)
     `, [startDate, endDate]);
 
     // Get expenses in date range
-    const expenses = sqliteService.all(`
+    const expenses = await sqliteService.all(`
       SELECT * FROM expenses
       WHERE date(date) >= date(?) AND date(date) <= date(?)
     `, [startDate, endDate]);
 
-    // Calculate revenue
-    const totalRevenue = invoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    // Helper function to safely convert to number
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
+    // Calculate revenue with proper type conversion
+    const totalInvoiceRevenue = invoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
     const paidRevenue = invoices
       .filter((invoice: any) => invoice.status === 'paid')
-      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
     const pendingRevenue = invoices
-      .filter((invoice: any) => invoice.status === 'sent')
-      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      .filter((invoice: any) => invoice.status !== 'paid') // All non-paid invoices
+      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
 
-    // Calculate expenses
-    const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+    // Choose revenue recognition method based on accounting method
+    const recognizedRevenue = accountingMethod === 'cash' ? paidRevenue : totalInvoiceRevenue;
+    const otherIncome = 0; // Placeholder for future other income sources
+    const totalRevenue = recognizedRevenue + otherIncome;
+
+    // Calculate expenses with proper type conversion
+    const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
     const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      const category = expense.category || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + toNumber(expense.amount);
       return acc;
     }, {});
 
-    // Calculate profit/loss
-    const netProfit = paidRevenue - totalExpenses;
+    // Calculate profit/loss based on recognized revenue
+    const netProfit = recognizedRevenue - totalExpenses;
     const grossProfit = totalRevenue - totalExpenses;
 
     return {
       revenue: {
         total: totalRevenue,
         paid: paidRevenue,
-        pending: pendingRevenue
+        pending: pendingRevenue,
+        invoices: recognizedRevenue, // Invoice revenue based on accounting method
+        otherIncome: otherIncome // Other income
       },
       expenses: {
         total: totalExpenses,
-        byCategory: expensesByCategory,
-        items: expenses
+        ...expensesByCategory // Spread category expenses directly
       },
       profit: {
         net: netProfit,
         gross: grossProfit,
         margin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
       },
+      netIncome: netProfit, // Add netIncome at root level for component compatibility
+      accountingMethod: accountingMethod, // Track which method was used
       invoices
     };
   },
@@ -555,23 +563,32 @@ export const reportOperations = {
   generateExpenseData: async (startDate: string, endDate: string): Promise<any> => {
     await ensureInitialized();
 
-    const expenses = sqliteService.all(`
+    const expenses = await sqliteService.all(`
       SELECT * FROM expenses
       WHERE date(date) >= date(?) AND date(date) <= date(?)
       ORDER BY date DESC
     `, [startDate, endDate]);
 
+    // Helper function to safely convert to number
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
     const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      const category = expense.category || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + toNumber(expense.amount);
       return acc;
     }, {});
 
     const expensesByStatus = expenses.reduce((acc: any, expense: any) => {
-      acc[expense.status] = (acc[expense.status] || 0) + expense.amount;
+      const status = expense.status || 'pending';
+      acc[status] = (acc[status] || 0) + toNumber(expense.amount);
       return acc;
     }, {});
 
-    const totalAmount = expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+    const totalAmount = expenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
 
     return {
       expenses,
@@ -586,7 +603,7 @@ export const reportOperations = {
   generateInvoiceData: async (startDate: string, endDate: string): Promise<any> => {
     await ensureInitialized();
 
-    const invoices = sqliteService.all(`
+    const invoices = await sqliteService.all(`
       SELECT
         i.*,
         c.name as client_name
@@ -596,23 +613,35 @@ export const reportOperations = {
       ORDER BY i.created_at DESC
     `, [startDate, endDate]);
 
+    // Helper function to safely convert to number
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
     const invoicesByStatus = invoices.reduce((acc: any, invoice: any) => {
-      acc[invoice.status] = (acc[invoice.status] || 0) + invoice.amount;
+      const status = invoice.status || 'draft';
+      acc[status] = (acc[status] || 0) + toNumber(invoice.amount);
       return acc;
     }, {});
 
     const invoicesByClient = invoices.reduce((acc: any, invoice: any) => {
-      acc[invoice.client_name] = (acc[invoice.client_name] || 0) + invoice.amount;
+      const clientName = invoice.client_name || 'Unknown Client';
+      acc[clientName] = (acc[clientName] || 0) + toNumber(invoice.amount);
       return acc;
     }, {});
 
-    const totalAmount = invoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    const totalAmount = invoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
     const paidAmount = invoices
       .filter((invoice: any) => invoice.status === 'paid')
-      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
     const pendingAmount = invoices
-      .filter((invoice: any) => invoice.status === 'sent')
-      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      .filter((invoice: any) => invoice.status !== 'paid') // All non-paid invoices are pending
+      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+    const overdueAmount = invoices
+      .filter((invoice: any) => invoice.status === 'overdue')
+      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
 
     return {
       invoices,
@@ -621,47 +650,76 @@ export const reportOperations = {
       totalAmount,
       paidAmount,
       pendingAmount,
+      overdueAmount,
       totalCount: invoices.length
     };
   },
 
   // Generate Client Report Data
-  generateClientData: async (): Promise<any> => {
+  generateClientData: async (startDate?: string, endDate?: string): Promise<any> => {
     await ensureInitialized();
 
-    const clients = sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
-    const invoices = sqliteService.all(`
+    const clients = await sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
+
+    // Build invoice query with optional date filtering
+    let invoiceQuery = `
       SELECT
         i.*,
         c.name as client_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
-    `);
+    `;
+    const queryParams: string[] = [];
+
+    if (startDate && endDate) {
+      invoiceQuery += ' WHERE date(i.created_at) >= date(?) AND date(i.created_at) <= date(?)';
+      queryParams.push(startDate, endDate);
+    }
+
+    const invoices = await sqliteService.all(invoiceQuery, queryParams);
+
+    // Helper function to safely convert to number
+    const toNumber = (value: any): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
 
     const clientStats = clients.map((client: any) => {
       const clientInvoices = invoices.filter((invoice: any) => invoice.client_id === client.id);
-      const totalRevenue = clientInvoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      const totalRevenue = clientInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
       const paidRevenue = clientInvoices
         .filter((invoice: any) => invoice.status === 'paid')
-        .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
       const pendingRevenue = clientInvoices
-        .filter((invoice: any) => invoice.status === 'sent')
-        .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+        .filter((invoice: any) => invoice.status !== 'paid')
+        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      const overdueRevenue = clientInvoices
+        .filter((invoice: any) => invoice.status === 'overdue')
+        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
 
       return {
         ...client,
         totalInvoices: clientInvoices.length,
         totalRevenue,
         paidRevenue,
-        pendingRevenue
+        pendingRevenue,
+        overdueRevenue
       };
-    });
+    }).filter(client => client.totalInvoices > 0); // Only include clients with invoices
+
+    const totalRevenue = clientStats.reduce((sum: number, client: any) => sum + client.totalRevenue, 0);
+    const totalPaidRevenue = clientStats.reduce((sum: number, client: any) => sum + client.paidRevenue, 0);
+    const totalPendingRevenue = clientStats.reduce((sum: number, client: any) => sum + client.pendingRevenue, 0);
+    const totalOverdueRevenue = clientStats.reduce((sum: number, client: any) => sum + client.overdueRevenue, 0);
 
     return {
       clients: clientStats,
-      totalClients: clients.length,
-      totalRevenue: clientStats.reduce((sum: number, client: any) => sum + client.totalRevenue, 0),
-      totalPaidRevenue: clientStats.reduce((sum: number, client: any) => sum + client.paidRevenue, 0)
+      totalClients: clientStats.length,
+      totalRevenue,
+      totalPaidRevenue,
+      totalPendingRevenue,
+      totalOverdueRevenue
     };
   }
 };
@@ -670,33 +728,33 @@ export const reportOperations = {
 export const userOperations = {
   getAll: async (): Promise<User[]> => {
     await ensureInitialized();
-    return sqliteService.all('SELECT * FROM users ORDER BY created_at DESC');
+    return await sqliteService.all('SELECT * FROM users ORDER BY created_at DESC');
   },
 
   getById: async (id: number): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM users WHERE id = ?', [id]);
+    const result = await sqliteService.get('SELECT * FROM users WHERE id = ?', [id]);
     return result || undefined;
   },
 
   getByEmail: async (email: string): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM users WHERE email = ?', [email]);
+    const result = await sqliteService.get('SELECT * FROM users WHERE email = ?', [email]);
     return result || undefined;
   },
 
   getByGoogleId: async (googleId: string): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = sqliteService.get('SELECT * FROM users WHERE google_id = ?', [googleId]);
+    const result = await sqliteService.get('SELECT * FROM users WHERE google_id = ?', [googleId]);
     return result || undefined;
   },
 
   create: async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = sqliteService.getNextId('users');
+    const id = await sqliteService.getNextId('users');
     const now = new Date().toISOString();
 
-    sqliteService.run(`
+    await sqliteService.run(`
       INSERT INTO users (
         id, name, email, username, password_hash, role, email_verified,
         google_id, two_factor_enabled, two_factor_secret, backup_codes,
@@ -729,19 +787,19 @@ export const userOperations = {
     const fields = Object.keys(userData).map(key => `${key} = ?`).join(', ');
     const values = [...Object.values(userData), id];
 
-    sqliteService.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
+    await sqliteService.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
     return { changes: 1 };
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    sqliteService.run('DELETE FROM users WHERE id = ?', [id]);
+    await sqliteService.run('DELETE FROM users WHERE id = ?', [id]);
     return { changes: 1 };
   },
 
   updateLoginAttempts: async (id: number, attempts: number, lockedUntil?: string): Promise<void> => {
     await ensureInitialized();
-    sqliteService.run(
+    await sqliteService.run(
       'UPDATE users SET failed_login_attempts = ?, account_locked_until = ? WHERE id = ?',
       [attempts, lockedUntil || null, id]
     );
@@ -750,17 +808,17 @@ export const userOperations = {
   updateLastLogin: async (id: number): Promise<void> => {
     await ensureInitialized();
     const now = new Date().toISOString();
-    sqliteService.run('UPDATE users SET last_login = ? WHERE id = ?', [now, id]);
+    await sqliteService.run('UPDATE users SET last_login = ? WHERE id = ?', [now, id]);
   },
 
   verifyEmail: async (id: number): Promise<void> => {
     await ensureInitialized();
-    sqliteService.run('UPDATE users SET email_verified = 1 WHERE id = ?', [id]);
+    await sqliteService.run('UPDATE users SET email_verified = 1 WHERE id = ?', [id]);
   },
 
   enable2FA: async (id: number, secret: string, backupCodes: string[]): Promise<void> => {
     await ensureInitialized();
-    sqliteService.run(
+    await sqliteService.run(
       'UPDATE users SET two_factor_enabled = 1, two_factor_secret = ?, backup_codes = ? WHERE id = ?',
       [secret, JSON.stringify(backupCodes), id]
     );
@@ -768,7 +826,7 @@ export const userOperations = {
 
   disable2FA: async (id: number): Promise<void> => {
     await ensureInitialized();
-    sqliteService.run(
+    await sqliteService.run(
       'UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL, backup_codes = NULL WHERE id = ?',
       [id]
     );

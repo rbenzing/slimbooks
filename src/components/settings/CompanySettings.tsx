@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
@@ -30,6 +30,8 @@ export const CompanySettings = () => {
     brandingImage: ''
   });
 
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -37,7 +39,7 @@ export const CompanySettings = () => {
           await sqliteService.initialize();
         }
 
-        const saved = sqliteService.getSetting('company_settings');
+        const saved = await sqliteService.getSetting('company_settings');
         if (saved) {
           setSettings({
             companyName: saved.companyName || 'ClientBill Pro',
@@ -59,13 +61,43 @@ export const CompanySettings = () => {
     loadSettings();
   }, []);
 
-  const saveSettings = (newSettings: CompanySettings) => {
-    setSettings(newSettings);
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const saveSettings = async (newSettings: CompanySettings) => {
     try {
-      sqliteService.setSetting('company_settings', newSettings, 'company');
+      await sqliteService.setSetting('company_settings', newSettings, 'company');
     } catch (error) {
       console.error('Error saving company settings:', error);
     }
+  };
+
+  // Debounced save function for text inputs (excludes branding image)
+  const debouncedSaveTextSettings = useCallback((newSettings: CompanySettings) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      // Save only text settings, preserve existing branding image
+      const textOnlySettings = {
+        ...newSettings,
+        brandingImage: settings.brandingImage // Keep existing image
+      };
+      saveSettings(textOnlySettings);
+    }, 500); // 500ms debounce
+  }, [settings.brandingImage]);
+
+  // Immediate save for branding image
+  const saveBrandingImage = async (newSettings: CompanySettings) => {
+    setSettings(newSettings);
+    await saveSettings(newSettings);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +107,7 @@ export const CompanySettings = () => {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         const newSettings = { ...settings, brandingImage: result };
-        saveSettings(newSettings);
+        saveBrandingImage(newSettings);
       };
       reader.readAsDataURL(file);
     }
@@ -83,7 +115,8 @@ export const CompanySettings = () => {
 
   const handleInputChange = (field: keyof CompanySettings, value: string) => {
     const newSettings = { ...settings, [field]: value };
-    saveSettings(newSettings);
+    setSettings(newSettings); // Update UI immediately
+    debouncedSaveTextSettings(newSettings); // Save with debounce
   };
 
   return (

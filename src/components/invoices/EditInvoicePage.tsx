@@ -114,7 +114,7 @@ export const EditInvoicePage = () => {
         // Load tax rates from SQLite settings
         const { sqliteService } = await import('@/lib/sqlite-service');
         if (sqliteService.isReady()) {
-          const savedTaxRates = sqliteService.getSetting('tax_rates');
+          const savedTaxRates = await sqliteService.getSetting('tax_rates');
           if (savedTaxRates) {
             setTaxRates(savedTaxRates);
             // If invoice has a saved tax rate ID, use that; otherwise use default
@@ -127,7 +127,7 @@ export const EditInvoicePage = () => {
           }
 
           // Load shipping rates from SQLite settings
-          const savedShippingRates = sqliteService.getSetting('shipping_rates');
+          const savedShippingRates = await sqliteService.getSetting('shipping_rates');
           if (savedShippingRates) {
             setShippingRates(savedShippingRates);
             // If invoice has a saved shipping rate ID, use that; otherwise use default

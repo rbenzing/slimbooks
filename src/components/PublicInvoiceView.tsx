@@ -4,7 +4,7 @@ import { Download, Eye, AlertTriangle } from 'lucide-react';
 import { invoiceOperations } from '@/lib/database';
 import { CompanyHeader } from './invoices/CompanyHeader';
 import { themeClasses } from '@/lib/utils';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 interface LineItem {
   id: string;
@@ -68,7 +68,7 @@ export const PublicInvoiceView: React.FC = () => {
         // Load company logo
         const { sqliteService } = await import('@/lib/sqlite-service');
         if (sqliteService.isReady()) {
-          const companySettings = sqliteService.getSetting('company_settings');
+          const companySettings = await sqliteService.getSetting('company_settings');
           if (companySettings?.brandingImage) {
             setCompanyLogo(companySettings.brandingImage);
           }
@@ -174,7 +174,7 @@ export const PublicInvoiceView: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">Due Date: </span>
-                  <span className="font-medium text-card-foreground">{formatDate(invoice.due_date)}</span>
+                  <span className="font-medium text-card-foreground">{formatDateSync(invoice.due_date)}</span>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">Status: </span>

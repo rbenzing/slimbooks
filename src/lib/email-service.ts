@@ -30,7 +30,7 @@ export class EmailService {
     try {
       const { sqliteService } = await import('./sqlite-service');
       if (sqliteService.isReady()) {
-        return sqliteService.getSetting('email_settings');
+        return await sqliteService.getSetting('email_settings');
       }
     } catch (error) {
       console.error('Error loading email settings:', error);

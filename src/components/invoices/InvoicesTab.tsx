@@ -5,7 +5,7 @@ import { invoiceOperations } from '@/lib/database';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
 import { getStatusColor } from '@/lib/utils';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 export const InvoicesTab = () => {
   const navigate = useNavigate();
@@ -136,7 +136,7 @@ export const InvoicesTab = () => {
 
             <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>{formatDate(invoice.created_at)}</span>
+              <span>{formatDateSync(invoice.created_at)}</span>
             </div>
 
             <div className="flex items-center text-sm text-muted-foreground">
@@ -148,7 +148,7 @@ export const InvoicesTab = () => {
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">
-                Created {formatDate(invoice.created_at)}
+                Created {formatDateSync(invoice.created_at)}
               </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status || 'draft')}`}>
                 {invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft'}
@@ -190,7 +190,7 @@ export const InvoicesTab = () => {
                   </span>
                 </td>
                 <td className="py-4 px-6 text-sm text-card-foreground">
-                  {formatDate(invoice.created_at)}
+                  {formatDateSync(invoice.created_at)}
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <div className="flex space-x-2">

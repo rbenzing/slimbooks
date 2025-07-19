@@ -2,7 +2,7 @@
 import React from 'react';
 import { Edit, Receipt, Eye, Trash2 } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 interface Expense {
   id: number;
@@ -66,7 +66,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
             {expenses.map((expense) => (
               <tr key={expense.id} className="hover:bg-muted/50">
                 <td className="py-4 px-6 text-sm text-foreground">
-                  {formatDate(expense.date)}
+                  {formatDateSync(expense.date)}
                 </td>
                 <td className="py-4 px-6">
                   <div>

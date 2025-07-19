@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, Calendar, DollarSign, Search, LayoutGrid, Table, Fi
 import { useNavigate } from 'react-router-dom';
 import { templateOperations } from '@/lib/database';
 import { TemplateForm } from './TemplateForm';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '@/lib/utils';
 
 export const TemplatesTab = () => {
@@ -146,7 +146,7 @@ export const TemplatesTab = () => {
             </div>
 
             <div className={`text-sm ${themeClasses.mutedText}`}>
-              Next: {formatDate(template.next_invoice_date)}
+              Next: {formatDateSync(template.next_invoice_date)}
             </div>
 
             {template.description && (
@@ -157,7 +157,7 @@ export const TemplatesTab = () => {
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex justify-between items-center">
               <span className={`text-xs ${themeClasses.mutedText}`}>
-                Created {formatDate(template.created_at)}
+                Created {formatDateSync(template.created_at)}
               </span>
               <span className={themeClasses.badgeSuccess}>
                 Active
@@ -205,7 +205,7 @@ export const TemplatesTab = () => {
                   <span className="capitalize">{template.frequency}</span>
                 </td>
                 <td className="py-4 px-6 text-sm text-card-foreground">
-                  {formatDate(template.next_invoice_date)}
+                  {formatDateSync(template.next_invoice_date)}
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <span className={themeClasses.badgeSuccess}>

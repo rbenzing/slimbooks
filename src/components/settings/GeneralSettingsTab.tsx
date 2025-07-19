@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, FileText } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
 import {
@@ -21,10 +21,12 @@ import {
 import { sqliteService } from '@/lib/sqlite-service';
 
 export const GeneralSettingsTab = () => {
-  const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>(() => getDateTimeSettings());
-  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceNumberSettings>(() => getInvoiceNumberSettings());
+  const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceNumberSettings>({ prefix: 'INV' });
   const [currency, setCurrency] = useState('USD');
   const [timeZone, setTimeZone] = useState('America/New_York');
+
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -33,11 +35,15 @@ export const GeneralSettingsTab = () => {
           await sqliteService.initialize();
         }
 
-        const savedCurrency = sqliteService.getSetting('default_currency');
-        const savedTimeZone = sqliteService.getSetting('default_timezone');
+        const savedCurrency = await sqliteService.getSetting('default_currency');
+        const savedTimeZone = await sqliteService.getSetting('default_timezone');
+        const savedInvoiceSettings = await getInvoiceNumberSettings();
+        const savedDateTimeSettings = await getDateTimeSettings();
 
         if (savedCurrency) setCurrency(savedCurrency);
         if (savedTimeZone) setTimeZone(savedTimeZone);
+        setInvoiceSettings(savedInvoiceSettings);
+        setDateTimeSettings(savedDateTimeSettings);
       } catch (error) {
         console.error('Error loading general settings:', error);
       }
@@ -46,30 +52,40 @@ export const GeneralSettingsTab = () => {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    // Save settings whenever they change
-    saveDateTimeSettings(dateTimeSettings).catch(console.error);
-  }, [dateTimeSettings]);
-
-  useEffect(() => {
-    saveInvoiceNumberSettings(invoiceSettings);
-  }, [invoiceSettings]);
-
-  useEffect(() => {
-    try {
-      sqliteService.setSetting('default_currency', currency, 'general');
-    } catch (error) {
-      console.error('Error saving currency setting:', error);
+  // Debounced save functions
+  const debouncedSaveSettings = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  }, [currency]);
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveDateTimeSettings(dateTimeSettings);
+        await saveInvoiceNumberSettings(invoiceSettings);
+        await sqliteService.setSetting('default_currency', currency, 'general');
+        await sqliteService.setSetting('default_timezone', timeZone, 'general');
+      } catch (error) {
+        console.error('Error saving general settings:', error);
+      }
+    }, 500);
+  }, [dateTimeSettings, invoiceSettings, currency, timeZone]);
 
   useEffect(() => {
-    try {
-      sqliteService.setSetting('default_timezone', timeZone, 'general');
-    } catch (error) {
-      console.error('Error saving timezone setting:', error);
+    // Only save if not initial load
+    if (dateTimeSettings.dateFormat !== 'MM/DD/YYYY' || dateTimeSettings.timeFormat !== '12-hour' ||
+        invoiceSettings.prefix !== 'INV' || currency !== 'USD' || timeZone !== 'America/New_York') {
+      debouncedSaveSettings();
     }
-  }, [timeZone]);
+  }, [dateTimeSettings, invoiceSettings, currency, timeZone, debouncedSaveSettings]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleDateFormatChange = (format: string) => {
     setDateTimeSettings(prev => ({ ...prev, dateFormat: format }));

@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Calendar, DollarSign, FileText, Tag, Receipt, Clock } from 'lucide-react';
 import { getStatusColor, themeClasses } from '@/lib/utils';
-import { formatDate, formatDateTime } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 interface Expense {
   id: number;
@@ -48,7 +48,7 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
                 <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
                   <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-medium text-foreground">{formatDate(expense.date)}</p>
+                  <p className="font-medium text-foreground">{formatDateSync(expense.date)}</p>
                 </div>
               </div>
 
@@ -127,7 +127,7 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <span className="text-sm text-muted-foreground">Created: </span>
-                  <span className="text-sm text-foreground">{formatDateTime(expense.created_at)}</span>
+                  <span className="text-sm text-foreground">{formatDateSync(expense.created_at)}</span>
                 </div>
               </div>
               {expense.updated_at && expense.updated_at !== expense.created_at && (
@@ -135,7 +135,7 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <span className="text-sm text-muted-foreground">Last updated: </span>
-                    <span className="text-sm text-foreground">{formatDateTime(expense.updated_at)}</span>
+                    <span className="text-sm text-foreground">{formatDateSync(expense.updated_at)}</span>
                   </div>
                 </div>
               )}

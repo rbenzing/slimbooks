@@ -1,7 +1,7 @@
 
 import { templateOperations, invoiceOperations, clientOperations } from '@/lib/database';
 import { generateInvoiceNumber } from '@/utils/invoiceNumbering';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/utils/dateFormatting';
 
 export const processRecurringInvoices = async () => {
   try {
@@ -30,7 +30,7 @@ export const processRecurringInvoices = async () => {
         template_id: template.id,
         amount: template.amount,
         status: 'draft' as const,
-        invoice_number: generateInvoiceNumber(),
+        invoice_number: await generateInvoiceNumber(),
         due_date: calculateDueDate(template.payment_terms || 'net_30'),
         description: template.description,
         type: 'invoice' as const,
@@ -56,7 +56,7 @@ export const processRecurringInvoices = async () => {
           next_invoice_date: nextDate.toISOString().split('T')[0]
         });
 
-        console.log(`Next invoice for ${template.name} scheduled for: ${formatDate(nextDate)}`);
+        console.log(`Next invoice for ${template.name} scheduled for: ${formatDateSync(nextDate)}`);
       }
     }
   } catch (error) {

@@ -4,7 +4,7 @@ import { ArrowLeft, Download, TrendingUp, TrendingDown, Save, Calendar } from 'l
 import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
-import { formatDateRange } from '@/utils/dateFormatting';
+import { formatDateRangeSync } from '@/utils/dateFormatting';
 
 interface ProfitLossReportProps {
   onBack: () => void;
@@ -14,6 +14,7 @@ interface ProfitLossReportProps {
 export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [accountingMethod, setAccountingMethod] = useState<'cash' | 'accrual'>('accrual');
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
@@ -22,12 +23,12 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
 
   useEffect(() => {
     generateReportData();
-  }, [dateRange]);
+  }, [dateRange.start, dateRange.end, accountingMethod]);
 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const data = await reportOperations.generateProfitLossData(dateRange.start, dateRange.end);
+      const data = await reportOperations.generateProfitLossData(dateRange.start, dateRange.end, accountingMethod);
       setReportData(data);
     } catch (error) {
       console.error('Error generating report data:', error);
@@ -81,15 +82,16 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    const safeAmount = amount || 0;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   const getFormattedDateRange = () => {
-    return formatDateRange(dateRange.start, dateRange.end);
+    return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -153,9 +155,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
         <div className={themeClasses.card}>
           <h3 className={`${themeClasses.cardTitle} mb-4 flex items-center`}>
             <Calendar className={`${themeClasses.iconSmall} mr-2`} />
-            Report Date Range
+            Report Configuration
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
                 Quick Select
@@ -196,11 +198,52 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value, preset: 'custom' })}
               />
             </div>
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
+                Accounting Method
+              </label>
+              <select
+                className={themeClasses.select}
+                value={accountingMethod}
+                onChange={(e) => setAccountingMethod(e.target.value as 'cash' | 'accrual')}
+              >
+                <option value="accrual">Accrual (All Invoices)</option>
+                <option value="cash">Cash (Paid Only)</option>
+              </select>
+              <p className={`text-xs ${themeClasses.mutedText} mt-1`}>
+                {accountingMethod === 'accrual'
+                  ? 'Includes all invoices as revenue'
+                  : 'Only counts paid invoices as revenue'}
+              </p>
+            </div>
           </div>
         </div>
 
         {reportData && (
           <>
+            {/* Accounting Method Indicator */}
+            <div className={`${themeClasses.card} mb-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className={`text-sm font-medium ${themeClasses.bodyText}`}>
+                    Accounting Method: <span className="font-semibold capitalize">{accountingMethod}</span>
+                  </h4>
+                  <p className={`text-xs ${themeClasses.mutedText}`}>
+                    {accountingMethod === 'accrual'
+                      ? 'Revenue includes all invoices (draft, sent, paid, overdue)'
+                      : 'Revenue includes only paid invoices'}
+                  </p>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  accountingMethod === 'accrual'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                }`}>
+                  {accountingMethod === 'accrual' ? 'Accrual Basis' : 'Cash Basis'}
+                </div>
+              </div>
+            </div>
+
             {/* Summary Cards */}
             <div className={themeClasses.statsGridThree}>
               <div className={themeClasses.statCard}>

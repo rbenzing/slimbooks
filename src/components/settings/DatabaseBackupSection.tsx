@@ -37,9 +37,9 @@ export const DatabaseBackupSection = () => {
       }
 
       // Helper function to safely get count from table
-      const getTableCount = (tableName: string): number => {
+      const getTableCount = async (tableName: string): Promise<number> => {
         try {
-          const result = sqliteService.get(`SELECT COUNT(*) as count FROM ${tableName}`);
+          const result = await sqliteService.get(`SELECT COUNT(*) as count FROM ${tableName}`);
           return result?.count || 0;
         } catch (error) {
           console.warn(`Table ${tableName} not found or error counting:`, error);
@@ -48,13 +48,13 @@ export const DatabaseBackupSection = () => {
       };
 
       const stats = {
-        clients: getTableCount('clients'),
-        invoices: getTableCount('invoices'),
-        templates: getTableCount('templates'),
-        expenses: getTableCount('expenses'),
-        users: getTableCount('users'),
-        settings: getTableCount('settings'),
-        webhookLogs: getTableCount('stripe_webhook_logs')
+        clients: await getTableCount('clients'),
+        invoices: await getTableCount('invoices'),
+        templates: await getTableCount('templates'),
+        expenses: await getTableCount('expenses'),
+        users: await getTableCount('users'),
+        settings: await getTableCount('settings'),
+        webhookLogs: await getTableCount('stripe_webhook_logs')
       };
 
       setDbStats(stats);

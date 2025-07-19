@@ -43,7 +43,7 @@ export const EmailSettings = () => {
         await sqliteService.initialize();
       }
 
-      const saved = sqliteService.getSetting('email_settings');
+      const saved = await sqliteService.getSetting('email_settings');
       if (saved) {
         setSettings({
           smtpHost: saved.smtpHost || '',
@@ -80,7 +80,7 @@ export const EmailSettings = () => {
         await sqliteService.initialize();
       }
 
-      sqliteService.setSetting('email_settings', settings);
+      await sqliteService.setSetting('email_settings', settings);
       toast.success('Email settings saved successfully');
     } catch (error) {
       console.error('Error saving email settings:', error);

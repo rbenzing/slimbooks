@@ -8,7 +8,7 @@ import { ClientReport } from './reports/ClientReport';
 import { reportOperations } from '../lib/database';
 import { themeClasses } from '../lib/utils';
 import { toast } from 'sonner';
-import { formatDate, formatDateRange } from '@/utils/dateFormatting';
+import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 
 export type ReportType = 'profit-loss' | 'expense' | 'invoice' | 'client';
 
@@ -36,9 +36,14 @@ export const ReportsManagement: React.FC = () => {
     loadSavedReports();
   }, []);
 
-  const loadSavedReports = () => {
-    const reports = reportOperations.getAll();
-    setSavedReports(reports);
+  const loadSavedReports = async () => {
+    try {
+      const reports = await reportOperations.getAll();
+      setSavedReports(reports);
+    } catch (error) {
+      console.error('Error loading saved reports:', error);
+      setSavedReports([]);
+    }
   };
 
   const reportTypes = [
@@ -72,10 +77,10 @@ export const ReportsManagement: React.FC = () => {
     }
   ];
 
-  const handleSaveReport = (reportData: any, reportType: ReportType, dateRange: DateRange) => {
+  const handleSaveReport = async (reportData: any, reportType: ReportType, dateRange: DateRange) => {
     try {
-      const reportName = `${reportTypes.find(r => r.id === reportType)?.name} - ${formatDateRange(dateRange)}`;
-      reportOperations.create({
+      const reportName = `${reportTypes.find(r => r.id === reportType)?.name} - ${formatDateRangeSync(dateRange.start, dateRange.end)}`;
+      await reportOperations.create({
         name: reportName,
         type: reportType,
         date_range_start: dateRange.start,
@@ -83,19 +88,19 @@ export const ReportsManagement: React.FC = () => {
         data: reportData
       });
       toast.success('Report saved successfully');
-      loadSavedReports();
+      await loadSavedReports();
     } catch (error) {
       toast.error('Failed to save report');
       console.error('Error saving report:', error);
     }
   };
 
-  const handleDeleteReport = (id: number, name: string) => {
+  const handleDeleteReport = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
       try {
-        reportOperations.delete(id);
+        await reportOperations.delete(id);
         toast.success('Report deleted successfully');
-        loadSavedReports();
+        await loadSavedReports();
       } catch (error) {
         toast.error('Failed to delete report');
         console.error('Error deleting report:', error);
@@ -104,7 +109,7 @@ export const ReportsManagement: React.FC = () => {
   };
 
   const getFormattedDateRange = (dateRange: DateRange) => {
-    return formatDateRange(dateRange.start, dateRange.end);
+    return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 
   const renderReport = () => {
@@ -176,7 +181,7 @@ export const ReportsManagement: React.FC = () => {
                     <div className="flex-1">
                       <h4 className={`font-medium ${themeClasses.bodyText}`}>{report.name}</h4>
                       <p className={themeClasses.smallText}>
-                        Created: {formatDate(report.created_at)}
+                        Created: {formatDateSync(report.created_at)}
                       </p>
                     </div>
                     <div className="flex space-x-2">

@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { getStatusColor, themeClasses, getButtonClasses } from '@/lib/utils';
 import { DateRange, ReportType } from '../ReportsManagement';
-import { invoiceOperations } from '../../lib/database';
-import { formatDate, formatDateRange } from '@/utils/dateFormatting';
+import { reportOperations } from '../../lib/database';
+import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 
 interface InvoiceReportProps {
   onBack: () => void;
@@ -22,46 +22,13 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
 
   useEffect(() => {
     generateReportData();
-  }, [dateRange]);
+  }, [dateRange.start, dateRange.end]);
 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const allInvoices = await invoiceOperations.getAll();
-      const invoices = allInvoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.created_at);
-        const start = new Date(dateRange.start);
-        const end = new Date(dateRange.end);
-        return invoiceDate >= start && invoiceDate <= end;
-      });
-
-      const invoicesByStatus = invoices.reduce((acc, invoice) => {
-        acc[invoice.status] = (acc[invoice.status] || 0) + invoice.amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const invoicesByClient = invoices.reduce((acc, invoice) => {
-        acc[invoice.client_name] = (acc[invoice.client_name] || 0) + invoice.amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-      const paidAmount = invoices
-        .filter(invoice => invoice.status === 'paid')
-        .reduce((sum, invoice) => sum + invoice.amount, 0);
-      const pendingAmount = invoices
-        .filter(invoice => invoice.status === 'sent')
-        .reduce((sum, invoice) => sum + invoice.amount, 0);
-
-      setReportData({
-        invoices,
-        invoicesByStatus,
-        invoicesByClient,
-        totalAmount,
-        paidAmount,
-        pendingAmount,
-        totalCount: invoices.length
-      });
+      const data = await reportOperations.generateInvoiceData(dateRange.start, dateRange.end);
+      setReportData(data);
     } catch (error) {
       console.error('Error generating invoice report data:', error);
     } finally {
@@ -114,15 +81,16 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
     });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    const safeAmount = amount || 0;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   const getFormattedDateRange = () => {
-    return formatDateRange(dateRange.start, dateRange.end);
+    return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -237,7 +205,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
         {reportData && (
           <>
             {/* Summary */}
-            <div className={themeClasses.statsGrid}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Total Invoices</h3>
                 <p className={`${themeClasses.statValue} text-blue-600 dark:text-blue-400`}>{reportData.totalCount}</p>
@@ -253,6 +221,10 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Pending Amount</h3>
                 <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>{formatCurrency(reportData.pendingAmount)}</p>
+              </div>
+              <div className={themeClasses.statCard}>
+                <h3 className={`${themeClasses.statLabel} mb-2`}>Overdue Amount</h3>
+                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.overdueAmount || 0)}</p>
               </div>
             </div>
 
@@ -343,10 +315,10 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
                           </span>
                         </td>
                         <td className={themeClasses.tableCell}>
-                          {formatDate(invoice.due_date)}
+                          {formatDateSync(invoice.due_date)}
                         </td>
                         <td className={themeClasses.tableCell}>
-                          {formatDate(invoice.created_at)}
+                          {formatDateSync(invoice.created_at)}
                         </td>
                       </tr>
                     ))}

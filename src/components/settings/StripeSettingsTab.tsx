@@ -45,7 +45,7 @@ export const StripeSettingsTab = () => {
         await sqliteService.initialize();
       }
 
-      const saved = sqliteService.getSetting('stripe_settings');
+      const saved = await sqliteService.getSetting('stripe_settings');
       if (saved) {
         setSettings({
           isEnabled: saved.isEnabled || false,
@@ -88,7 +88,7 @@ export const StripeSettingsTab = () => {
         await sqliteService.initialize();
       }
 
-      sqliteService.setSetting('stripe_settings', settings);
+      await sqliteService.setSetting('stripe_settings', settings);
       toast.success('Stripe settings saved successfully');
     } catch (error) {
       console.error('Error saving Stripe settings:', error);
@@ -125,7 +125,7 @@ export const StripeSettingsTab = () => {
           connectedAt: new Date().toISOString()
         };
         setSettings(updatedSettings);
-        sqliteService.setSetting('stripe_settings', updatedSettings);
+        await sqliteService.setSetting('stripe_settings', updatedSettings);
         toast.success('Stripe connection successful!');
       } else {
         setConnectionStatus('error');

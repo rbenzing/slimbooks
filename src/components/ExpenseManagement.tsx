@@ -8,7 +8,7 @@ import { ExpenseViewModal } from './expenses/ExpenseViewModal';
 import { expenseOperations } from '../lib/database';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 interface Expense {
   id: number;
@@ -168,7 +168,7 @@ export const ExpenseManagement: React.FC = () => {
 
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Date</span>
-              <span className="text-sm text-foreground">{formatDate(expense.date)}</span>
+              <span className="text-sm text-foreground">{formatDateSync(expense.date)}</span>
             </div>
 
             <div className="flex justify-between items-center">

@@ -28,11 +28,11 @@ export const TIME_FORMAT_OPTIONS = [
 ];
 
 // Get current date/time settings from SQLite (synchronous version)
-export const getDateTimeSettings = (): DateTimeSettings => {
+export const getDateTimeSettings = async (): Promise<DateTimeSettings> => {
   try {
     // Try to access sqliteService if it's already available globally
     if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
-      const settings = (window as any).sqliteService.getSetting('date_time_settings');
+      const settings = await (window as any).sqliteService.getSetting('date_time_settings');
       if (settings) {
         return {
           dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
@@ -52,7 +52,7 @@ export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
     const { sqliteService } = await import('@/lib/sqlite-service');
 
     if (sqliteService.isReady()) {
-      const settings = sqliteService.getSetting('date_time_settings');
+      const settings = await sqliteService.getSetting('date_time_settings');
       if (settings) {
         return {
           dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
@@ -73,7 +73,7 @@ export const saveDateTimeSettings = async (settings: DateTimeSettings): Promise<
     const { sqliteService } = await import('@/lib/sqlite-service');
 
     if (sqliteService.isReady()) {
-      sqliteService.setSetting('date_time_settings', settings, 'general');
+      await sqliteService.setSetting('date_time_settings', settings, 'general');
     }
   } catch (error) {
     console.error('Error saving date/time settings:', error);
@@ -110,13 +110,13 @@ const getTimeFormatOptions = (format: string): Intl.DateTimeFormatOptions => {
 };
 
 // Format a date according to user settings
-export const formatDate = (date: Date | string, customFormat?: string): string => {
+export const formatDate = async (date: Date | string, customFormat?: string): Promise<string> => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(dateObj.getTime())) {
     return 'Invalid Date';
   }
 
-  const settings = getDateTimeSettings();
+  const settings = await getDateTimeSettings();
   const format = customFormat || settings.dateFormat;
   const options = getDateFormatOptions(format);
 
@@ -135,13 +135,13 @@ export const formatDate = (date: Date | string, customFormat?: string): string =
 };
 
 // Format a time according to user settings
-export const formatTime = (date: Date | string, customFormat?: string): string => {
+export const formatTime = async (date: Date | string, customFormat?: string): Promise<string> => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(dateObj.getTime())) {
     return 'Invalid Time';
   }
 
-  const settings = getDateTimeSettings();
+  const settings = await getDateTimeSettings();
   const format = customFormat || settings.timeFormat;
   const options = getTimeFormatOptions(format);
 
@@ -149,33 +149,71 @@ export const formatTime = (date: Date | string, customFormat?: string): string =
 };
 
 // Format a date and time together according to user settings
-export const formatDateTime = (date: Date | string, customDateFormat?: string, customTimeFormat?: string): string => {
+export const formatDateTime = async (date: Date | string, customDateFormat?: string, customTimeFormat?: string): Promise<string> => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(dateObj.getTime())) {
     return 'Invalid Date/Time';
   }
 
-  const formattedDate = formatDate(dateObj, customDateFormat);
-  const formattedTime = formatTime(dateObj, customTimeFormat);
+  const formattedDate = await formatDate(dateObj, customDateFormat);
+  const formattedTime = await formatTime(dateObj, customTimeFormat);
   
   return `${formattedDate} ${formattedTime}`;
 };
 
 // Format a date range according to user settings
-export const formatDateRange = (startDate: Date | string, endDate: Date | string, customFormat?: string): string => {
-  const start = formatDate(startDate, customFormat);
-  const end = formatDate(endDate, customFormat);
+export const formatDateRange = async (startDate: Date | string, endDate: Date | string, customFormat?: string): Promise<string> => {
+  const start = await formatDate(startDate, customFormat);
+  const end = await formatDate(endDate, customFormat);
   return `${start} - ${end}`;
 };
 
-// Get a preview of how dates will look with the given format
-export const getDateFormatPreview = (format: string): string => {
-  const sampleDate = new Date(2024, 11, 31); // December 31, 2024
-  return formatDate(sampleDate, format);
+// Synchronous version of formatDate using default format
+export const formatDateSync = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+
+  // Use default US format for synchronous version
+  return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
 
-// Get a preview of how times will look with the given format
+// Synchronous version of formatDateRange using default format
+export const formatDateRangeSync = (startDate: Date | string, endDate: Date | string): string => {
+  const startObj = typeof startDate === 'string' ? new Date(startDate) : startDate;
+  const endObj = typeof endDate === 'string' ? new Date(endDate) : endDate;
+
+  if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
+    return 'Invalid Date Range';
+  }
+
+  // Use default US format for synchronous version
+  const start = startObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const end = endObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  return `${start} - ${end}`;
+};
+
+// Get a preview of how dates will look with the given format (synchronous)
+export const getDateFormatPreview = (format: string): string => {
+  const sampleDate = new Date(2024, 11, 31); // December 31, 2024
+  const options = getDateFormatOptions(format);
+
+  // Handle special formatting cases
+  if (format === 'DD/MM/YYYY') {
+    return sampleDate.toLocaleDateString('en-GB', options);
+  } else if (format === 'YYYY-MM-DD') {
+    return sampleDate.toISOString().split('T')[0];
+  } else if (format === 'DD MMM YYYY') {
+    return sampleDate.toLocaleDateString('en-GB', options);
+  }
+
+  return sampleDate.toLocaleDateString('en-US', options);
+};
+
+// Get a preview of how times will look with the given format (synchronous)
 export const getTimeFormatPreview = (format: string): string => {
   const sampleDate = new Date(2024, 11, 31, 14, 30); // December 31, 2024 2:30 PM
-  return formatTime(sampleDate, format);
+  const options = getTimeFormatOptions(format);
+  return sampleDate.toLocaleTimeString('en-US', options);
 };

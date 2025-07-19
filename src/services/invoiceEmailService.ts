@@ -112,7 +112,7 @@ export class InvoiceEmailService {
   private async getCompanySettings(): Promise<CompanySettings> {
     try {
       if (sqliteService.isReady()) {
-        const settings = sqliteService.getSetting('company_settings');
+        const settings = await sqliteService.getSetting('company_settings');
         if (settings) {
           return settings;
         }

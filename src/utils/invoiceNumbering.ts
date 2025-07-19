@@ -13,11 +13,11 @@ export const DEFAULT_INVOICE_NUMBER_SETTINGS: InvoiceNumberSettings = {
 };
 
 // Get current invoice number settings from SQLite
-export const getInvoiceNumberSettings = (): InvoiceNumberSettings => {
+export const getInvoiceNumberSettings = async (): Promise<InvoiceNumberSettings> => {
   try {
     // Try to access sqliteService if it's already available globally
     if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
-      const settings = (window as any).sqliteService.getSetting('invoice_number_settings');
+      const settings = await (window as any).sqliteService.getSetting('invoice_number_settings');
       if (settings) {
         return {
           prefix: settings.prefix || DEFAULT_INVOICE_NUMBER_SETTINGS.prefix
@@ -31,9 +31,9 @@ export const getInvoiceNumberSettings = (): InvoiceNumberSettings => {
 };
 
 // Save invoice number settings to SQLite
-export const saveInvoiceNumberSettings = (settings: InvoiceNumberSettings): void => {
+export const saveInvoiceNumberSettings = async (settings: InvoiceNumberSettings): Promise<void> => {
   try {
-    sqliteService.setSetting('invoice_number_settings', settings, 'invoice');
+    await sqliteService.setSetting('invoice_number_settings', settings, 'invoice');
   } catch (error) {
     console.error('Error saving invoice number settings:', error);
   }
@@ -41,7 +41,7 @@ export const saveInvoiceNumberSettings = (settings: InvoiceNumberSettings): void
 
 // Generate a new invoice number using the current settings
 export const generateInvoiceNumber = async (): Promise<string> => {
-  const settings = getInvoiceNumberSettings();
+  const settings = await getInvoiceNumberSettings();
   const existingInvoices = await invoiceOperations.getAll();
 
   // Find the highest number for the current prefix
@@ -66,8 +66,8 @@ export const generateInvoiceNumber = async (): Promise<string> => {
 };
 
 // Generate a temporary invoice number for new invoices (before saving)
-export const generateTemporaryInvoiceNumber = (): string => {
-  const settings = getInvoiceNumberSettings();
+export const generateTemporaryInvoiceNumber = async (): Promise<string> => {
+  const settings = await getInvoiceNumberSettings();
   return `${settings.prefix}-${Date.now()}`;
 };
 

@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { DateRange, ReportType } from '../ReportsManagement';
-import { clientOperations, invoiceOperations } from '../../lib/database';
+import { clientOperations, invoiceOperations, reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '@/lib/utils';
-import { formatDateRange } from '@/utils/dateFormatting';
+import { formatDateRangeSync } from '@/utils/dateFormatting';
 
 interface ClientReportProps {
   onBack: () => void;
@@ -22,47 +22,14 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
 
   useEffect(() => {
     generateReportData();
-  }, [dateRange]);
+  }, [dateRange.start, dateRange.end]);
 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const allClients = await clientOperations.getAll();
-      const allInvoices = await invoiceOperations.getAll();
-      
-      const invoicesInRange = allInvoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.created_at);
-        const start = new Date(dateRange.start);
-        const end = new Date(dateRange.end);
-        return invoiceDate >= start && invoiceDate <= end;
-      });
-
-      const clientMetrics = allClients.map(client => {
-        const clientInvoices = invoicesInRange.filter(invoice => invoice.client_id === client.id);
-        const totalRevenue = clientInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-        const paidRevenue = clientInvoices
-          .filter(invoice => invoice.status === 'paid')
-          .reduce((sum, invoice) => sum + invoice.amount, 0);
-        
-        return {
-          ...client,
-          totalInvoices: clientInvoices.length,
-          totalRevenue,
-          paidRevenue,
-          pendingRevenue: totalRevenue - paidRevenue
-        };
-      }).filter(client => client.totalInvoices > 0);
-
-      const totalRevenue = clientMetrics.reduce((sum, client) => sum + client.totalRevenue, 0);
-      const totalPaidRevenue = clientMetrics.reduce((sum, client) => sum + client.paidRevenue, 0);
-
-      setReportData({
-        clients: clientMetrics,
-        totalClients: clientMetrics.length,
-        totalRevenue,
-        totalPaidRevenue,
-        totalPendingRevenue: totalRevenue - totalPaidRevenue
-      });
+      // Use the updated database function that accepts date range
+      const data = await reportOperations.generateClientData(dateRange.start, dateRange.end);
+      setReportData(data);
     } catch (error) {
       console.error('Error generating client report data:', error);
     } finally {
@@ -115,15 +82,16 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    const safeAmount = amount || 0;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   const getFormattedDateRange = () => {
-    return formatDateRange(dateRange.start, dateRange.end);
+    return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 
   const handleSave = () => {
@@ -236,7 +204,7 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
       {reportData && (
         <>
           {/* Summary */}
-          <div className={themeClasses.statsGrid}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className={themeClasses.statCard}>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Active Clients</h3>
               <p className={`${themeClasses.statValue} text-blue-600 dark:text-blue-400`}>{reportData.totalClients}</p>
@@ -253,12 +221,19 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Pending Revenue</h3>
               <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>{formatCurrency(reportData.totalPendingRevenue)}</p>
             </div>
+            <div className={themeClasses.statCard}>
+              <h3 className={`${themeClasses.statLabel} mb-2`}>Overdue Revenue</h3>
+              <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.totalOverdueRevenue || 0)}</p>
+            </div>
           </div>
 
           {/* Client Details */}
           <div className={themeClasses.card}>
             <div className={themeClasses.cardHeader}>
               <h3 className={themeClasses.cardTitle}>Client Performance</h3>
+              <p className={`text-sm ${themeClasses.mutedText}`}>
+                Sorted by total revenue (highest first) • Only showing clients with invoices in selected date range
+              </p>
             </div>
             <div className={themeClasses.cardContent}>
               <div className="overflow-x-auto">
@@ -271,6 +246,7 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
                       <th className={themeClasses.tableHeaderCell}>Total Revenue</th>
                       <th className={themeClasses.tableHeaderCell}>Paid</th>
                       <th className={themeClasses.tableHeaderCell}>Pending</th>
+                      <th className={themeClasses.tableHeaderCell}>Overdue</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -289,6 +265,9 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
                         </td>
                         <td className={`${themeClasses.tableCell} text-yellow-600 dark:text-yellow-400 font-medium`}>
                           {formatCurrency(client.pendingRevenue)}
+                        </td>
+                        <td className={`${themeClasses.tableCell} text-red-600 dark:text-red-400 font-medium`}>
+                          {formatCurrency(client.overdueRevenue || 0)}
                         </td>
                       </tr>
                     ))}

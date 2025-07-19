@@ -28,7 +28,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
           await sqliteService.initialize();
         }
 
-        const saved = sqliteService.getSetting('company_settings');
+        const saved = await sqliteService.getSetting('company_settings');
         if (saved) {
           setCompanySettings(saved);
         } else {
@@ -43,7 +43,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
           };
           setCompanySettings(defaultSettings);
           // Save defaults to SQLite so they persist
-          sqliteService.setSetting('company_settings', defaultSettings, 'company');
+          await sqliteService.setSetting('company_settings', defaultSettings, 'company');
         }
       } catch (error) {
         console.error('Error loading company settings:', error);

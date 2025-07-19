@@ -23,7 +23,7 @@ export const TaxSettings = () => {
           await sqliteService.initialize();
         }
 
-        const saved = sqliteService.getSetting('tax_rates');
+        const saved = await sqliteService.getSetting('tax_rates');
         if (saved) {
           setTaxRates(saved);
         } else {
@@ -34,7 +34,7 @@ export const TaxSettings = () => {
             { id: '3', name: 'City Tax', rate: 2.5, isDefault: false }
           ];
           setTaxRates(defaultRates);
-          sqliteService.setSetting('tax_rates', defaultRates, 'tax');
+          await sqliteService.setSetting('tax_rates', defaultRates, 'tax');
         }
       } catch (error) {
         console.error('Error loading tax rates:', error);
@@ -44,10 +44,10 @@ export const TaxSettings = () => {
     loadTaxRates();
   }, []);
 
-  const saveTaxRates = (rates: TaxRate[]) => {
+  const saveTaxRates = async (rates: TaxRate[]) => {
     setTaxRates(rates);
     try {
-      sqliteService.setSetting('tax_rates', rates, 'tax');
+      await sqliteService.setSetting('tax_rates', rates, 'tax');
     } catch (error) {
       console.error('Error saving tax rates:', error);
     }

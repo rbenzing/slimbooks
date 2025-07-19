@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDateSync } from '@/components/ui/FormattedDate';
 
 interface InvoiceViewModalProps {
   invoice: any;
@@ -23,7 +23,7 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
           await sqliteService.initialize();
         }
 
-        const saved = sqliteService.getSetting('company_settings');
+        const saved = await sqliteService.getSetting('company_settings');
         if (saved) {
           setCompanySettings(saved);
         } else {
@@ -200,8 +200,8 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
                 <h3 className={`text-3xl font-bold mb-2 ${styles.title}`}>INVOICE</h3>
                 <div className={`space-y-1 text-sm ${styles.accent}`}>
                   <p><strong>Invoice #:</strong> {invoice.invoice_number}</p>
-                  <p><strong>Date:</strong> {formatDate(invoice.created_at)}</p>
-                  <p><strong>Due Date:</strong> {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}</p>
+                  <p><strong>Date:</strong> {formatDateSync(invoice.created_at)}</p>
+                  <p><strong>Due Date:</strong> {invoice.due_date ? formatDateSync(invoice.due_date) : 'N/A'}</p>
                   <p><strong>Status:</strong>
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status || 'draft')}`}>
                       {invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft'}

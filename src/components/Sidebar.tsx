@@ -106,9 +106,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
     if (path === '/') {
       return location.pathname === '/';
     }
-    if (path === '/invoices') {
-      // Parent is active for all invoice-related pages
-      return location.pathname.startsWith('/invoices') || location.pathname.includes('/recurring-invoices');
+    if (path === '/invoices' || path === '/invoices#invoices') {
+      // Parent is active for all invoice-related pages including both tabs
+      return location.pathname.startsWith('/invoices') ||
+             location.pathname.includes('/recurring-invoices') ||
+             (location.pathname === '/invoices' && location.hash === '#invoices') ||
+             (location.pathname === '/invoices' && location.hash === '#templates') ||
+             (location.pathname === '/invoices' && !location.hash);
     }
     return location.pathname.startsWith(path);
   };

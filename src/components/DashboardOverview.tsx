@@ -11,9 +11,12 @@ export const DashboardOverview = () => {
     totalClients: 0,
     totalInvoices: 0,
     pendingInvoices: 0,
+    sentInvoices: 0,
     paidInvoices: 0,
     overdueInvoices: 0,
+    draftInvoices: 0,
     totalExpenses: 0,
+    creditsRefunds: 0,
     recentInvoices: [] as any[],
     allInvoices: [] as any[]
   });
@@ -28,14 +31,30 @@ export const DashboardOverview = () => {
       const clients = await clientOperations.getAll();
       const expenses = await expenseOperations.getAll();
 
-      const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-      const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length;
+      // Calculate total revenue (excluding negative amounts which might be credits/refunds)
+      const totalRevenue = invoices.reduce((sum, invoice) => {
+        const amount = parseFloat(invoice.amount) || 0;
+        return amount > 0 ? sum + amount : sum;
+      }, 0);
+
+      // Map actual database statuses to dashboard categories
+      // 'pending' = pending (if we had this status)
+      // 'sent' = sent (invoices sent to clients, awaiting payment)
+      // 'overdue' = overdue (explicitly marked as overdue)
+      // 'paid' = paid (payment received)
+      // 'draft' = draft (not yet sent)
+      const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length; // if we had pending status
+      const sentInvoices = invoices.filter(inv => inv.status === 'sent').length;
       const paidInvoices = invoices.filter(inv => inv.status === 'paid').length;
-      const overdueInvoices = invoices.filter(inv => {
-        const dueDate = new Date(inv.due_date);
-        return inv.status === 'pending' && dueDate < new Date();
-      }).length;
-      
+      const overdueInvoices = invoices.filter(inv => inv.status === 'overdue').length;
+      const draftInvoices = invoices.filter(inv => inv.status === 'draft').length;
+
+      // Calculate credits/refunds (negative amounts)
+      const creditsRefunds = Math.abs(invoices.reduce((sum, invoice) => {
+        const amount = parseFloat(invoice.amount) || 0;
+        return amount < 0 ? sum + amount : sum;
+      }, 0));
+
       const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
       const recentInvoices = invoices.slice(0, 5);
 
@@ -44,9 +63,12 @@ export const DashboardOverview = () => {
         totalClients: clients.length,
         totalInvoices: invoices.length,
         pendingInvoices,
+        sentInvoices,
         paidInvoices,
         overdueInvoices,
+        draftInvoices,
         totalExpenses,
+        creditsRefunds,
         recentInvoices,
         allInvoices: invoices
       });
@@ -107,8 +129,8 @@ export const DashboardOverview = () => {
           </div>
         </div>
 
-        {/* Invoice Status Cards */}
-        <div className={themeClasses.statsGridThree}>
+        {/* Invoice Status Cards - 5 Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           <div className={themeClasses.statCard}>
             <div className={themeClasses.statCardContent}>
               <div>
@@ -116,6 +138,16 @@ export const DashboardOverview = () => {
                 <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-yellow-foreground))'}}>{stats.pendingInvoices}</p>
               </div>
               <Calendar className={`${themeClasses.iconMedium} ${getIconColorClasses('yellow')}`} />
+            </div>
+          </div>
+
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
+              <div>
+                <p className={themeClasses.statLabel}>Sent Invoices</p>
+                <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-blue-foreground))'}}>{stats.sentInvoices}</p>
+              </div>
+              <Calendar className={`${themeClasses.iconMedium} ${getIconColorClasses('blue')}`} />
             </div>
           </div>
 
@@ -138,6 +170,28 @@ export const DashboardOverview = () => {
               <AlertCircle className={`${themeClasses.iconMedium} ${getIconColorClasses('red')}`} />
             </div>
           </div>
+
+          <div className={themeClasses.statCard}>
+            <div className={themeClasses.statCardContent}>
+              <div>
+                <p className={themeClasses.statLabel}>Draft Invoices</p>
+                <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-blue-foreground))'}}>{stats.draftInvoices}</p>
+              </div>
+              <FileText className={`${themeClasses.iconMedium} ${getIconColorClasses('blue')}`} />
+            </div>
+          </div>
+
+          {stats.creditsRefunds > 0 && (
+            <div className={themeClasses.statCard}>
+              <div className={themeClasses.statCardContent}>
+                <div>
+                  <p className={themeClasses.statLabel}>Credits/Refunds</p>
+                  <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-purple-foreground))'}}>${stats.creditsRefunds.toFixed(2)}</p>
+                </div>
+                <TrendingUp className={`${themeClasses.iconMedium} ${getIconColorClasses('purple')}`} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chart and Recent Invoices */}

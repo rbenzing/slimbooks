@@ -1,0 +1,7 @@
+- Always use the theme system for component styling
+- Always use the utility functions for dynamic styling (colors, variants, etc.)
+- Always follow the dashboard design patterns for new components
+- Always test components in both light and dark modes
+- Always use semantic color names rather than specific color values
+- Always reference the frontend at http://localhost:4173/
+- Always reference the backend at http://localhost:3002
