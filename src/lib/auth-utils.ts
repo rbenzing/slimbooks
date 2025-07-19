@@ -5,13 +5,16 @@ import crypto from 'crypto-js';
 import QRCode from 'qrcode';
 import { PasswordRequirements } from '@/types/auth';
 
-// JWT Secret - In production, this should be from environment variables
-const JWT_SECRET = 'slimbooks-jwt-secret-key-2024';
-const JWT_REFRESH_SECRET = 'slimbooks-refresh-secret-key-2024';
+// Import environment configuration
+import { securityConfig } from './env-config';
 
-// Token expiration times
-const ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes in milliseconds
-const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+// JWT Secrets from environment variables
+const JWT_SECRET = securityConfig.JWT_SECRET;
+const JWT_REFRESH_SECRET = securityConfig.JWT_REFRESH_SECRET;
+
+// Token expiration times from environment
+const ACCESS_TOKEN_EXPIRY = securityConfig.ACCESS_TOKEN_EXPIRY;
+const REFRESH_TOKEN_EXPIRY = securityConfig.REFRESH_TOKEN_EXPIRY;
 const EMAIL_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const PASSWORD_RESET_EXPIRY = 60 * 60 * 1000; // 1 hour in milliseconds
 

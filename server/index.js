@@ -7,23 +7,61 @@ import multer from 'multer';
 import { join, dirname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import {
+  createGeneralRateLimit,
+  createLoginRateLimit,
+  createSecurityHeaders,
+  createCorsOptions,
+  validateRequest,
+  validationRules,
+  requestLogger,
+  errorHandler
+} from './security-middleware.js';
+
+// Load environment variables
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:8080';
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 10MB default
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Security middleware
+app.use(createSecurityHeaders(CORS_ORIGIN));
+app.use(cors(createCorsOptions(CORS_ORIGIN)));
+app.use(createGeneralRateLimit());
+app.use(requestLogger);
 
-// Multer configuration for file uploads
+// Body parsing middleware with size limits
+app.use(express.json({ limit: '10mb' })); // Reduced from 50mb for security
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Multer configuration for file uploads with security
 const upload = multer({
-  dest: 'uploads/',
+  dest: process.env.UPLOAD_PATH || 'uploads/',
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
+    fileSize: MAX_FILE_SIZE,
+    files: 1, // Only allow 1 file at a time
+    fieldSize: 1024 * 1024 // 1MB field size limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Only allow specific file types for security
+    const allowedMimes = [
+      'application/octet-stream', // For database files
+      'application/x-sqlite3',
+      'application/vnd.sqlite3'
+    ];
+
+    if (allowedMimes.includes(file.mimetype) || file.originalname.endsWith('.db')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only database files are allowed.'), false);
+    }
   }
 });
 
@@ -434,68 +472,90 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', database: 'connected' });
 });
 
-// Debug endpoint to check data
-app.get('/api/debug/data', (req, res) => {
-  try {
-    const clients = db.prepare('SELECT * FROM clients ORDER BY created_at DESC LIMIT 5').all();
-    const invoices = db.prepare('SELECT * FROM invoices ORDER BY created_at DESC LIMIT 5').all();
-    const expenses = db.prepare('SELECT * FROM expenses ORDER BY created_at DESC LIMIT 5').all();
+// Debug endpoint to check data - ONLY in development
+if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true' && NODE_ENV === 'development') {
+  app.get('/api/debug/data', (req, res) => {
+    try {
+      const clients = db.prepare('SELECT * FROM clients ORDER BY created_at DESC LIMIT 5').all();
+      const invoices = db.prepare('SELECT * FROM invoices ORDER BY created_at DESC LIMIT 5').all();
+      const expenses = db.prepare('SELECT * FROM expenses ORDER BY created_at DESC LIMIT 5').all();
 
-    res.json({
-      success: true,
-      data: {
-        clients: {
-          count: db.prepare('SELECT COUNT(*) as count FROM clients').get().count,
-          sample: clients
-        },
-        invoices: {
-          count: db.prepare('SELECT COUNT(*) as count FROM invoices').get().count,
-          sample: invoices
-        },
-        expenses: {
-          count: db.prepare('SELECT COUNT(*) as count FROM expenses').get().count,
-          sample: expenses
+      res.json({
+        success: true,
+        data: {
+          clients: {
+            count: db.prepare('SELECT COUNT(*) as count FROM clients').get().count,
+            sample: clients
+          },
+          invoices: {
+            count: db.prepare('SELECT COUNT(*) as count FROM invoices').get().count,
+            sample: invoices
+          },
+          expenses: {
+            count: db.prepare('SELECT COUNT(*) as count FROM expenses').get().count,
+            sample: expenses
+          }
         }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+}
+
+// Generic database operations - RESTRICTED AND SECURED
+// These endpoints are dangerous and should only be used for specific operations
+
+// Secure database read operations - only allow SELECT statements
+app.post('/api/db/get',
+  validationRules.sql,
+  validateRequest,
+  (req, res) => {
+    try {
+      const { sql, params = [] } = req.body;
+
+      // Only allow SELECT statements
+      if (!sql.trim().toUpperCase().startsWith('SELECT')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Only SELECT statements are allowed'
+        });
       }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
-// Generic database operations
-app.post('/api/db/run', (req, res) => {
-  try {
-    const { sql, params = [] } = req.body;
-    const stmt = db.prepare(sql);
-    const result = stmt.run(params);
-    res.json({ success: true, result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+      const stmt = db.prepare(sql);
+      const result = stmt.get(params);
+      res.json({ success: true, result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
   }
-});
+);
 
-app.post('/api/db/get', (req, res) => {
-  try {
-    const { sql, params = [] } = req.body;
-    const stmt = db.prepare(sql);
-    const result = stmt.get(params);
-    res.json({ success: true, result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+app.post('/api/db/all',
+  validationRules.sql,
+  validateRequest,
+  (req, res) => {
+    try {
+      const { sql, params = [] } = req.body;
 
-app.post('/api/db/all', (req, res) => {
-  try {
-    const { sql, params = [] } = req.body;
-    const stmt = db.prepare(sql);
-    const result = stmt.all(params);
-    res.json({ success: true, result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+      // Only allow SELECT statements
+      if (!sql.trim().toUpperCase().startsWith('SELECT')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Only SELECT statements are allowed'
+        });
+      }
+
+      const stmt = db.prepare(sql);
+      const result = stmt.all(params);
+      res.json({ success: true, result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
   }
-});
+);
+
+// REMOVED: /api/db/run endpoint - too dangerous for production
 
 // Counter operations
 app.get('/api/counters/:name/next', (req, res) => {
@@ -613,10 +673,28 @@ app.post('/api/db/import', upload.single('database'), async (req, res) => {
   }
 });
 
+// Add login rate limiting for authentication endpoints
+const loginRateLimit = createLoginRateLimit(
+  parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  parseInt(process.env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS) || 5 // 5 attempts
+);
+
+// Apply login rate limiting to auth endpoints (when they exist)
+// app.post('/api/auth/login', loginRateLimit, ...);
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Slimbooks backend server running on http://localhost:${PORT}`);
   console.log(`📁 Database location: ${dbPath}`);
+  console.log(`🔒 Security: CORS origin set to ${CORS_ORIGIN}`);
+  console.log(`🛡️  Security headers enabled`);
+  console.log(`⚡ Rate limiting enabled`);
+  if (NODE_ENV === 'development' && process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
+    console.log(`🐛 Debug endpoints enabled (development only)`);
+  }
 });
 
 // Graceful shutdown

@@ -7,7 +7,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-*.lockb
+# Environment files
+.env
+.env.local
+.env.production.local
+
+# Database and data
 data
 *.db
 *.sqlite
@@ -29,3 +34,9 @@ dist-ssr
 *.sw?
 
 package-lock.json
+
+# Development and test files
+check-schema.js
+reset-sample-data.js
+test-dashboard-*.js
+dashboard-issues-analysis.md
