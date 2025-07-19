@@ -18,16 +18,37 @@ import {
   getSuggestedPrefixes,
   type InvoiceNumberSettings
 } from '@/utils/invoiceNumbering';
+import { sqliteService } from '@/lib/sqlite-service';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>(() => getDateTimeSettings());
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceNumberSettings>(() => getInvoiceNumberSettings());
-  const [currency, setCurrency] = useState(() => localStorage.getItem('default_currency') || 'USD');
-  const [timeZone, setTimeZone] = useState(() => localStorage.getItem('default_timezone') || 'America/New_York');
+  const [currency, setCurrency] = useState('USD');
+  const [timeZone, setTimeZone] = useState('America/New_York');
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const savedCurrency = sqliteService.getSetting('default_currency');
+        const savedTimeZone = sqliteService.getSetting('default_timezone');
+
+        if (savedCurrency) setCurrency(savedCurrency);
+        if (savedTimeZone) setTimeZone(savedTimeZone);
+      } catch (error) {
+        console.error('Error loading general settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     // Save settings whenever they change
-    saveDateTimeSettings(dateTimeSettings);
+    saveDateTimeSettings(dateTimeSettings).catch(console.error);
   }, [dateTimeSettings]);
 
   useEffect(() => {
@@ -35,11 +56,19 @@ export const GeneralSettingsTab = () => {
   }, [invoiceSettings]);
 
   useEffect(() => {
-    localStorage.setItem('default_currency', currency);
+    try {
+      sqliteService.setSetting('default_currency', currency, 'general');
+    } catch (error) {
+      console.error('Error saving currency setting:', error);
+    }
   }, [currency]);
 
   useEffect(() => {
-    localStorage.setItem('default_timezone', timeZone);
+    try {
+      sqliteService.setSetting('default_timezone', timeZone, 'general');
+    } catch (error) {
+      console.error('Error saving timezone setting:', error);
+    }
   }, [timeZone]);
 
   const handleDateFormatChange = (format: string) => {

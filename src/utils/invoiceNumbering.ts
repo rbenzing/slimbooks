@@ -1,6 +1,7 @@
 // Invoice numbering utilities that respect user settings
 
 import { invoiceOperations } from '@/lib/database';
+import { sqliteService } from '@/lib/sqlite-service';
 
 export interface InvoiceNumberSettings {
   prefix: string;
@@ -11,15 +12,17 @@ export const DEFAULT_INVOICE_NUMBER_SETTINGS: InvoiceNumberSettings = {
   prefix: 'INV'
 };
 
-// Get current invoice number settings from localStorage
+// Get current invoice number settings from SQLite
 export const getInvoiceNumberSettings = (): InvoiceNumberSettings => {
   try {
-    const saved = localStorage.getItem('invoice_number_settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      return {
-        prefix: settings.prefix || DEFAULT_INVOICE_NUMBER_SETTINGS.prefix
-      };
+    // Try to access sqliteService if it's already available globally
+    if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
+      const settings = (window as any).sqliteService.getSetting('invoice_number_settings');
+      if (settings) {
+        return {
+          prefix: settings.prefix || DEFAULT_INVOICE_NUMBER_SETTINGS.prefix
+        };
+      }
     }
   } catch (error) {
     console.error('Error loading invoice number settings:', error);
@@ -27,24 +30,24 @@ export const getInvoiceNumberSettings = (): InvoiceNumberSettings => {
   return DEFAULT_INVOICE_NUMBER_SETTINGS;
 };
 
-// Save invoice number settings to localStorage
+// Save invoice number settings to SQLite
 export const saveInvoiceNumberSettings = (settings: InvoiceNumberSettings): void => {
   try {
-    localStorage.setItem('invoice_number_settings', JSON.stringify(settings));
+    sqliteService.setSetting('invoice_number_settings', settings, 'invoice');
   } catch (error) {
     console.error('Error saving invoice number settings:', error);
   }
 };
 
 // Generate a new invoice number using the current settings
-export const generateInvoiceNumber = (): string => {
+export const generateInvoiceNumber = async (): Promise<string> => {
   const settings = getInvoiceNumberSettings();
-  const existingInvoices = invoiceOperations.getAll();
-  
+  const existingInvoices = await invoiceOperations.getAll();
+
   // Find the highest number for the current prefix
   let maxNumber = 0;
   const prefixPattern = new RegExp(`^${settings.prefix}-?(\\d+)$`, 'i');
-  
+
   existingInvoices.forEach(invoice => {
     if (invoice.invoice_number) {
       const match = invoice.invoice_number.match(prefixPattern);
@@ -56,7 +59,7 @@ export const generateInvoiceNumber = (): string => {
       }
     }
   });
-  
+
   // Generate the next number
   const nextNumber = maxNumber + 1;
   return `${settings.prefix}-${String(nextNumber).padStart(4, '0')}`;
@@ -79,10 +82,10 @@ export const validateInvoiceNumber = (invoiceNumber: string): boolean => {
 };
 
 // Check if an invoice number already exists
-export const isInvoiceNumberUnique = (invoiceNumber: string, excludeId?: number): boolean => {
-  const existingInvoices = invoiceOperations.getAll();
-  return !existingInvoices.some(invoice => 
-    invoice.invoice_number === invoiceNumber && 
+export const isInvoiceNumberUnique = async (invoiceNumber: string, excludeId?: number): Promise<boolean> => {
+  const existingInvoices = await invoiceOperations.getAll();
+  return !existingInvoices.some(invoice =>
+    invoice.invoice_number === invoiceNumber &&
     (excludeId === undefined || invoice.id !== excludeId)
   );
 };

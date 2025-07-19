@@ -27,7 +27,10 @@ export const statusColors = {
 
 export type StatusType = keyof typeof statusColors;
 
-export function getStatusColor(status: string): string {
+export function getStatusColor(status: string | undefined | null): string {
+  if (!status) {
+    return statusColors.draft;
+  }
   const normalizedStatus = status.toLowerCase() as StatusType;
   return statusColors[normalizedStatus] || statusColors.draft;
 }

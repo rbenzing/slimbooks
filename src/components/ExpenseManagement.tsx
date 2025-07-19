@@ -39,17 +39,36 @@ export const ExpenseManagement: React.FC = () => {
     loadExpenses();
   }, []);
 
-  const loadExpenses = () => {
-    const allExpenses = expenseOperations.getAll();
-    setExpenses(allExpenses);
+  const loadExpenses = async () => {
+    try {
+      const allExpenses = await expenseOperations.getAll();
+      // Ensure all expenses have required fields
+      const validExpenses = allExpenses.filter(expense =>
+        expense &&
+        typeof expense.merchant === 'string' &&
+        typeof expense.description === 'string'
+      );
+      setExpenses(validExpenses);
+    } catch (error) {
+      console.error('Error loading expenses:', error);
+      toast.error('Failed to load expenses');
+      setExpenses([]); // Set empty array as fallback
+    }
   };
 
   const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || expense.status === statusFilter;
-    
+    if (!expense) return false;
+
+    const merchant = expense.merchant || '';
+    const description = expense.description || '';
+    const category = expense.category || '';
+    const status = expense.status || '';
+
+    const matchesSearch = merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
@@ -73,16 +92,16 @@ export const ExpenseManagement: React.FC = () => {
     setIsViewModalOpen(true);
   };
 
-  const handleSaveExpense = (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSaveExpense = async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       if (editingExpense) {
-        expenseOperations.update(editingExpense.id, expenseData);
+        await expenseOperations.update(editingExpense.id, expenseData);
         toast.success('Expense updated successfully');
       } else {
-        expenseOperations.create(expenseData);
+        await expenseOperations.create(expenseData);
         toast.success('Expense created successfully');
       }
-      loadExpenses();
+      await loadExpenses();
       setShowCreateForm(false);
       setEditingExpense(null);
     } catch (error) {
@@ -91,11 +110,11 @@ export const ExpenseManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteExpense = (id: number) => {
+  const handleDeleteExpense = async (id: number) => {
     try {
-      expenseOperations.delete(id);
+      await expenseOperations.delete(id);
       toast.success('Expense deleted successfully');
-      loadExpenses();
+      await loadExpenses();
     } catch (error) {
       toast.error('Failed to delete expense');
       console.error('Error deleting expense:', error);

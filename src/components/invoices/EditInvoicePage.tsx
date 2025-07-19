@@ -1,12 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Plus, X, Send, Printer } from 'lucide-react';
 import { invoiceOperations, clientOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { statusColors, themeClasses, getButtonClasses } from '@/lib/utils';
+import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getInvoiceStatusPermissions } from '@/utils/invoiceValidation';
+import { InvoiceEmailService } from '@/services/invoiceEmailService';
+import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { toast } from 'sonner';
 
 interface LineItem {
   id: string;
@@ -38,6 +42,8 @@ export const EditInvoicePage = () => {
   const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [isDirty, setIsDirty] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
     isDirty,
@@ -46,69 +52,99 @@ export const EditInvoicePage = () => {
   });
 
   useEffect(() => {
-    if (id) {
-      // Load invoice data
-      const invoiceRecord = invoiceOperations.getById(parseInt(id));
+    const loadInvoiceData = async () => {
+      if (id) {
+        try {
+          // Load invoice data
+          const invoiceRecord = await invoiceOperations.getById(parseInt(id));
 
-      if (invoiceRecord) {
-        setInvoice(invoiceRecord);
-        setInvoiceData({
-          invoice_number: invoiceRecord.invoice_number || '',
-          due_date: invoiceRecord.due_date || '',
-          status: invoiceRecord.status || 'draft'
-        });
+          if (invoiceRecord) {
+            setInvoice(invoiceRecord);
+            setInvoiceData({
+              invoice_number: invoiceRecord.invoice_number || '',
+              due_date: invoiceRecord.due_date || '',
+              status: invoiceRecord.status || 'draft'
+            });
 
-        // Load line items if they exist
-        if (invoiceRecord.line_items) {
-          try {
-            const parsedLineItems = JSON.parse(invoiceRecord.line_items);
-            setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
-              { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
-            ]);
-          } catch (e) {
-            // Fallback to single line item from description and amount
-            setLineItems([
-              { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
-            ]);
+            // Load line items if they exist
+            if (invoiceRecord.line_items) {
+              try {
+                const parsedLineItems = JSON.parse(invoiceRecord.line_items);
+                setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
+                  { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+                ]);
+              } catch (e) {
+                // Fallback to single line item from description and amount
+                setLineItems([
+                  { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+                ]);
+              }
+            } else {
+              // Fallback to single line item from description and amount
+              setLineItems([
+                { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+              ]);
+            }
+
+            // Set thank you message
+            setThankYouMessage(invoiceRecord.notes || 'Thank you for your business!');
+
+            // Load all clients first
+            const allClients = await clientOperations.getAll();
+            setClients(allClients);
+
+            // Find and set the client
+            const client = allClients.find(c => c.id === invoiceRecord.client_id);
+            if (client) {
+              setSelectedClient(client);
+            }
+
+            // Load settings with invoice data to set correct tax/shipping rates
+            await loadSettings(invoiceRecord);
           }
-        } else {
-          // Fallback to single line item from description and amount
-          setLineItems([
-            { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
-          ]);
+        } catch (error) {
+          console.error('Error loading invoice data:', error);
         }
-
-        // Set thank you message
-        setThankYouMessage(invoiceRecord.notes || 'Thank you for your business!');
-
-        // Load all clients first
-        const allClients = clientOperations.getAll();
-        setClients(allClients);
-
-        // Find and set the client
-        const client = allClients.find(c => c.id === invoiceRecord.client_id);
-        if (client) {
-          setSelectedClient(client);
-        }
+        setLoading(false);
       }
-      setLoading(false);
-    }
+    };
 
-    // Load tax rates from settings
-    const savedTaxRates = localStorage.getItem('tax_rates');
-    if (savedTaxRates) {
-      const rates = JSON.parse(savedTaxRates);
-      setTaxRates(rates);
-      setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+    const loadSettings = async (invoiceRecord?: any) => {
+      try {
+        // Load tax rates from SQLite settings
+        const { sqliteService } = await import('@/lib/sqlite-service');
+        if (sqliteService.isReady()) {
+          const savedTaxRates = sqliteService.getSetting('tax_rates');
+          if (savedTaxRates) {
+            setTaxRates(savedTaxRates);
+            // If invoice has a saved tax rate ID, use that; otherwise use default
+            if (invoiceRecord?.tax_rate_id) {
+              const savedTaxRate = savedTaxRates.find((r: any) => r.id === invoiceRecord.tax_rate_id);
+              setSelectedTaxRate(savedTaxRate || null);
+            } else {
+              setSelectedTaxRate(savedTaxRates.find((r: any) => r.isDefault) || savedTaxRates[0]);
+            }
+          }
 
-    // Load shipping rates from settings
-    const savedShippingRates = localStorage.getItem('shipping_rates');
-    if (savedShippingRates) {
-      const rates = JSON.parse(savedShippingRates);
-      setShippingRates(rates);
-      setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+          // Load shipping rates from SQLite settings
+          const savedShippingRates = sqliteService.getSetting('shipping_rates');
+          if (savedShippingRates) {
+            setShippingRates(savedShippingRates);
+            // If invoice has a saved shipping rate ID, use that; otherwise use default
+            if (invoiceRecord?.shipping_rate_id) {
+              const savedShippingRate = savedShippingRates.find((r: any) => r.id === invoiceRecord.shipping_rate_id);
+              setSelectedShippingRate(savedShippingRate || null);
+            } else {
+              setSelectedShippingRate(savedShippingRates.find((r: any) => r.isDefault) || savedShippingRates[0]);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+
+    loadInvoiceData();
   }, [id]);
 
   // Track form changes
@@ -125,19 +161,35 @@ export const EditInvoicePage = () => {
     }
   }, [invoiceData, selectedClient, invoice, lineItems]);
 
-  const handleSave = () => {
-    if (!selectedClient) {
-      alert('Please select a client');
+  // Validation functions
+  const isValidForSave = () => {
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+    return validation.isValid;
+  };
+
+  const isValidForSend = () => {
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
+    return validation.canSend;
+  };
+
+  const getStatusPermissions = () => {
+    if (!invoice) return { canEdit: true, canSave: true, canSend: true, canDelete: true, showDeleteOnly: false };
+    return getInvoiceStatusPermissions(invoice.status, invoice.due_date);
+  };
+
+  const handleSave = async () => {
+    if (!isValidForSave() || isSaving) {
       return;
     }
 
-    // Calculate total amount from line items
-    const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-    const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
-    const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
-    const total = subtotal + taxAmount + shippingAmount;
-
+    setIsSaving(true);
     try {
+      // Calculate total amount from line items
+      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+      const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
+      const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
+      const total = subtotal + taxAmount + shippingAmount;
+
       const updatedInvoice = {
         invoice_number: invoiceData.invoice_number,
         client_id: selectedClient.id,
@@ -154,12 +206,16 @@ export const EditInvoicePage = () => {
         client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
         line_items: JSON.stringify(lineItems),
         tax_amount: taxAmount,
+        tax_rate_id: selectedTaxRate?.id || null,
         shipping_amount: shippingAmount,
+        shipping_rate_id: selectedShippingRate?.id || null,
         notes: thankYouMessage
       };
 
-      invoiceOperations.update(parseInt(id!), updatedInvoice);
+      await invoiceOperations.update(parseInt(id!), updatedInvoice);
       setIsDirty(false);
+      toast.success('Invoice updated successfully');
+
       // Navigate back to the appropriate page based on invoice type
       if (invoice.template_id) {
         navigate('/invoices#templates');
@@ -168,14 +224,111 @@ export const EditInvoicePage = () => {
       }
     } catch (error) {
       console.error('Error updating invoice:', error);
-      alert('Error updating invoice');
+      toast.error('Error updating invoice');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleSendInvoice = async () => {
+    if (!isValidForSend() || isSending) {
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      // Auto-fill due date if not set
+      let updatedInvoiceData = { ...invoiceData };
+      if (!updatedInvoiceData.due_date || updatedInvoiceData.due_date.trim() === '') {
+        updatedInvoiceData.due_date = new Date().toISOString().split('T')[0];
+        // Update the state so user sees the auto-filled date
+        setInvoiceData(updatedInvoiceData);
+      }
+
+      // Calculate total amount from line items
+      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+      const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
+      const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
+      const total = subtotal + taxAmount + shippingAmount;
+
+      const updatedInvoice = {
+        invoice_number: updatedInvoiceData.invoice_number,
+        client_id: selectedClient.id,
+        template_id: invoice.template_id,
+        amount: total,
+        status: 'sent',
+        due_date: updatedInvoiceData.due_date,
+        description: lineItems.map(item => item.description).join(', '),
+        stripe_invoice_id: invoice.stripe_invoice_id,
+        type: invoice.type,
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        client_phone: selectedClient.phone,
+        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        line_items: JSON.stringify(lineItems),
+        tax_amount: taxAmount,
+        tax_rate_id: selectedTaxRate?.id || null,
+        shipping_amount: shippingAmount,
+        shipping_rate_id: selectedShippingRate?.id || null,
+        notes: thankYouMessage
+      };
+
+      await invoiceOperations.update(parseInt(id!), updatedInvoice);
+
+      // Update email status to sending
+      const statusService = InvoiceStatusService.getInstance();
+      await statusService.updateEmailStatus(parseInt(id!), 'sending');
+
+      // Send email
+      const emailService = InvoiceEmailService.getInstance();
+      const emailResult = await emailService.sendInvoiceEmail({
+        id: parseInt(id!),
+        invoice_number: updatedInvoiceData.invoice_number,
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        amount: total,
+        due_date: updatedInvoiceData.due_date,
+        status: 'sent',
+        notes: thankYouMessage
+      });
+
+      if (emailResult.success) {
+        await statusService.markInvoiceAsSent(parseInt(id!));
+        toast.success('Invoice sent successfully');
+      } else {
+        await statusService.updateEmailStatus(parseInt(id!), 'failed', emailResult.message);
+        toast.error(`Failed to send invoice: ${emailResult.message}`);
+      }
+
+      setIsDirty(false);
+
+      // Navigate back to the appropriate page based on invoice type
+      if (invoice.template_id) {
+        navigate('/invoices#templates');
+      } else {
+        navigate('/invoices');
+      }
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      toast.error('Error sending invoice');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!isValidForSave()) {
+      return;
+    }
+
+    // TODO: Implement print functionality
+    toast.info('Print functionality will be implemented soon');
+  };
+
+  const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
-        invoiceOperations.delete(parseInt(id!));
+        await invoiceOperations.delete(parseInt(id!));
         // Navigate back to the appropriate page based on invoice type
         if (invoice.template_id) {
           navigate('/invoices#templates');
@@ -255,14 +408,6 @@ export const EditInvoicePage = () => {
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
 
-  if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!invoice) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Invoice not found</div>;
-  }
-
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -279,19 +424,58 @@ export const EditInvoicePage = () => {
             {invoice.template_id ? 'Back to Templates' : 'Back to Invoices'}
           </button>
           <div className="flex space-x-3">
-            <button
-              onClick={handleDelete}
-              className="flex items-center px-4 py-2 text-destructive border border-destructive rounded-lg hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Update Invoice
-            </button>
+            {(() => {
+              const permissions = getStatusPermissions();
+              const hasClientEmail = selectedClient?.email && selectedClient.email.trim() !== '';
+
+              return (
+                <>
+                  {permissions.canDelete && (
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center px-4 py-2 text-destructive border border-destructive rounded-lg hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </button>
+                  )}
+
+                  {permissions.canSave && (
+                    <button
+                      onClick={handleSave}
+                      disabled={!isValidForSave() || isSaving}
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Invoice'}
+                    </button>
+                  )}
+
+                  {permissions.canSend && (
+                    <>
+                      {hasClientEmail ? (
+                        <button
+                          onClick={handleSendInvoice}
+                          disabled={!isValidForSend() || isSending}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          {isSending ? 'Sending...' : (invoice.status === 'sent' ? 'Resend Invoice' : 'Send Invoice')}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handlePrintInvoice}
+                          disabled={!isValidForSave()}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          Print Invoice
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 

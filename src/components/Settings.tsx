@@ -6,9 +6,11 @@ import { TaxSettings } from './settings/TaxSettings';
 import { ShippingSettings } from './settings/ShippingSettings';
 import { CompanySettings } from './settings/CompanySettings';
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
+import { EmailSettings } from './settings/EmailSettings';
 import { StripeSettingsTab } from './settings/StripeSettingsTab';
 import { NotificationSettingsTab } from './settings/NotificationSettingsTab';
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab';
+import { DatabaseBackupSection } from './settings/DatabaseBackupSection';
 import { themeClasses, getButtonClasses } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -19,7 +21,7 @@ export const Settings = () => {
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['company', 'general', 'tax', 'shipping', 'stripe', 'notifications', 'appearance'].includes(hash)) {
+    if (hash && ['company', 'general', 'tax', 'shipping', 'email', 'stripe', 'notifications', 'appearance', 'backup'].includes(hash)) {
       setActiveTab(hash);
     } else {
       setActiveTab('company');
@@ -29,8 +31,9 @@ export const Settings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // Simulate save operation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // The individual settings components handle their own saving
+      // This is just a unified save action that triggers success feedback
+      await new Promise(resolve => setTimeout(resolve, 500));
       toast.success('Settings saved successfully');
     } catch (error) {
       toast.error('Failed to save settings');
@@ -64,9 +67,11 @@ export const Settings = () => {
           {activeTab === 'general' && <GeneralSettingsTab />}
           {activeTab === 'tax' && <TaxSettings />}
           {activeTab === 'shipping' && <ShippingSettings />}
+          {activeTab === 'email' && <EmailSettings />}
           {activeTab === 'stripe' && <StripeSettingsTab />}
           {activeTab === 'notifications' && <NotificationSettingsTab />}
           {activeTab === 'appearance' && <AppearanceSettingsTab />}
+          {activeTab === 'backup' && <DatabaseBackupSection />}
         </div>
       </div>
     </div>

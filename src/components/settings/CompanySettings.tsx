@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
+import { sqliteService } from '@/lib/sqlite-service';
 
 export interface CompanySettings {
   companyName: string;
@@ -30,26 +31,41 @@ export const CompanySettings = () => {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('company_settings');
-    if (saved) {
-      const parsedSettings = JSON.parse(saved);
-      setSettings({
-        companyName: parsedSettings.companyName || 'ClientBill Pro',
-        ownerName: parsedSettings.ownerName || '',
-        address: parsedSettings.address || '',
-        city: parsedSettings.city || '',
-        state: parsedSettings.state || '',
-        zipCode: parsedSettings.zipCode || '',
-        email: parsedSettings.email || '',
-        phone: parsedSettings.phone || '',
-        brandingImage: parsedSettings.brandingImage || ''
-      });
-    }
+    const loadSettings = async () => {
+      try {
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const saved = sqliteService.getSetting('company_settings');
+        if (saved) {
+          setSettings({
+            companyName: saved.companyName || 'ClientBill Pro',
+            ownerName: saved.ownerName || '',
+            address: saved.address || '',
+            city: saved.city || '',
+            state: saved.state || '',
+            zipCode: saved.zipCode || '',
+            email: saved.email || '',
+            phone: saved.phone || '',
+            brandingImage: saved.brandingImage || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading company settings:', error);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   const saveSettings = (newSettings: CompanySettings) => {
     setSettings(newSettings);
-    localStorage.setItem('company_settings', JSON.stringify(newSettings));
+    try {
+      sqliteService.setSetting('company_settings', newSettings, 'company');
+    } catch (error) {
+      console.error('Error saving company settings:', error);
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

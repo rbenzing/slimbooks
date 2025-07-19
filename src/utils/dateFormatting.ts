@@ -27,16 +27,18 @@ export const TIME_FORMAT_OPTIONS = [
   { value: '24-hour', label: '24-hour (14:30)' }
 ];
 
-// Get current date/time settings from localStorage
+// Get current date/time settings from SQLite (synchronous version)
 export const getDateTimeSettings = (): DateTimeSettings => {
   try {
-    const saved = localStorage.getItem('date_time_settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      return {
-        dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
-        timeFormat: settings.timeFormat || DEFAULT_DATE_TIME_SETTINGS.timeFormat
-      };
+    // Try to access sqliteService if it's already available globally
+    if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
+      const settings = (window as any).sqliteService.getSetting('date_time_settings');
+      if (settings) {
+        return {
+          dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
+          timeFormat: settings.timeFormat || DEFAULT_DATE_TIME_SETTINGS.timeFormat
+        };
+      }
     }
   } catch (error) {
     console.error('Error loading date/time settings:', error);
@@ -44,10 +46,35 @@ export const getDateTimeSettings = (): DateTimeSettings => {
   return DEFAULT_DATE_TIME_SETTINGS;
 };
 
-// Save date/time settings to localStorage
-export const saveDateTimeSettings = (settings: DateTimeSettings): void => {
+// Async version for components that can handle async operations
+export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
   try {
-    localStorage.setItem('date_time_settings', JSON.stringify(settings));
+    const { sqliteService } = await import('@/lib/sqlite-service');
+
+    if (sqliteService.isReady()) {
+      const settings = sqliteService.getSetting('date_time_settings');
+      if (settings) {
+        return {
+          dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
+          timeFormat: settings.timeFormat || DEFAULT_DATE_TIME_SETTINGS.timeFormat
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error loading date/time settings:', error);
+  }
+  return DEFAULT_DATE_TIME_SETTINGS;
+};
+
+// Save date/time settings to SQLite
+export const saveDateTimeSettings = async (settings: DateTimeSettings): Promise<void> => {
+  try {
+    // Use dynamic import to avoid circular dependencies
+    const { sqliteService } = await import('@/lib/sqlite-service');
+
+    if (sqliteService.isReady()) {
+      sqliteService.setSetting('date_time_settings', settings, 'general');
+    }
   } catch (error) {
     console.error('Error saving date/time settings:', error);
   }

@@ -48,9 +48,11 @@ const navigation = [
       { id: 'general', name: 'General', path: '/settings#general' },
       { id: 'tax', name: 'Tax Rates', path: '/settings#tax' },
       { id: 'shipping', name: 'Shipping', path: '/settings#shipping' },
+      { id: 'email', name: 'Email Settings', path: '/settings#email' },
       { id: 'stripe', name: 'Stripe Integration', path: '/settings#stripe' },
       { id: 'notifications', name: 'Notifications', path: '/settings#notifications' },
-      { id: 'appearance', name: 'Appearance', path: '/settings#appearance' }
+      { id: 'appearance', name: 'Appearance', path: '/settings#appearance' },
+      { id: 'backup', name: 'Backup & Restore', path: '/settings#backup' }
     ]
   },
 ];

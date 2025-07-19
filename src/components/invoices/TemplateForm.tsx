@@ -23,10 +23,18 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
   });
 
   useEffect(() => {
-    if (isOpen) {
-      const allClients = clientOperations.getAll();
-      setClients(allClients);
-    }
+    const loadClients = async () => {
+      if (isOpen) {
+        try {
+          const allClients = await clientOperations.getAll();
+          setClients(allClients);
+        } catch (error) {
+          console.error('Error loading clients:', error);
+        }
+      }
+    };
+
+    loadClients();
   }, [isOpen]);
 
   useEffect(() => {

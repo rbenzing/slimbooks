@@ -24,11 +24,11 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     generateReportData();
   }, [dateRange]);
 
-  const generateReportData = () => {
+  const generateReportData = async () => {
     setLoading(true);
     try {
-      const allClients = clientOperations.getAll();
-      const allInvoices = invoiceOperations.getAll();
+      const allClients = await clientOperations.getAll();
+      const allInvoices = await invoiceOperations.getAll();
       
       const invoicesInRange = allInvoices.filter(invoice => {
         const invoiceDate = new Date(invoice.created_at);

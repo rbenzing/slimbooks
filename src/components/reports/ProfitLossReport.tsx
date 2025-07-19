@@ -24,10 +24,10 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     generateReportData();
   }, [dateRange]);
 
-  const generateReportData = () => {
+  const generateReportData = async () => {
     setLoading(true);
     try {
-      const data = reportOperations.generateProfitLossData(dateRange.start, dateRange.end);
+      const data = await reportOperations.generateProfitLossData(dateRange.start, dateRange.end);
       setReportData(data);
     } catch (error) {
       console.error('Error generating report data:', error);

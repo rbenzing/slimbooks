@@ -19,25 +19,48 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
   });
 
   useEffect(() => {
-    // Load company settings from localStorage or use defaults
-    const saved = localStorage.getItem('company_settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      setCompanySettings(settings);
-    } else {
-      // Set default company settings if none exist
-      const defaultSettings = {
-        companyName: 'ClientBill Pro',
-        address: '123 Business Street',
-        city: 'Business City',
-        state: 'CA',
-        zipCode: '90210',
-        brandingImage: ''
-      };
-      setCompanySettings(defaultSettings);
-      // Save defaults to localStorage so they persist
-      localStorage.setItem('company_settings', JSON.stringify(defaultSettings));
-    }
+    const loadSettings = async () => {
+      try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/lib/sqlite-service');
+
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const saved = sqliteService.getSetting('company_settings');
+        if (saved) {
+          setCompanySettings(saved);
+        } else {
+          // Set default company settings if none exist
+          const defaultSettings = {
+            companyName: 'ClientBill Pro',
+            address: '123 Business Street',
+            city: 'Business City',
+            state: 'CA',
+            zipCode: '90210',
+            brandingImage: ''
+          };
+          setCompanySettings(defaultSettings);
+          // Save defaults to SQLite so they persist
+          sqliteService.setSetting('company_settings', defaultSettings, 'company');
+        }
+      } catch (error) {
+        console.error('Error loading company settings:', error);
+        // Fallback to default settings
+        const defaultSettings = {
+          companyName: 'ClientBill Pro',
+          address: '123 Business Street',
+          city: 'Business City',
+          state: 'CA',
+          zipCode: '90210',
+          brandingImage: ''
+        };
+        setCompanySettings(defaultSettings);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   const displayLogo = companyLogo || companySettings.brandingImage;

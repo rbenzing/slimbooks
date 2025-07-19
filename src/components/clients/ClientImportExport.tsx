@@ -36,14 +36,14 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
   const [validationResults, setValidationResults] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const clients = clientOperations.getAll();
+      const clients = await clientOperations.getAll();
       if (clients.length === 0) {
         toast.error('No clients to export');
         return;
       }
-      
+
       const exportData = clients.map(client => ({
         name: client.name,
         email: client.email,
@@ -55,7 +55,7 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
         zipCode: client.zipCode || '',
         country: client.country || ''
       }));
-      
+
       exportToCSV(exportData, `clients-${new Date().toISOString().split('T')[0]}.csv`);
       toast.success('Clients exported successfully');
       onClose();
@@ -146,8 +146,13 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
 
         const validation = validateClientData(mappedRow);
         if (validation.isValid) {
-          clientOperations.create(mappedRow);
-          successCount++;
+          try {
+            await clientOperations.create(mappedRow);
+            successCount++;
+          } catch (error) {
+            console.error('Error creating client:', error);
+            errorCount++;
+          }
         } else {
           errorCount++;
         }

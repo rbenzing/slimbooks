@@ -14,20 +14,43 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
   const [companySettings, setCompanySettings] = useState<any>({});
 
   useEffect(() => {
-    // Load company settings
-    const saved = localStorage.getItem('company_settings');
-    if (saved) {
-      setCompanySettings(JSON.parse(saved));
-    } else {
-      setCompanySettings({
-        companyName: 'ClientBill Pro',
-        address: '123 Business Street',
-        city: 'Business City',
-        state: 'CA',
-        zipCode: '90210',
-        brandingImage: ''
-      });
-    }
+    const loadSettings = async () => {
+      try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/lib/sqlite-service');
+
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const saved = sqliteService.getSetting('company_settings');
+        if (saved) {
+          setCompanySettings(saved);
+        } else {
+          setCompanySettings({
+            companyName: 'ClientBill Pro',
+            address: '123 Business Street',
+            city: 'Business City',
+            state: 'CA',
+            zipCode: '90210',
+            brandingImage: ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading company settings:', error);
+        // Fallback to default settings
+        setCompanySettings({
+          companyName: 'ClientBill Pro',
+          address: '123 Business Street',
+          city: 'Business City',
+          state: 'CA',
+          zipCode: '90210',
+          brandingImage: ''
+        });
+      }
+    };
+
+    loadSettings();
   }, []);
 
   if (!isOpen || !invoice) return null;

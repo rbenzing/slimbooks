@@ -23,9 +23,13 @@ export const InvoicesTab = () => {
     loadInvoices();
   }, []);
 
-  const loadInvoices = () => {
-    const allInvoices = invoiceOperations.getAll();
-    setInvoices(allInvoices);
+  const loadInvoices = async () => {
+    try {
+      const allInvoices = await invoiceOperations.getAll();
+      setInvoices(allInvoices);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+    }
   };
 
   const filteredInvoices = invoices.filter(invoice => {
@@ -48,19 +52,19 @@ export const InvoicesTab = () => {
     .filter(invoice => invoice.status === 'sent')
     .reduce((sum, invoice) => sum + invoice.amount, 0);
 
-  const handleSave = (invoiceData: any) => {
+  const handleSave = async (invoiceData: any) => {
     try {
       if (editingInvoice) {
-        invoiceOperations.update(editingInvoice.id, invoiceData);
+        await invoiceOperations.update(editingInvoice.id, invoiceData);
       } else {
         // Generate invoice number if not provided
         if (!invoiceData.invoice_number) {
           const invoiceCount = invoices.length + 1;
           invoiceData.invoice_number = `INV-${String(invoiceCount).padStart(4, '0')}`;
         }
-        invoiceOperations.create(invoiceData);
+        await invoiceOperations.create(invoiceData);
       }
-      loadInvoices();
+      await loadInvoices();
       setIsFormOpen(false);
       setEditingInvoice(null);
     } catch (error) {
@@ -68,10 +72,14 @@ export const InvoicesTab = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
-      invoiceOperations.delete(id);
-      loadInvoices();
+      try {
+        await invoiceOperations.delete(id);
+        await loadInvoices();
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+      }
     }
   };
 

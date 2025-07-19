@@ -24,10 +24,10 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
     generateReportData();
   }, [dateRange]);
 
-  const generateReportData = () => {
+  const generateReportData = async () => {
     setLoading(true);
     try {
-      const allInvoices = invoiceOperations.getAll();
+      const allInvoices = await invoiceOperations.getAll();
       const invoices = allInvoices.filter(invoice => {
         const invoiceDate = new Date(invoice.created_at);
         const start = new Date(dateRange.start);

@@ -1,5 +1,9 @@
-// Browser-compatible database simulation using localStorage
+// SQLite-based database operations for Slimbooks application
+import { sqliteService } from './sqlite-service';
+import { dataMigration } from './data-migration';
+import { User } from '@/types/auth';
 
+// Interfaces (keeping the same structure for compatibility)
 interface Client {
   id: number;
   name: string;
@@ -35,8 +39,14 @@ interface Invoice {
   client_address?: string;
   line_items?: string;
   tax_amount?: number;
+  tax_rate_id?: string;
   shipping_amount?: number;
+  shipping_rate_id?: string;
   notes?: string;
+  email_status?: string;
+  email_sent_at?: string;
+  email_error?: string;
+  last_email_attempt?: string;
 }
 
 interface InvoiceTemplate {
@@ -52,7 +62,9 @@ interface InvoiceTemplate {
   updated_at: string;
   line_items?: string;
   tax_amount?: number;
+  tax_rate_id?: string;
   shipping_amount?: number;
+  shipping_rate_id?: string;
   notes?: string;
   payment_terms?: string;
 }
@@ -80,613 +92,685 @@ interface Report {
   created_at: string;
 }
 
-// Storage keys
-const CLIENTS_KEY = 'clientbill_clients';
-const INVOICES_KEY = 'clientbill_invoices';
-const TEMPLATES_KEY = 'clientbill_templates';
-const EXPENSES_KEY = 'clientbill_expenses';
-const REPORTS_KEY = 'clientbill_reports';
-const COUNTERS_KEY = 'clientbill_counters';
+// Initialize database and run migration if needed
+let initializationPromise: Promise<void> | null = null;
 
-// Helper functions for localStorage
-const getStorageData = <T>(key: string): T[] => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+const ensureInitialized = async (): Promise<void> => {
+  if (!initializationPromise) {
+    initializationPromise = (async () => {
+      if (!sqliteService.isReady()) {
+        await sqliteService.initialize();
+      }
+      
+      // Run migration from localStorage if needed
+      const migrationResult = await dataMigration.migrateAllData();
+      if (migrationResult.errors.length > 0) {
+        console.warn('Migration completed with errors:', migrationResult.errors);
+      }
+    })();
+  }
+  return initializationPromise;
 };
 
-const setStorageData = <T>(key: string, data: T[]): void => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-const getNextId = (entity: string): number => {
-  const counters = JSON.parse(localStorage.getItem(COUNTERS_KEY) || '{}');
-  const nextId = (counters[entity] || 0) + 1;
-  counters[entity] = nextId;
-  localStorage.setItem(COUNTERS_KEY, JSON.stringify(counters));
-  return nextId;
-};
-
-// Initialize database with sample data
-export const initDatabase = () => {
+// Initialize database with sample data (SQLite version)
+export const initDatabase = async () => {
+  await ensureInitialized();
+  
   // Check if data already exists
-  if (localStorage.getItem(CLIENTS_KEY)) {
+  const existingClients = sqliteService.all('SELECT COUNT(*) as count FROM clients');
+  if (existingClients[0]?.count > 0) {
     return; // Already initialized
   }
 
-  // Sample clients
-  const sampleClients: Client[] = [
-    {
-      id: 1,
-      name: 'Acme Corporation',
-      email: 'contact@acme.com',
-      phone: '+1-555-0123',
-      company: 'Acme Corp',
-      address: '123 Business St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA',
-      created_at: '2024-01-15T10:00:00Z',
-      updated_at: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 2,
-      name: 'TechStart Inc',
-      email: 'hello@techstart.com',
-      phone: '+1-555-0124',
-      company: 'TechStart',
-      address: '456 Innovation Ave',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'USA',
-      created_at: '2024-02-01T10:00:00Z',
-      updated_at: '2024-02-01T10:00:00Z'
-    },
-    {
-      id: 3,
-      name: 'Design Studio LLC',
-      email: 'info@designstudio.com',
-      phone: '+1-555-0125',
-      company: 'Design Studio',
-      address: '789 Creative Blvd',
-      city: 'Los Angeles',
-      state: 'CA',
-      zipCode: '90210',
-      country: 'USA',
-      created_at: '2024-02-15T10:00:00Z',
-      updated_at: '2024-02-15T10:00:00Z'
-    }
-  ];
-
-  // Sample invoices
-  const sampleInvoices: Invoice[] = [
-    {
-      id: 1,
-      invoice_number: 'INV-001',
-      client_id: 1,
-      amount: 5000,
-      status: 'paid',
-      due_date: '2024-02-15',
-      description: 'Web development services',
-      type: 'invoice',
-      created_at: '2024-01-15T10:00:00Z',
-      updated_at: '2024-02-10T10:00:00Z'
-    },
-    {
-      id: 2,
-      invoice_number: 'INV-002',
-      client_id: 2,
-      amount: 3500,
-      status: 'sent',
-      due_date: '2024-03-01',
-      description: 'Mobile app development',
-      type: 'invoice',
-      created_at: '2024-02-01T10:00:00Z',
-      updated_at: '2024-02-01T10:00:00Z'
-    },
-    {
-      id: 3,
-      invoice_number: 'INV-003',
-      client_id: 3,
-      amount: 2500,
-      status: 'paid',
-      due_date: '2024-03-15',
-      description: 'Logo design and branding',
-      type: 'invoice',
-      created_at: '2024-02-15T10:00:00Z',
-      updated_at: '2024-03-10T10:00:00Z'
-    },
-    {
-      id: 4,
-      invoice_number: 'INV-004',
-      client_id: 1,
-      amount: 7500,
-      status: 'draft',
-      due_date: '2024-04-01',
-      description: 'E-commerce platform development',
-      type: 'invoice',
-      created_at: '2024-03-01T10:00:00Z',
-      updated_at: '2024-03-01T10:00:00Z'
-    }
-  ];
-
-  // Sample expenses
-  const sampleExpenses: Expense[] = [
-    {
-      id: 1,
-      date: '2024-01-10',
-      merchant: 'Office Depot',
-      category: 'Office Supplies',
-      amount: 125.50,
-      description: 'Printer paper and ink cartridges',
-      status: 'approved',
-      created_at: '2024-01-10T14:30:00Z',
-      updated_at: '2024-01-12T10:00:00Z'
-    },
-    {
-      id: 2,
-      date: '2024-01-14',
-      merchant: 'Starbucks',
-      category: 'Meals & Entertainment',
-      amount: 45.75,
-      description: 'Client meeting coffee',
-      status: 'reimbursed',
-      created_at: '2024-01-14T16:20:00Z',
-      updated_at: '2024-01-20T09:00:00Z'
-    },
-    {
-      id: 3,
-      date: '2024-02-03',
-      merchant: 'Adobe',
-      category: 'Software',
-      amount: 299.99,
-      description: 'Creative Cloud subscription',
-      status: 'approved',
-      created_at: '2024-02-03T09:15:00Z',
-      updated_at: '2024-02-05T11:30:00Z'
-    },
-    {
-      id: 4,
-      date: '2024-02-12',
-      merchant: 'United Airlines',
-      category: 'Travel',
-      amount: 650.00,
-      description: 'Flight to client meeting',
-      status: 'pending',
-      created_at: '2024-02-12T18:45:00Z',
-      updated_at: '2024-02-12T18:45:00Z'
-    },
-    {
-      id: 5,
-      date: '2024-02-18',
-      merchant: 'AWS',
-      category: 'Software',
-      amount: 125.80,
-      description: 'Cloud hosting services',
-      status: 'approved',
-      created_at: '2024-02-18T12:00:00Z',
-      updated_at: '2024-02-20T14:15:00Z'
-    },
-    {
-      id: 6,
-      date: '2024-03-05',
-      merchant: 'Google Ads',
-      category: 'Marketing',
-      amount: 500.00,
-      description: 'Online advertising campaign',
-      status: 'approved',
-      created_at: '2024-03-05T10:30:00Z',
-      updated_at: '2024-03-07T09:20:00Z'
-    }
-  ];
-
-  setStorageData(CLIENTS_KEY, sampleClients);
-  setStorageData(INVOICES_KEY, sampleInvoices);
-  setStorageData(TEMPLATES_KEY, []);
-  setStorageData(EXPENSES_KEY, sampleExpenses);
-  setStorageData(REPORTS_KEY, []);
-  localStorage.setItem(COUNTERS_KEY, JSON.stringify({ 
-    clients: 3, 
-    invoices: 4, 
-    templates: 0, 
-    expenses: 6, 
-    reports: 0 
-  }));
+  // Sample data will be inserted here if needed
+  console.log('Database initialized with SQLite');
 };
 
 // Client operations
 export const clientOperations = {
-  getAll: (): Client[] => {
-    return getStorageData<Client>(CLIENTS_KEY).sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+  getAll: async (): Promise<Client[]> => {
+    await ensureInitialized();
+    return sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
   },
   
-  getById: (id: number): Client | undefined => {
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    return clients.find(client => client.id === id);
+  getById: async (id: number): Promise<Client | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM clients WHERE id = ?', [id]);
+    return result || undefined;
   },
   
-  create: (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): { lastInsertRowid: number } => {
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    const id = getNextId('clients');
-    const now = new Date().toISOString();
-    
-    const newClient: Client = {
-      ...clientData,
-      id,
-      created_at: now,
-      updated_at: now
-    };
-    
-    clients.push(newClient);
-    setStorageData(CLIENTS_KEY, clients);
-    
-    return { lastInsertRowid: id };
-  },
-  
-  update: (id: number, clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): { changes: number } => {
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    const index = clients.findIndex(client => client.id === id);
-    
-    if (index === -1) {
-      return { changes: 0 };
+  create: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
+    try {
+      await ensureInitialized();
+      const id = sqliteService.getNextId('clients');
+      const now = new Date().toISOString();
+
+      sqliteService.run(`
+        INSERT INTO clients (id, name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        id,
+        clientData.name,
+        clientData.email,
+        clientData.phone || '',
+        clientData.company || '',
+        clientData.address || '',
+        clientData.city || '',
+        clientData.state || '',
+        clientData.zipCode || '',
+        clientData.country || '',
+        clientData.stripe_customer_id || null,
+        now,
+        now
+      ]);
+
+      return { lastInsertRowid: id };
+    } catch (error) {
+      console.error('Error creating client:', error);
+      throw new Error('Failed to create client');
     }
-    
-    clients[index] = {
-      ...clients[index],
-      ...clientData,
-      updated_at: new Date().toISOString()
-    };
-    
-    setStorageData(CLIENTS_KEY, clients);
-    return { changes: 1 };
   },
   
-  delete: (id: number): { changes: number } => {
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    const filteredClients = clients.filter(client => client.id !== id);
-    
-    if (filteredClients.length === clients.length) {
-      return { changes: 0 };
+  update: async (id: number, clientData: Partial<Omit<Client, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
+    try {
+      await ensureInitialized();
+
+      const fields = Object.keys(clientData).map(key => `${key} = ?`).join(', ');
+      const values = [...Object.values(clientData), id];
+
+      sqliteService.run(`UPDATE clients SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+      return { changes: 1 };
+    } catch (error) {
+      console.error('Error updating client:', error);
+      throw new Error('Failed to update client');
     }
-    
-    setStorageData(CLIENTS_KEY, filteredClients);
-    return { changes: 1 };
+  },
+
+  delete: async (id: number): Promise<{ changes: number }> => {
+    try {
+      await ensureInitialized();
+      sqliteService.run('DELETE FROM clients WHERE id = ?', [id]);
+      return { changes: 1 };
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw new Error('Failed to delete client');
+    }
   }
 };
 
 // Invoice operations
 export const invoiceOperations = {
-  getAll: (): (Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[] => {
-    const invoices = getStorageData<Invoice>(INVOICES_KEY);
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-
-    return invoices.map(invoice => {
-      const client = clients.find(c => c.id === invoice.client_id);
-      return {
-        ...invoice,
-        client_name: client?.name || 'Unknown Client',
-        client_email: invoice.client_email || client?.email,
-        client_phone: invoice.client_phone || client?.phone,
-        client_address: invoice.client_address || (client ? `${client.address}, ${client.city}, ${client.state} ${client.zipCode}` : undefined)
-      };
-    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  getAll: async (): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[]> => {
+    await ensureInitialized();
+    return sqliteService.all(`
+      SELECT 
+        i.*,
+        c.name as client_name,
+        COALESCE(i.client_email, c.email) as client_email,
+        COALESCE(i.client_phone, c.phone) as client_phone,
+        COALESCE(i.client_address, c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      ORDER BY i.created_at DESC
+    `);
   },
   
-  getById: (id: number): (Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string }) | undefined => {
-    const invoices = getStorageData<Invoice>(INVOICES_KEY);
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    const invoice = invoices.find(inv => inv.id === id);
-
-    if (!invoice) return undefined;
-
-    const client = clients.find(c => c.id === invoice.client_id);
-    return {
-      ...invoice,
-      client_name: client?.name || 'Unknown Client',
-      client_email: invoice.client_email || client?.email,
-      client_phone: invoice.client_phone || client?.phone,
-      client_address: invoice.client_address || (client ? `${client.address}, ${client.city}, ${client.state} ${client.zipCode}` : undefined)
-    };
+  getById: async (id: number): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string }) | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get(`
+      SELECT 
+        i.*,
+        c.name as client_name,
+        COALESCE(i.client_email, c.email) as client_email,
+        COALESCE(i.client_phone, c.phone) as client_phone,
+        COALESCE(i.client_address, c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.id = ?
+    `, [id]);
+    return result || undefined;
   },
   
-  create: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): { lastInsertRowid: number } => {
-    const invoices = getStorageData<Invoice>(INVOICES_KEY);
-    const id = getNextId('invoices');
+  create: async (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
+    await ensureInitialized();
+    const id = sqliteService.getNextId('invoices');
     const now = new Date().toISOString();
     
-    const newInvoice: Invoice = {
-      ...invoiceData,
+    sqliteService.run(`
+      INSERT INTO invoices (id, invoice_number, client_id, template_id, amount, status, due_date, description,
+                           stripe_invoice_id, type, client_name, client_email, client_phone, client_address,
+                           line_items, tax_amount, tax_rate_id, shipping_amount, shipping_rate_id, notes,
+                           email_status, email_sent_at, email_error, last_email_attempt, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
       id,
-      created_at: now,
-      updated_at: now
-    };
-    
-    invoices.push(newInvoice);
-    setStorageData(INVOICES_KEY, invoices);
+      invoiceData.invoice_number,
+      invoiceData.client_id,
+      invoiceData.template_id || null,
+      invoiceData.amount,
+      invoiceData.status,
+      invoiceData.due_date,
+      invoiceData.description || '',
+      invoiceData.stripe_invoice_id || null,
+      invoiceData.type || 'one-time',
+      invoiceData.client_name || '',
+      invoiceData.client_email || '',
+      invoiceData.client_phone || '',
+      invoiceData.client_address || '',
+      invoiceData.line_items || null,
+      invoiceData.tax_amount || 0,
+      invoiceData.tax_rate_id || null,
+      invoiceData.shipping_amount || 0,
+      invoiceData.shipping_rate_id || null,
+      invoiceData.notes || '',
+      invoiceData.email_status || 'not_sent',
+      invoiceData.email_sent_at || null,
+      invoiceData.email_error || null,
+      invoiceData.last_email_attempt || null,
+      now,
+      now
+    ]);
     
     return { lastInsertRowid: id };
   },
   
-  update: (id: number, invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): { changes: number } => {
-    const invoices = getStorageData<Invoice>(INVOICES_KEY);
-    const index = invoices.findIndex(invoice => invoice.id === id);
+  update: async (id: number, invoiceData: Partial<Omit<Invoice, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
+    await ensureInitialized();
     
-    if (index === -1) {
-      return { changes: 0 };
-    }
+    const fields = Object.keys(invoiceData).map(key => `${key} = ?`).join(', ');
+    const values = Object.values(invoiceData);
+    values.push(id);
     
-    invoices[index] = {
-      ...invoices[index],
-      ...invoiceData,
-      updated_at: new Date().toISOString()
-    };
-    
-    setStorageData(INVOICES_KEY, invoices);
+    sqliteService.run(`UPDATE invoices SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
     return { changes: 1 };
   },
   
-  delete: (id: number): { changes: number } => {
-    const invoices = getStorageData<Invoice>(INVOICES_KEY);
-    const filteredInvoices = invoices.filter(invoice => invoice.id !== id);
-    
-    if (filteredInvoices.length === invoices.length) {
-      return { changes: 0 };
-    }
-    
-    setStorageData(INVOICES_KEY, filteredInvoices);
+  delete: async (id: number): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    sqliteService.run('DELETE FROM invoices WHERE id = ?', [id]);
     return { changes: 1 };
   }
 };
 
 // Template operations
 export const templateOperations = {
-  getAll: (): (InvoiceTemplate & { client_name: string })[] => {
-    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    
-    return templates
-      .filter(template => template.is_active)
-      .map(template => {
-        const client = clients.find(c => c.id === template.client_id);
-        return {
-          ...template,
-          client_name: client?.name || 'Unknown Client'
-        };
-      })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  getAll: async (): Promise<(InvoiceTemplate & { client_name: string })[]> => {
+    await ensureInitialized();
+    return sqliteService.all(`
+      SELECT
+        t.*,
+        c.name as client_name
+      FROM templates t
+      LEFT JOIN clients c ON t.client_id = c.id
+      ORDER BY t.created_at DESC
+    `);
   },
-  
-  getById: (id: number): (InvoiceTemplate & { client_name: string }) | undefined => {
-    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
-    const clients = getStorageData<Client>(CLIENTS_KEY);
-    const template = templates.find(t => t.id === id);
-    
-    if (!template) return undefined;
-    
-    const client = clients.find(c => c.id === template.client_id);
-    return {
-      ...template,
-      client_name: client?.name || 'Unknown Client'
-    };
+
+  getById: async (id: number): Promise<(InvoiceTemplate & { client_name: string }) | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get(`
+      SELECT
+        t.*,
+        c.name as client_name
+      FROM templates t
+      LEFT JOIN clients c ON t.client_id = c.id
+      WHERE t.id = ?
+    `, [id]);
+    return result || undefined;
   },
-  
-  create: (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>): { lastInsertRowid: number } => {
-    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
-    const id = getNextId('templates');
+
+  create: async (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
+    await ensureInitialized();
+    const id = sqliteService.getNextId('templates');
     const now = new Date().toISOString();
-    
-    const newTemplate: InvoiceTemplate = {
-      ...templateData,
+
+    sqliteService.run(`
+      INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
+                            next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
+                            shipping_amount, shipping_rate_id, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
       id,
-      is_active: true,
-      created_at: now,
-      updated_at: now
-    };
-    
-    templates.push(newTemplate);
-    setStorageData(TEMPLATES_KEY, templates);
-    
+      templateData.name,
+      templateData.client_id,
+      templateData.amount,
+      templateData.description || '',
+      templateData.frequency,
+      templateData.payment_terms || '',
+      templateData.next_invoice_date,
+      templateData.is_active ? 1 : 0,
+      templateData.line_items || null,
+      templateData.tax_amount || 0,
+      templateData.tax_rate_id || null,
+      templateData.shipping_amount || 0,
+      templateData.shipping_rate_id || null,
+      templateData.notes || '',
+      now,
+      now
+    ]);
+
     return { lastInsertRowid: id };
   },
-  
-  update: (id: number, templateData: Partial<Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>>): { changes: number } => {
-    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
-    const index = templates.findIndex(template => template.id === id);
-    
-    if (index === -1) {
-      return { changes: 0 };
-    }
-    
-    templates[index] = {
-      ...templates[index],
-      ...templateData,
-      updated_at: new Date().toISOString()
-    };
-    
-    setStorageData(TEMPLATES_KEY, templates);
+
+  update: async (id: number, templateData: Partial<Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
+    await ensureInitialized();
+
+    const fields = Object.keys(templateData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(templateData), id];
+
+    sqliteService.run(`UPDATE templates SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
     return { changes: 1 };
   },
-  
-  delete: (id: number): { changes: number } => {
-    const templates = getStorageData<InvoiceTemplate>(TEMPLATES_KEY);
-    const index = templates.findIndex(template => template.id === id);
-    
-    if (index === -1) {
-      return { changes: 0 };
-    }
-    
-    templates[index] = {
-      ...templates[index],
-      is_active: false,
-      updated_at: new Date().toISOString()
-    };
-    
-    setStorageData(TEMPLATES_KEY, templates);
+
+  delete: async (id: number): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    sqliteService.run('DELETE FROM templates WHERE id = ?', [id]);
     return { changes: 1 };
   }
 };
 
 // Expense operations
 export const expenseOperations = {
-  getAll: (): Expense[] => {
-    return getStorageData<Expense>(EXPENSES_KEY).sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+  getAll: async (): Promise<Expense[]> => {
+    await ensureInitialized();
+    return sqliteService.all('SELECT * FROM expenses ORDER BY date DESC, created_at DESC');
   },
 
-  getById: (id: number): Expense | undefined => {
-    const expenses = getStorageData<Expense>(EXPENSES_KEY);
-    return expenses.find(expense => expense.id === id);
+  getById: async (id: number): Promise<Expense | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM expenses WHERE id = ?', [id]);
+    return result || undefined;
   },
 
-  getByDateRange: (startDate: string, endDate: string): Expense[] => {
-    const expenses = getStorageData<Expense>(EXPENSES_KEY);
-    return expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      return expenseDate >= start && expenseDate <= end;
-    });
+  getByDateRange: async (startDate: string, endDate: string): Promise<Expense[]> => {
+    await ensureInitialized();
+    return sqliteService.all(`
+      SELECT * FROM expenses
+      WHERE date(date) >= date(?) AND date(date) <= date(?)
+      ORDER BY date DESC, created_at DESC
+    `, [startDate, endDate]);
   },
 
-  create: (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): { lastInsertRowid: number } => {
-    const expenses = getStorageData<Expense>(EXPENSES_KEY);
-    const id = getNextId('expenses');
-    const now = new Date().toISOString();
-    
-    const newExpense: Expense = {
-      ...expenseData,
-      id,
-      created_at: now,
-      updated_at: now
-    };
-    
-    expenses.push(newExpense);
-    setStorageData(EXPENSES_KEY, expenses);
-    
-    return { lastInsertRowid: id };
-  },
+  create: async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
+    try {
+      await ensureInitialized();
+      const id = sqliteService.getNextId('expenses');
+      const now = new Date().toISOString();
 
-  update: (id: number, expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): { changes: number } => {
-    const expenses = getStorageData<Expense>(EXPENSES_KEY);
-    const index = expenses.findIndex(expense => expense.id === id);
-    
-    if (index === -1) {
-      return { changes: 0 };
+      sqliteService.run(`
+        INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        id,
+        expenseData.date,
+        expenseData.merchant,
+        expenseData.category,
+        expenseData.amount,
+        expenseData.description,
+        expenseData.receipt_url || null,
+        expenseData.status,
+        now,
+        now
+      ]);
+
+      return { lastInsertRowid: id };
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      throw new Error('Failed to create expense');
     }
-    
-    expenses[index] = {
-      ...expenses[index],
-      ...expenseData,
-      updated_at: new Date().toISOString()
-    };
-    
-    setStorageData(EXPENSES_KEY, expenses);
-    return { changes: 1 };
   },
 
-  delete: (id: number): { changes: number } => {
-    const expenses = getStorageData<Expense>(EXPENSES_KEY);
-    const filteredExpenses = expenses.filter(expense => expense.id !== id);
-    
-    if (filteredExpenses.length === expenses.length) {
-      return { changes: 0 };
+  update: async (id: number, expenseData: Partial<Omit<Expense, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
+    try {
+      await ensureInitialized();
+
+      const fields = Object.keys(expenseData).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(expenseData);
+      values.push(id);
+
+      sqliteService.run(`UPDATE expenses SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
+      return { changes: 1 };
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      throw new Error('Failed to update expense');
     }
-    
-    setStorageData(EXPENSES_KEY, filteredExpenses);
-    return { changes: 1 };
+  },
+
+  delete: async (id: number): Promise<{ changes: number }> => {
+    try {
+      await ensureInitialized();
+      sqliteService.run('DELETE FROM expenses WHERE id = ?', [id]);
+      return { changes: 1 };
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw new Error('Failed to delete expense');
+    }
   }
 };
 
 // Report operations
 export const reportOperations = {
-  getAll: (): Report[] => {
-    return getStorageData<Report>(REPORTS_KEY).sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+  getAll: async (): Promise<Report[]> => {
+    await ensureInitialized();
+    return sqliteService.all('SELECT * FROM reports ORDER BY created_at DESC');
   },
 
-  getById: (id: number): Report | undefined => {
-    const reports = getStorageData<Report>(REPORTS_KEY);
-    return reports.find(report => report.id === id);
+  getById: async (id: number): Promise<Report | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM reports WHERE id = ?', [id]);
+    if (result && result.data) {
+      try {
+        result.data = JSON.parse(result.data);
+      } catch (e) {
+        console.warn('Failed to parse report data:', e);
+      }
+    }
+    return result || undefined;
   },
 
-  create: (reportData: Omit<Report, 'id' | 'created_at'>): { lastInsertRowid: number } => {
-    const reports = getStorageData<Report>(REPORTS_KEY);
-    const id = getNextId('reports');
+  create: async (reportData: Omit<Report, 'id' | 'created_at'>): Promise<{ lastInsertRowid: number }> => {
+    await ensureInitialized();
+    const id = sqliteService.getNextId('reports');
     const now = new Date().toISOString();
-    
-    const newReport: Report = {
-      ...reportData,
+
+    sqliteService.run(`
+      INSERT INTO reports (id, name, type, date_range_start, date_range_end, data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
       id,
-      created_at: now
-    };
-    
-    reports.push(newReport);
-    setStorageData(REPORTS_KEY, reports);
-    
+      reportData.name,
+      reportData.type,
+      reportData.date_range_start,
+      reportData.date_range_end,
+      JSON.stringify(reportData.data || {}),
+      now
+    ]);
+
     return { lastInsertRowid: id };
   },
 
-  delete: (id: number): { changes: number } => {
-    const reports = getStorageData<Report>(REPORTS_KEY);
-    const filteredReports = reports.filter(report => report.id !== id);
-    
-    if (filteredReports.length === reports.length) {
-      return { changes: 0 };
-    }
-    
-    setStorageData(REPORTS_KEY, filteredReports);
+  delete: async (id: number): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    sqliteService.run('DELETE FROM reports WHERE id = ?', [id]);
     return { changes: 1 };
   },
 
-  generateProfitLossData: (startDate: string, endDate: string) => {
-    const invoices = invoiceOperations.getAll().filter(invoice => {
-      const invoiceDate = new Date(invoice.created_at);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      return invoiceDate >= start && invoiceDate <= end && invoice.status === 'paid';
-    });
+  // Generate Profit & Loss Report Data
+  generateProfitLossData: async (startDate: string, endDate: string): Promise<any> => {
+    await ensureInitialized();
 
-    const expenses = expenseOperations.getByDateRange(startDate, endDate);
+    // Get invoices in date range
+    const invoices = sqliteService.all(`
+      SELECT * FROM invoices
+      WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)
+    `, [startDate, endDate]);
 
-    const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-    const expensesByCategory = expenses.reduce((acc, expense) => {
+    // Get expenses in date range
+    const expenses = sqliteService.all(`
+      SELECT * FROM expenses
+      WHERE date(date) >= date(?) AND date(date) <= date(?)
+    `, [startDate, endDate]);
+
+    // Calculate revenue
+    const totalRevenue = invoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    const paidRevenue = invoices
+      .filter((invoice: any) => invoice.status === 'paid')
+      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    const pendingRevenue = invoices
+      .filter((invoice: any) => invoice.status === 'sent')
+      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+
+    // Calculate expenses
+    const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+    const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
       acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const netIncome = totalRevenue - totalExpenses;
+    // Calculate profit/loss
+    const netProfit = paidRevenue - totalExpenses;
+    const grossProfit = totalRevenue - totalExpenses;
 
     return {
       revenue: {
-        invoices: totalRevenue,
-        otherIncome: 0,
-        total: totalRevenue
+        total: totalRevenue,
+        paid: paidRevenue,
+        pending: pendingRevenue
       },
       expenses: {
-        ...expensesByCategory,
-        total: totalExpenses
+        total: totalExpenses,
+        byCategory: expensesByCategory,
+        items: expenses
       },
-      netIncome
+      profit: {
+        net: netProfit,
+        gross: grossProfit,
+        margin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
+      },
+      invoices
+    };
+  },
+
+  // Generate Expense Report Data
+  generateExpenseData: async (startDate: string, endDate: string): Promise<any> => {
+    await ensureInitialized();
+
+    const expenses = sqliteService.all(`
+      SELECT * FROM expenses
+      WHERE date(date) >= date(?) AND date(date) <= date(?)
+      ORDER BY date DESC
+    `, [startDate, endDate]);
+
+    const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
+      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      return acc;
+    }, {});
+
+    const expensesByStatus = expenses.reduce((acc: any, expense: any) => {
+      acc[expense.status] = (acc[expense.status] || 0) + expense.amount;
+      return acc;
+    }, {});
+
+    const totalAmount = expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+
+    return {
+      expenses,
+      expensesByCategory,
+      expensesByStatus,
+      totalAmount,
+      totalCount: expenses.length
+    };
+  },
+
+  // Generate Invoice Report Data
+  generateInvoiceData: async (startDate: string, endDate: string): Promise<any> => {
+    await ensureInitialized();
+
+    const invoices = sqliteService.all(`
+      SELECT
+        i.*,
+        c.name as client_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE date(i.created_at) >= date(?) AND date(i.created_at) <= date(?)
+      ORDER BY i.created_at DESC
+    `, [startDate, endDate]);
+
+    const invoicesByStatus = invoices.reduce((acc: any, invoice: any) => {
+      acc[invoice.status] = (acc[invoice.status] || 0) + invoice.amount;
+      return acc;
+    }, {});
+
+    const invoicesByClient = invoices.reduce((acc: any, invoice: any) => {
+      acc[invoice.client_name] = (acc[invoice.client_name] || 0) + invoice.amount;
+      return acc;
+    }, {});
+
+    const totalAmount = invoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    const paidAmount = invoices
+      .filter((invoice: any) => invoice.status === 'paid')
+      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+    const pendingAmount = invoices
+      .filter((invoice: any) => invoice.status === 'sent')
+      .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+
+    return {
+      invoices,
+      invoicesByStatus,
+      invoicesByClient,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      totalCount: invoices.length
+    };
+  },
+
+  // Generate Client Report Data
+  generateClientData: async (): Promise<any> => {
+    await ensureInitialized();
+
+    const clients = sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
+    const invoices = sqliteService.all(`
+      SELECT
+        i.*,
+        c.name as client_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+    `);
+
+    const clientStats = clients.map((client: any) => {
+      const clientInvoices = invoices.filter((invoice: any) => invoice.client_id === client.id);
+      const totalRevenue = clientInvoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      const paidRevenue = clientInvoices
+        .filter((invoice: any) => invoice.status === 'paid')
+        .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+      const pendingRevenue = clientInvoices
+        .filter((invoice: any) => invoice.status === 'sent')
+        .reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+
+      return {
+        ...client,
+        totalInvoices: clientInvoices.length,
+        totalRevenue,
+        paidRevenue,
+        pendingRevenue
+      };
+    });
+
+    return {
+      clients: clientStats,
+      totalClients: clients.length,
+      totalRevenue: clientStats.reduce((sum: number, client: any) => sum + client.totalRevenue, 0),
+      totalPaidRevenue: clientStats.reduce((sum: number, client: any) => sum + client.paidRevenue, 0)
     };
   }
 };
 
-// Initialize database on import
-initDatabase();
+// User operations
+export const userOperations = {
+  getAll: async (): Promise<User[]> => {
+    await ensureInitialized();
+    return sqliteService.all('SELECT * FROM users ORDER BY created_at DESC');
+  },
 
-// Export a mock db object for compatibility
-const db = {
-  prepare: () => ({
-    all: () => [],
-    get: () => null,
-    run: () => ({ lastInsertRowid: 0, changes: 0 })
-  })
+  getById: async (id: number): Promise<User | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM users WHERE id = ?', [id]);
+    return result || undefined;
+  },
+
+  getByEmail: async (email: string): Promise<User | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM users WHERE email = ?', [email]);
+    return result || undefined;
+  },
+
+  getByGoogleId: async (googleId: string): Promise<User | undefined> => {
+    await ensureInitialized();
+    const result = sqliteService.get('SELECT * FROM users WHERE google_id = ?', [googleId]);
+    return result || undefined;
+  },
+
+  create: async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
+    await ensureInitialized();
+    const id = sqliteService.getNextId('users');
+    const now = new Date().toISOString();
+
+    sqliteService.run(`
+      INSERT INTO users (
+        id, name, email, username, password_hash, role, email_verified,
+        google_id, two_factor_enabled, two_factor_secret, backup_codes,
+        last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      id,
+      userData.name,
+      userData.email,
+      userData.username,
+      userData.password_hash || null,
+      userData.role,
+      userData.email_verified ? 1 : 0,
+      userData.google_id || null,
+      userData.two_factor_enabled ? 1 : 0,
+      userData.two_factor_secret || null,
+      userData.backup_codes ? JSON.stringify(userData.backup_codes) : null,
+      userData.last_login || null,
+      userData.failed_login_attempts,
+      userData.account_locked_until || null,
+      now,
+      now
+    ]);
+
+    return { lastInsertRowid: id };
+  },
+
+  update: async (id: number, userData: Partial<User>): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    const fields = Object.keys(userData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(userData), id];
+
+    sqliteService.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
+    return { changes: 1 };
+  },
+
+  delete: async (id: number): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    sqliteService.run('DELETE FROM users WHERE id = ?', [id]);
+    return { changes: 1 };
+  },
+
+  updateLoginAttempts: async (id: number, attempts: number, lockedUntil?: string): Promise<void> => {
+    await ensureInitialized();
+    sqliteService.run(
+      'UPDATE users SET failed_login_attempts = ?, account_locked_until = ? WHERE id = ?',
+      [attempts, lockedUntil || null, id]
+    );
+  },
+
+  updateLastLogin: async (id: number): Promise<void> => {
+    await ensureInitialized();
+    const now = new Date().toISOString();
+    sqliteService.run('UPDATE users SET last_login = ? WHERE id = ?', [now, id]);
+  },
+
+  verifyEmail: async (id: number): Promise<void> => {
+    await ensureInitialized();
+    sqliteService.run('UPDATE users SET email_verified = 1 WHERE id = ?', [id]);
+  },
+
+  enable2FA: async (id: number, secret: string, backupCodes: string[]): Promise<void> => {
+    await ensureInitialized();
+    sqliteService.run(
+      'UPDATE users SET two_factor_enabled = 1, two_factor_secret = ?, backup_codes = ? WHERE id = ?',
+      [secret, JSON.stringify(backupCodes), id]
+    );
+  },
+
+  disable2FA: async (id: number): Promise<void> => {
+    await ensureInitialized();
+    sqliteService.run(
+      'UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL, backup_codes = NULL WHERE id = ?',
+      [id]
+    );
+  }
 };
-
-export default db;

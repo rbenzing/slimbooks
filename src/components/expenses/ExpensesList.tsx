@@ -86,7 +86,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
                 </td>
                 <td className="py-4 px-6">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(expense.status)}`}>
-                    {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                    {expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : 'Draft'}
                   </span>
                 </td>
                 <td className="py-4 px-6">

@@ -49,59 +49,96 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
 
   useEffect(() => {
-    const allClients = clientOperations.getAll();
-    setClients(allClients);
-    
-    // Load tax rates from settings
-    const savedTaxRates = localStorage.getItem('tax_rates');
-    if (savedTaxRates) {
-      const rates = JSON.parse(savedTaxRates);
-      setTaxRates(rates);
-      setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+    const loadData = async () => {
+      try {
+        const allClients = await clientOperations.getAll();
+        setClients(allClients);
 
-    // Load shipping rates from settings
-    const savedShippingRates = localStorage.getItem('shipping_rates');
-    if (savedShippingRates) {
-      const rates = JSON.parse(savedShippingRates);
-      setShippingRates(rates);
-      setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+        // Load tax rates from settings
+        const savedTaxRates = localStorage.getItem('tax_rates');
+        if (savedTaxRates) {
+          const rates = JSON.parse(savedTaxRates);
+          setTaxRates(rates);
+          setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+        }
+
+        // Load shipping rates from settings
+        const savedShippingRates = localStorage.getItem('shipping_rates');
+        if (savedShippingRates) {
+          const rates = JSON.parse(savedShippingRates);
+          setShippingRates(rates);
+          setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, [editingTemplate]);
 
   // Load editing template data
   useEffect(() => {
-    if (editingTemplate) {
-      // Load template data
-      setTemplateData({
-        name: editingTemplate.name || '',
-        frequency: editingTemplate.frequency || 'monthly',
-        next_invoice_date: editingTemplate.next_invoice_date || '',
-        status: editingTemplate.status || 'active'
-      });
+    const loadTemplateData = async () => {
+      if (editingTemplate) {
+        // Load template data
+        setTemplateData({
+          name: editingTemplate.name || '',
+          frequency: editingTemplate.frequency || 'monthly',
+          next_invoice_date: editingTemplate.next_invoice_date || '',
+          status: editingTemplate.status || 'active'
+        });
 
-      // Load client
-      if (editingTemplate.client_id) {
-        const client = clientOperations.getById(editingTemplate.client_id);
-        setSelectedClient(client);
+        // Load client
+        if (editingTemplate.client_id) {
+          try {
+            const client = await clientOperations.getById(editingTemplate.client_id);
+            setSelectedClient(client);
+          } catch (error) {
+            console.error('Error loading client:', error);
+          }
+        }
+
+        // Load line items
+        if (editingTemplate.line_items) {
+          try {
+            const items = JSON.parse(editingTemplate.line_items);
+            setLineItems(items);
+          } catch (error) {
+            console.error('Error parsing line items:', error);
+          }
+        }
+
+        // Load thank you message
+        if (editingTemplate.notes) {
+          setThankYouMessage(editingTemplate.notes);
+        }
       }
+    };
 
-      // Load line items
-      if (editingTemplate.line_items) {
-        try {
-          const items = JSON.parse(editingTemplate.line_items);
-          setLineItems(items);
-        } catch (error) {
-          console.error('Error parsing line items:', error);
+    loadTemplateData();
+  }, [editingTemplate]);
+
+  // Update tax and shipping rates when rates are loaded and we have a template
+  useEffect(() => {
+    if (editingTemplate && taxRates.length > 0 && shippingRates.length > 0) {
+      // Set tax rate if saved in template
+      if (editingTemplate.tax_rate_id) {
+        const savedTaxRate = taxRates.find((r: any) => r.id === editingTemplate.tax_rate_id);
+        if (savedTaxRate) {
+          setSelectedTaxRate(savedTaxRate);
         }
       }
 
-      // Load thank you message
-      if (editingTemplate.notes) {
-        setThankYouMessage(editingTemplate.notes);
+      // Set shipping rate if saved in template
+      if (editingTemplate.shipping_rate_id) {
+        const savedShippingRate = shippingRates.find((r: any) => r.id === editingTemplate.shipping_rate_id);
+        if (savedShippingRate) {
+          setSelectedShippingRate(savedShippingRate);
+        }
       }
     }
-  }, [editingTemplate]);
+  }, [editingTemplate, taxRates, shippingRates]);
 
   // Track form changes - set dirty when any field changes
   useEffect(() => {
@@ -178,7 +215,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isValidForSave()) {
       return;
     }
@@ -192,15 +229,17 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       next_invoice_date: templateData.next_invoice_date,
       line_items: JSON.stringify(lineItems),
       tax_amount: taxAmount,
+      tax_rate_id: selectedTaxRate?.id || null,
       shipping_amount: shippingAmount,
+      shipping_rate_id: selectedShippingRate?.id || null,
       notes: thankYouMessage
     };
 
     try {
       if (editingTemplate) {
-        templateOperations.update(editingTemplate.id, templatePayload);
+        await templateOperations.update(editingTemplate.id, templatePayload);
       } else {
-        templateOperations.create(templatePayload);
+        await templateOperations.create(templatePayload);
       }
       setIsDirty(false); // Reset dirty state after successful save
       onBack();

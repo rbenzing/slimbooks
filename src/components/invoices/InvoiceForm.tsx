@@ -23,11 +23,19 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
   });
 
   useEffect(() => {
-    if (isOpen) {
-      // Load clients
-      const allClients = clientOperations.getAll();
-      setClients(allClients);
-    }
+    const loadClients = async () => {
+      if (isOpen) {
+        try {
+          // Load clients
+          const allClients = await clientOperations.getAll();
+          setClients(allClients);
+        } catch (error) {
+          console.error('Error loading clients:', error);
+        }
+      }
+    };
+
+    loadClients();
   }, [isOpen]);
 
   useEffect(() => {

@@ -35,9 +35,14 @@ export const ClientManagement: React.FC = () => {
     loadClients();
   }, []);
 
-  const loadClients = () => {
-    const allClients = clientOperations.getAll();
-    setClients(allClients);
+  const loadClients = async () => {
+    try {
+      const allClients = await clientOperations.getAll();
+      setClients(allClients);
+    } catch (error) {
+      console.error('Error loading clients:', error);
+      toast.error('Failed to load clients');
+    }
   };
 
   const filteredClients = clients.filter(client =>
@@ -56,16 +61,16 @@ export const ClientManagement: React.FC = () => {
     setShowCreateForm(true);
   };
 
-  const handleSaveClient = (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       if (editingClient) {
-        clientOperations.update(editingClient.id, clientData);
+        await clientOperations.update(editingClient.id, clientData);
         toast.success('Client updated successfully');
       } else {
-        clientOperations.create(clientData);
+        await clientOperations.create(clientData);
         toast.success('Client created successfully');
       }
-      loadClients();
+      await loadClients();
       setShowCreateForm(false);
       setEditingClient(null);
     } catch (error) {
@@ -74,11 +79,11 @@ export const ClientManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteClient = (id: number) => {
+  const handleDeleteClient = async (id: number) => {
     try {
-      clientOperations.delete(id);
+      await clientOperations.delete(id);
       toast.success('Client deleted successfully');
-      loadClients();
+      await loadClients();
     } catch (error) {
       toast.error('Failed to delete client');
       console.error('Error deleting client:', error);

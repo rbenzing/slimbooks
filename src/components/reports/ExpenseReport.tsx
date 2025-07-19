@@ -24,11 +24,11 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     generateReportData();
   }, [dateRange]);
 
-  const generateReportData = () => {
+  const generateReportData = async () => {
     setLoading(true);
     try {
-      const expenses = expenseOperations.getByDateRange(dateRange.start, dateRange.end);
-      
+      const expenses = await expenseOperations.getByDateRange(dateRange.start, dateRange.end);
+
       const expensesByCategory = expenses.reduce((acc, expense) => {
         acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
         return acc;

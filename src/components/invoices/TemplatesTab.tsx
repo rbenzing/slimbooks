@@ -22,9 +22,13 @@ export const TemplatesTab = () => {
     loadTemplates();
   }, []);
 
-  const loadTemplates = () => {
-    const allTemplates = templateOperations.getAll();
-    setTemplates(allTemplates);
+  const loadTemplates = async () => {
+    try {
+      const allTemplates = await templateOperations.getAll();
+      setTemplates(allTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    }
   };
 
   const filteredTemplates = templates.filter(template => {
@@ -71,14 +75,14 @@ export const TemplatesTab = () => {
   // Calculate Average Template Value
   const avgTemplateValue = activeTemplates > 0 ? totalMRR / activeTemplates : 0;
 
-  const handleSave = (templateData: any) => {
+  const handleSave = async (templateData: any) => {
     try {
       if (editingTemplate) {
-        templateOperations.update(editingTemplate.id, templateData);
+        await templateOperations.update(editingTemplate.id, templateData);
       } else {
-        templateOperations.create(templateData);
+        await templateOperations.create(templateData);
       }
-      loadTemplates();
+      await loadTemplates();
       setIsFormOpen(false);
       setEditingTemplate(null);
     } catch (error) {
@@ -86,10 +90,14 @@ export const TemplatesTab = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this template?')) {
-      templateOperations.delete(id);
-      loadTemplates();
+      try {
+        await templateOperations.delete(id);
+        await loadTemplates();
+      } catch (error) {
+        console.error('Error deleting template:', error);
+      }
     }
   };
 

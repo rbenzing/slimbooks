@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, X, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, X, Eye, Send, Printer } from 'lucide-react';
 import { clientOperations, invoiceOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -7,6 +7,10 @@ import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
 import { themeClasses } from '@/lib/utils';
 import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/invoiceNumbering';
+import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
+import { InvoiceEmailService } from '@/services/invoiceEmailService';
+import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { toast } from 'sonner';
 
 interface LineItem {
   id: string;
@@ -41,6 +45,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [originalFormData, setOriginalFormData] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Track if form has been modified
   const currentState = {
@@ -65,24 +71,32 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   });
 
   useEffect(() => {
-    const allClients = clientOperations.getAll();
-    setClients(allClients);
-    
-    // Load tax rates from settings
-    const savedTaxRates = localStorage.getItem('tax_rates');
-    if (savedTaxRates) {
-      const rates = JSON.parse(savedTaxRates);
-      setTaxRates(rates);
-      setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+    const loadData = async () => {
+      try {
+        const allClients = await clientOperations.getAll();
+        setClients(allClients);
 
-    // Load shipping rates from settings
-    const savedShippingRates = localStorage.getItem('shipping_rates');
-    if (savedShippingRates) {
-      const rates = JSON.parse(savedShippingRates);
-      setShippingRates(rates);
-      setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
-    }
+        // Load tax rates from settings
+        const savedTaxRates = localStorage.getItem('tax_rates');
+        if (savedTaxRates) {
+          const rates = JSON.parse(savedTaxRates);
+          setTaxRates(rates);
+          setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+        }
+
+        // Load shipping rates from settings
+        const savedShippingRates = localStorage.getItem('shipping_rates');
+        if (savedShippingRates) {
+          const rates = JSON.parse(savedShippingRates);
+          setShippingRates(rates);
+          setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
     
     // Load existing invoice data if editing
     if (editingInvoice) {
@@ -170,17 +184,17 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
   // Validation for save button
   const isValidForSave = () => {
-    // Check if client is selected
-    if (!selectedClient) return false;
-    
-    // Check if invoice number is provided
-    if (!invoiceData.invoice_number.trim()) return false;
-    
-    // Check if at least one line item has a description
-    const hasValidLineItems = lineItems.some(item => item.description.trim() !== '');
-    if (!hasValidLineItems) return false;
-    
-    return true;
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+    return validation.isValid;
+  };
+
+  const isValidForSend = () => {
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
+    return validation.canSend;
+  };
+
+  const getActionAvailability = () => {
+    return getAvailableInvoiceActions(invoiceData, selectedClient, lineItems);
   };
 
   const handleBackClick = () => {
@@ -191,43 +205,145 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     }
   };
 
-  const handleSave = () => {
-    if (!isValidForSave() || viewOnly) {
+  const handleSave = async () => {
+    if (!isValidForSave() || viewOnly || isSaving) {
       return;
     }
 
-    const invoicePayload = {
-      ...invoiceData,
-      client_id: selectedClient.id,
-      amount: total,
-      description: lineItems.map(item => item.description).join(', '),
-      type: 'one-time',
-      client_name: selectedClient.name,
-      client_email: selectedClient.email,
-      client_phone: selectedClient.phone,
-      client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
-      line_items: JSON.stringify(lineItems),
-      tax_amount: taxAmount,
-      shipping_amount: shippingAmount,
-      notes: thankYouMessage
-    };
-
+    setIsSaving(true);
     try {
+      const invoicePayload = {
+        ...invoiceData,
+        client_id: selectedClient.id,
+        amount: total,
+        description: lineItems.map(item => item.description).join(', '),
+        type: 'one-time',
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        client_phone: selectedClient.phone,
+        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        line_items: JSON.stringify(lineItems),
+        tax_amount: taxAmount,
+        tax_rate_id: selectedTaxRate?.id || null,
+        shipping_amount: shippingAmount,
+        shipping_rate_id: selectedShippingRate?.id || null,
+        notes: thankYouMessage
+      };
+
       if (editingInvoice) {
-        invoiceOperations.update(editingInvoice.id, invoicePayload);
+        await invoiceOperations.update(editingInvoice.id, invoicePayload);
+        toast.success('Invoice updated successfully');
       } else {
         // Generate a proper invoice number when creating new invoices
+        const generatedNumber = await generateInvoiceNumber();
         const finalInvoicePayload = {
           ...invoicePayload,
-          invoice_number: generateInvoiceNumber()
+          invoice_number: generatedNumber
         };
-        invoiceOperations.create(finalInvoicePayload);
+        await invoiceOperations.create(finalInvoicePayload);
+        toast.success('Invoice saved successfully');
       }
       navigate('/invoices');
     } catch (error) {
       console.error('Error saving invoice:', error);
-      alert('Error saving invoice. Please try again.');
+      toast.error('Error saving invoice. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const handleSendInvoice = async () => {
+    if (!isValidForSend() || viewOnly || isSending) {
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      // Auto-fill due date if not set
+      let updatedInvoiceData = { ...invoiceData };
+      if (!updatedInvoiceData.due_date || updatedInvoiceData.due_date.trim() === '') {
+        updatedInvoiceData.due_date = new Date().toISOString().split('T')[0];
+        // Update the state so user sees the auto-filled date
+        setInvoiceData(updatedInvoiceData);
+      }
+
+      // Create invoice payload
+      const invoicePayload = {
+        ...updatedInvoiceData,
+        client_id: selectedClient.id,
+        amount: total,
+        description: lineItems.map(item => item.description).join(', '),
+        type: 'one-time',
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        client_phone: selectedClient.phone,
+        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        line_items: JSON.stringify(lineItems),
+        tax_amount: taxAmount,
+        tax_rate_id: selectedTaxRate?.id || null,
+        shipping_amount: shippingAmount,
+        shipping_rate_id: selectedShippingRate?.id || null,
+        notes: thankYouMessage,
+        status: 'sent'
+      };
+
+      let invoiceId: number;
+
+      if (editingInvoice) {
+        await invoiceOperations.update(editingInvoice.id, invoicePayload);
+        invoiceId = editingInvoice.id;
+      } else {
+        // Generate a proper invoice number when creating new invoices
+        const generatedNumber = await generateInvoiceNumber();
+        const finalInvoicePayload = {
+          ...invoicePayload,
+          invoice_number: generatedNumber
+        };
+        const result = await invoiceOperations.create(finalInvoicePayload);
+        invoiceId = result.lastInsertRowid;
+      }
+
+      // Update email status to sending
+      const statusService = InvoiceStatusService.getInstance();
+      await statusService.updateEmailStatus(invoiceId, 'sending');
+
+      // Send email
+      const emailService = InvoiceEmailService.getInstance();
+      const emailResult = await emailService.sendInvoiceEmail({
+        id: invoiceId,
+        invoice_number: updatedInvoiceData.invoice_number,
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        amount: total,
+        due_date: updatedInvoiceData.due_date,
+        status: 'sent',
+        notes: thankYouMessage
+      });
+
+      if (emailResult.success) {
+        await statusService.markInvoiceAsSent(invoiceId);
+        toast.success('Invoice sent successfully');
+      } else {
+        await statusService.updateEmailStatus(invoiceId, 'failed', emailResult.message);
+        toast.error(`Failed to send invoice: ${emailResult.message}`);
+      }
+
+      navigate('/invoices');
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      toast.error('Error sending invoice. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!isValidForSave() || viewOnly) {
+      return;
+    }
+
+    // TODO: Implement print functionality
+    toast.info('Print functionality will be implemented soon');
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,11 +374,40 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             <div className="flex space-x-3">
               <button
                 onClick={handleSave}
-                disabled={!isValidForSave()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
+                disabled={!isValidForSave() || isSaving}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
               >
-                {editingInvoice ? 'Update Invoice' : 'Save Invoice'}
+                {isSaving ? 'Saving...' : (editingInvoice ? 'Update Invoice' : 'Save Invoice')}
               </button>
+
+              {(() => {
+                const actions = getActionAvailability();
+                const hasClientEmail = selectedClient?.email && selectedClient.email.trim() !== '';
+
+                if (hasClientEmail) {
+                  return (
+                    <button
+                      onClick={handleSendInvoice}
+                      disabled={!isValidForSend() || isSending}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {isSending ? 'Sending...' : 'Send Invoice'}
+                    </button>
+                  );
+                } else {
+                  return (
+                    <button
+                      onClick={handlePrintInvoice}
+                      disabled={!isValidForSave()}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Invoice
+                    </button>
+                  );
+                }
+              })()}
             </div>
           )}
           {viewOnly && (
@@ -301,6 +446,20 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark] ${viewOnly ? 'bg-muted' : ''}`}
                     disabled={viewOnly}
                   />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Status</label>
+                  <select
+                    value={invoiceData.status}
+                    onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, status: e.target.value})}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                    disabled={viewOnly}
+                  >
+                    <option value="draft" className="bg-background text-foreground">Draft</option>
+                    <option value="sent" className="bg-background text-foreground">Sent</option>
+                    <option value="paid" className="bg-background text-foreground">Paid</option>
+                    <option value="overdue" className="bg-background text-foreground">Overdue</option>
+                  </select>
                 </div>
               </div>
             </div>

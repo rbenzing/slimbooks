@@ -22,11 +22,11 @@ export const DashboardOverview = () => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
+  const loadDashboardData = async () => {
     try {
-      const invoices = invoiceOperations.getAll();
-      const clients = clientOperations.getAll();
-      const expenses = expenseOperations.getAll();
+      const invoices = await invoiceOperations.getAll();
+      const clients = await clientOperations.getAll();
+      const expenses = await expenseOperations.getAll();
 
       const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
       const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length;

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { sqliteService } from '@/lib/sqlite-service';
 import { themeClasses } from '@/lib/utils';
 
 interface TaxRate {
@@ -16,25 +17,40 @@ export const TaxSettings = () => {
   const [editForm, setEditForm] = useState({ name: '', rate: 0 });
 
   useEffect(() => {
-    // Load tax rates from localStorage
-    const saved = localStorage.getItem('tax_rates');
-    if (saved) {
-      setTaxRates(JSON.parse(saved));
-    } else {
-      // Default tax rates
-      const defaultRates = [
-        { id: '1', name: 'No Tax', rate: 0, isDefault: true },
-        { id: '2', name: 'State Tax', rate: 8.25, isDefault: false },
-        { id: '3', name: 'City Tax', rate: 2.5, isDefault: false }
-      ];
-      setTaxRates(defaultRates);
-      localStorage.setItem('tax_rates', JSON.stringify(defaultRates));
-    }
+    const loadTaxRates = async () => {
+      try {
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const saved = sqliteService.getSetting('tax_rates');
+        if (saved) {
+          setTaxRates(saved);
+        } else {
+          // Default tax rates
+          const defaultRates = [
+            { id: '1', name: 'No Tax', rate: 0, isDefault: true },
+            { id: '2', name: 'State Tax', rate: 8.25, isDefault: false },
+            { id: '3', name: 'City Tax', rate: 2.5, isDefault: false }
+          ];
+          setTaxRates(defaultRates);
+          sqliteService.setSetting('tax_rates', defaultRates, 'tax');
+        }
+      } catch (error) {
+        console.error('Error loading tax rates:', error);
+      }
+    };
+
+    loadTaxRates();
   }, []);
 
   const saveTaxRates = (rates: TaxRate[]) => {
     setTaxRates(rates);
-    localStorage.setItem('tax_rates', JSON.stringify(rates));
+    try {
+      sqliteService.setSetting('tax_rates', rates, 'tax');
+    } catch (error) {
+      console.error('Error saving tax rates:', error);
+    }
   };
 
   const addTaxRate = () => {
