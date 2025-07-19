@@ -5,6 +5,7 @@ import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
+import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 
 interface ExpenseReportProps {
   onBack: () => void;
@@ -19,6 +20,8 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
   });
+
+  const { formatAmountSync } = useCurrencyFormatter();
 
   useEffect(() => {
     generateReportData();
@@ -81,13 +84,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     });
   };
 
-  const formatCurrency = (amount: number | undefined | null) => {
-    const safeAmount = amount || 0;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(safeAmount);
-  };
+
 
   const getFormattedDateRange = () => {
     return formatDateRangeSync(dateRange.start, dateRange.end);
@@ -208,7 +205,9 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
             <div className={themeClasses.statsGridThree}>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Total Expenses</h3>
-                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.totalAmount)}</p>
+                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>
+                  <FormattedCurrency amount={reportData.totalAmount} />
+                </p>
               </div>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Total Transactions</h3>
@@ -217,7 +216,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Average Amount</h3>
                 <p className={themeClasses.statValue}>
-                  {formatCurrency(reportData.totalCount > 0 ? reportData.totalAmount / reportData.totalCount : 0)}
+                  <FormattedCurrency amount={reportData.totalCount > 0 ? reportData.totalAmount / reportData.totalCount : 0} />
                 </p>
               </div>
             </div>
@@ -237,7 +236,9 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                         <div key={category} className="flex justify-between items-center py-2">
                           <span className={`${themeClasses.bodyText} font-medium flex-1`}>{category}</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>
+                              <FormattedCurrency amount={amount as number} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                               {percentage.toFixed(1)}%
                             </span>
@@ -262,7 +263,9 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                         <div key={status} className="flex justify-between items-center py-2">
                           <span className={`${themeClasses.bodyText} font-medium capitalize flex-1`}>{status}</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>
+                              <FormattedCurrency amount={amount as number} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                               {percentage.toFixed(1)}%
                             </span>
@@ -301,7 +304,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                           <td className={themeClasses.tableCell}>{expense.merchant}</td>
                           <td className={themeClasses.tableCell}>{expense.category}</td>
                           <td className={`${themeClasses.tableCell} font-medium`}>
-                            {formatCurrency(expense.amount)}
+                            <FormattedCurrency amount={expense.amount} />
                           </td>
                           <td className={themeClasses.tableCell}>
                             <span className={`${themeClasses.badgeInfo} ${

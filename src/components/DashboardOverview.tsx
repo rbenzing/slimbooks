@@ -4,6 +4,7 @@ import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from '
 import DashboardChart from './DashboardChart';
 import { invoiceOperations, clientOperations, expenseOperations } from '../lib/database';
 import { themeClasses, getIconColorClasses, getStatusColor } from '../lib/utils';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 export const DashboardOverview = () => {
   const [stats, setStats] = useState({
@@ -92,7 +93,9 @@ export const DashboardOverview = () => {
             <div className={themeClasses.statCardContent}>
               <div>
                 <p className={themeClasses.statLabel}>Total Revenue</p>
-                <p className={themeClasses.statValue}>${stats.totalRevenue.toFixed(2)}</p>
+                <p className={themeClasses.statValue}>
+                  <FormattedCurrency amount={stats.totalRevenue} />
+                </p>
               </div>
               <DollarSign className={`${themeClasses.iconLarge} ${getIconColorClasses('green')}`} />
             </div>
@@ -122,7 +125,9 @@ export const DashboardOverview = () => {
             <div className={themeClasses.statCardContent}>
               <div>
                 <p className={themeClasses.statLabel}>Total Expenses</p>
-                <p className={themeClasses.statValue}>${stats.totalExpenses.toFixed(2)}</p>
+                <p className={themeClasses.statValue}>
+                  <FormattedCurrency amount={stats.totalExpenses} />
+                </p>
               </div>
               <TrendingUp className={`${themeClasses.iconLarge} ${getIconColorClasses('red')}`} />
             </div>
@@ -186,7 +191,9 @@ export const DashboardOverview = () => {
               <div className={themeClasses.statCardContent}>
                 <div>
                   <p className={themeClasses.statLabel}>Credits/Refunds</p>
-                  <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-purple-foreground))'}}>${stats.creditsRefunds.toFixed(2)}</p>
+                  <p className={themeClasses.statValueMedium} style={{color: 'hsl(var(--dashboard-stat-purple-foreground))'}}>
+                    <FormattedCurrency amount={stats.creditsRefunds} />
+                  </p>
                 </div>
                 <TrendingUp className={`${themeClasses.iconMedium} ${getIconColorClasses('purple')}`} />
               </div>
@@ -210,7 +217,9 @@ export const DashboardOverview = () => {
                     <p className={themeClasses.smallText}>#{invoice.invoice_number}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-medium ${themeClasses.bodyText}`}>${invoice.amount.toFixed(2)}</p>
+                    <p className={`font-medium ${themeClasses.bodyText}`}>
+                      <FormattedCurrency amount={invoice.amount} />
+                    </p>
                     <span className={getStatusColor(invoice.status)}>
                       {invoice.status}
                     </span>

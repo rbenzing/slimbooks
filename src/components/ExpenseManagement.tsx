@@ -9,6 +9,7 @@ import { expenseOperations } from '../lib/database';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 interface Expense {
   id: number;
@@ -163,7 +164,9 @@ export const ExpenseManagement: React.FC = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Amount</span>
-              <span className="font-medium text-foreground">${expense.amount.toFixed(2)}</span>
+              <span className="font-medium text-foreground">
+                <FormattedCurrency amount={expense.amount} />
+              </span>
             </div>
 
             <div className="flex justify-between items-center">
@@ -239,7 +242,9 @@ export const ExpenseManagement: React.FC = () => {
             <div className={themeClasses.statCardContent}>
               <div>
                 <p className={themeClasses.statLabel}>Total Expenses</p>
-                <p className={themeClasses.statValue}>${totalExpenses.toFixed(2)}</p>
+                <p className={themeClasses.statValue}>
+                  <FormattedCurrency amount={totalExpenses} />
+                </p>
               </div>
               <DollarSign className={`${themeClasses.iconLarge} ${getIconColorClasses('blue')}`} />
             </div>

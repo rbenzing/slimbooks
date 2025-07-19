@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Calendar, Clock, FileText } from 'lucide-react';
+import { Calendar, Clock, FileText, DollarSign } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
 import {
   getDateTimeSettings,
@@ -18,12 +18,29 @@ import {
   getSuggestedPrefixes,
   type InvoiceNumberSettings
 } from '@/utils/invoiceNumbering';
+import {
+  getCurrencySettings,
+  saveCurrencySettings,
+  CURRENCY_OPTIONS,
+  SYMBOL_POSITION_OPTIONS,
+  DECIMAL_PLACES_OPTIONS,
+  THOUSANDS_SEPARATOR_OPTIONS,
+  DECIMAL_SEPARATOR_OPTIONS,
+  getCurrencyFormatPreview,
+  type CurrencySettings
+} from '@/utils/currencyFormatting';
 import { sqliteService } from '@/lib/sqlite-service';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceNumberSettings>({ prefix: 'INV' });
-  const [currency, setCurrency] = useState('USD');
+  const [currencySettings, setCurrencySettings] = useState<CurrencySettings>({
+    currency: 'USD',
+    symbolPosition: 'before',
+    decimalPlaces: 2,
+    thousandsSeparator: ',',
+    decimalSeparator: '.'
+  });
   const [timeZone, setTimeZone] = useState('America/New_York');
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,15 +52,15 @@ export const GeneralSettingsTab = () => {
           await sqliteService.initialize();
         }
 
-        const savedCurrency = await sqliteService.getSetting('default_currency');
         const savedTimeZone = await sqliteService.getSetting('default_timezone');
         const savedInvoiceSettings = await getInvoiceNumberSettings();
         const savedDateTimeSettings = await getDateTimeSettings();
+        const savedCurrencySettings = await getCurrencySettings();
 
-        if (savedCurrency) setCurrency(savedCurrency);
         if (savedTimeZone) setTimeZone(savedTimeZone);
         setInvoiceSettings(savedInvoiceSettings);
         setDateTimeSettings(savedDateTimeSettings);
+        setCurrencySettings(savedCurrencySettings);
       } catch (error) {
         console.error('Error loading general settings:', error);
       }
@@ -62,21 +79,24 @@ export const GeneralSettingsTab = () => {
       try {
         await saveDateTimeSettings(dateTimeSettings);
         await saveInvoiceNumberSettings(invoiceSettings);
-        await sqliteService.setSetting('default_currency', currency, 'general');
+        await saveCurrencySettings(currencySettings);
         await sqliteService.setSetting('default_timezone', timeZone, 'general');
       } catch (error) {
         console.error('Error saving general settings:', error);
       }
     }, 500);
-  }, [dateTimeSettings, invoiceSettings, currency, timeZone]);
+  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone]);
 
   useEffect(() => {
     // Only save if not initial load
     if (dateTimeSettings.dateFormat !== 'MM/DD/YYYY' || dateTimeSettings.timeFormat !== '12-hour' ||
-        invoiceSettings.prefix !== 'INV' || currency !== 'USD' || timeZone !== 'America/New_York') {
+        invoiceSettings.prefix !== 'INV' || currencySettings.currency !== 'USD' ||
+        currencySettings.symbolPosition !== 'before' || currencySettings.decimalPlaces !== 2 ||
+        currencySettings.thousandsSeparator !== ',' || currencySettings.decimalSeparator !== '.' ||
+        timeZone !== 'America/New_York') {
       debouncedSaveSettings();
     }
-  }, [dateTimeSettings, invoiceSettings, currency, timeZone, debouncedSaveSettings]);
+  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone, debouncedSaveSettings]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -99,24 +119,104 @@ export const GeneralSettingsTab = () => {
     setInvoiceSettings(prev => ({ ...prev, prefix: prefix.toUpperCase() }));
   };
 
+  const handleCurrencyChange = (field: keyof CurrencySettings, value: string | number) => {
+    setCurrencySettings(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="bg-card rounded-lg shadow-sm border border-border p-6">
       <h3 className="text-lg font-medium text-card-foreground mb-6">General Settings</h3>
       <div className="space-y-6">
         {/* Currency Settings */}
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Default Currency</label>
-          <select
-            className={`w-full ${themeClasses.select}`}
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="CAD">CAD - Canadian Dollar</option>
-            <option value="AUD">AUD - Australian Dollar</option>
-          </select>
+        <div className="space-y-4">
+          <div className="flex items-center mb-4">
+            <DollarSign className="h-4 w-4 text-primary mr-2" />
+            <h4 className="text-sm font-medium text-muted-foreground">Currency Format</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Currency</label>
+              <select
+                className={`w-full ${themeClasses.select}`}
+                value={currencySettings.currency}
+                onChange={(e) => handleCurrencyChange('currency', e.target.value)}
+              >
+                {CURRENCY_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Symbol Position</label>
+              <select
+                className={`w-full ${themeClasses.select}`}
+                value={currencySettings.symbolPosition}
+                onChange={(e) => handleCurrencyChange('symbolPosition', e.target.value)}
+              >
+                {SYMBOL_POSITION_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Decimal Places</label>
+              <select
+                className={`w-full ${themeClasses.select}`}
+                value={currencySettings.decimalPlaces}
+                onChange={(e) => handleCurrencyChange('decimalPlaces', parseInt(e.target.value))}
+              >
+                {DECIMAL_PLACES_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Thousands Separator</label>
+              <select
+                className={`w-full ${themeClasses.select}`}
+                value={currencySettings.thousandsSeparator}
+                onChange={(e) => handleCurrencyChange('thousandsSeparator', e.target.value)}
+              >
+                {THOUSANDS_SEPARATOR_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">Decimal Separator</label>
+            <select
+              className={`w-full md:w-1/2 ${themeClasses.select}`}
+              value={currencySettings.decimalSeparator}
+              onChange={(e) => handleCurrencyChange('decimalSeparator', e.target.value)}
+            >
+              {DECIMAL_SEPARATOR_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-4 p-3 bg-muted/50 rounded-md">
+            <p className="text-xs text-muted-foreground mb-1">Preview:</p>
+            <p className="text-sm font-medium text-card-foreground">
+              {getCurrencyFormatPreview(currencySettings)}
+            </p>
+          </div>
         </div>
 
         {/* Time Zone Settings */}

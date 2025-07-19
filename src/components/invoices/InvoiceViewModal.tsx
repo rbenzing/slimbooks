@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 interface InvoiceViewModalProps {
   invoice: any;
@@ -243,8 +244,12 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
                   <tr key={index} className={`${styles.tableBorder} border-b last:border-b-0 hover:bg-muted/10`}>
                     <td className={`py-4 px-4 ${styles.tableText}`}>{item.description}</td>
                     <td className={`py-4 px-4 text-center ${styles.tableText}`}>{item.quantity}</td>
-                    <td className={`py-4 px-4 text-right ${styles.tableText}`}>${item.rate?.toFixed(2) || '0.00'}</td>
-                    <td className={`py-4 px-4 text-right font-medium ${styles.tableText}`}>${item.amount?.toFixed(2) || '0.00'}</td>
+                    <td className={`py-4 px-4 text-right ${styles.tableText}`}>
+                      <FormattedCurrency amount={item.rate || 0} />
+                    </td>
+                    <td className={`py-4 px-4 text-right font-medium ${styles.tableText}`}>
+                      <FormattedCurrency amount={item.amount || 0} />
+                    </td>
                   </tr>
                 )) : (
                   <tr>
@@ -261,23 +266,23 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
               <div className={`p-4 space-y-3 ${styles.totalSection}`}>
                 <div className={`flex justify-between ${styles.contentText}`}>
                   <span>Subtotal:</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span><FormattedCurrency amount={subtotal} /></span>
                 </div>
                 {taxAmount > 0 && (
                   <div className={`flex justify-between ${styles.contentText}`}>
                     <span>Tax:</span>
-                    <span>${taxAmount.toFixed(2)}</span>
+                    <span><FormattedCurrency amount={taxAmount} /></span>
                   </div>
                 )}
                 {shippingAmount > 0 && (
                   <div className={`flex justify-between ${styles.contentText}`}>
                     <span>Shipping:</span>
-                    <span>${shippingAmount.toFixed(2)}</span>
+                    <span><FormattedCurrency amount={shippingAmount} /></span>
                   </div>
                 )}
                 <div className={`border-t ${styles.tableBorder} pt-3 flex justify-between font-bold text-lg ${styles.contentText}`}>
                   <span>Total:</span>
-                  <span>${invoice.amount.toFixed(2)}</span>
+                  <span><FormattedCurrency amount={invoice.amount} /></span>
                 </div>
               </div>
             </div>

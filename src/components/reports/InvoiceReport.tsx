@@ -5,6 +5,7 @@ import { getStatusColor, themeClasses, getButtonClasses } from '@/lib/utils';
 import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
+import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 
 interface InvoiceReportProps {
   onBack: () => void;
@@ -19,6 +20,8 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
   });
+
+  const { formatAmountSync } = useCurrencyFormatter();
 
   useEffect(() => {
     generateReportData();
@@ -81,13 +84,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
     });
   };
 
-  const formatCurrency = (amount: number | undefined | null) => {
-    const safeAmount = amount || 0;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(safeAmount);
-  };
+
 
   const getFormattedDateRange = () => {
     return formatDateRangeSync(dateRange.start, dateRange.end);
@@ -212,19 +209,27 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
               </div>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Total Amount</h3>
-                <p className={themeClasses.statValue}>{formatCurrency(reportData.totalAmount)}</p>
+                <p className={themeClasses.statValue}>
+                  <FormattedCurrency amount={reportData.totalAmount} />
+                </p>
               </div>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Paid Amount</h3>
-                <p className={`${themeClasses.statValue} text-green-600 dark:text-green-400`}>{formatCurrency(reportData.paidAmount)}</p>
+                <p className={`${themeClasses.statValue} text-green-600 dark:text-green-400`}>
+                  <FormattedCurrency amount={reportData.paidAmount} />
+                </p>
               </div>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Pending Amount</h3>
-                <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>{formatCurrency(reportData.pendingAmount)}</p>
+                <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>
+                  <FormattedCurrency amount={reportData.pendingAmount} />
+                </p>
               </div>
               <div className={themeClasses.statCard}>
                 <h3 className={`${themeClasses.statLabel} mb-2`}>Overdue Amount</h3>
-                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.overdueAmount || 0)}</p>
+                <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>
+                  <FormattedCurrency amount={reportData.overdueAmount || 0} />
+                </p>
               </div>
             </div>
 
@@ -243,7 +248,9 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
                         <div key={status} className="flex justify-between items-center py-2">
                           <span className={`${themeClasses.bodyText} font-medium capitalize flex-1`}>{status}</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>
+                              <FormattedCurrency amount={amount as number} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                               {percentage.toFixed(1)}%
                             </span>
@@ -268,7 +275,9 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
                         <div key={client} className="flex justify-between items-center py-2">
                           <span className={`${themeClasses.bodyText} font-medium flex-1`}>{client}</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className={`font-semibold ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                            <span className={`font-semibold ${themeClasses.bodyText}`}>
+                              <FormattedCurrency amount={amount as number} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                               {percentage.toFixed(1)}%
                             </span>
@@ -307,7 +316,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
                           </td>
                           <td className={themeClasses.tableCell}>{invoice.client_name}</td>
                           <td className={`${themeClasses.tableCell} font-medium`}>
-                            {formatCurrency(invoice.amount)}
+                            <FormattedCurrency amount={invoice.amount} />
                           </td>
                           <td className={themeClasses.tableCell}>
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>

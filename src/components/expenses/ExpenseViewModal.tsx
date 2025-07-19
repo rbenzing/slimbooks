@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Calendar, DollarSign, FileText, Tag, Receipt, Clock } from 'lucide-react';
 import { getStatusColor, themeClasses } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 interface Expense {
   id: number;
@@ -74,7 +75,9 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
                 <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
-                  <p className="font-medium text-foreground text-lg">${expense.amount.toFixed(2)}</p>
+                  <p className="font-medium text-foreground text-lg">
+                    <FormattedCurrency amount={expense.amount} />
+                  </p>
                 </div>
               </div>
 

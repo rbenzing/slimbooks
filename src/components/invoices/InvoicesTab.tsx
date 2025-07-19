@@ -6,6 +6,7 @@ import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 export const InvoicesTab = () => {
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ export const InvoicesTab = () => {
           <div className="space-y-3">
             <div className="flex items-center text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4 mr-2" />
-              <span>${invoice.amount.toFixed(2)}</span>
+              <span><FormattedCurrency amount={invoice.amount} /></span>
             </div>
 
             <div className="flex items-center text-sm text-muted-foreground">
@@ -182,7 +183,7 @@ export const InvoicesTab = () => {
                 </td>
                 <td className="py-4 px-6 text-sm text-card-foreground">{invoice.client_name}</td>
                 <td className="py-4 px-6 text-sm font-medium text-card-foreground">
-                  ${invoice.amount.toFixed(2)}
+                  <FormattedCurrency amount={invoice.amount} />
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status || 'draft')}`}>
@@ -242,7 +243,9 @@ export const InvoicesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold text-foreground">${totalAmount.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">
+                <FormattedCurrency amount={totalAmount} />
+              </p>
             </div>
             <Calendar className="h-8 w-8 text-green-600" />
           </div>
@@ -251,7 +254,9 @@ export const InvoicesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Paid Amount</p>
-              <p className="text-2xl font-bold text-green-600">${paidAmount.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-green-600">
+                <FormattedCurrency amount={paidAmount} />
+              </p>
             </div>
             <User className="h-8 w-8 text-orange-600" />
           </div>
@@ -260,7 +265,9 @@ export const InvoicesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-              <p className="text-2xl font-bold text-yellow-600">${pendingAmount.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                <FormattedCurrency amount={pendingAmount} />
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-yellow-600" />
           </div>

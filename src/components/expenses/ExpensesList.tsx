@@ -3,6 +3,7 @@ import React from 'react';
 import { Edit, Receipt, Eye, Trash2 } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 interface Expense {
   id: number;
@@ -82,7 +83,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
                   {expense.category}
                 </td>
                 <td className="py-4 px-6 text-sm font-medium text-foreground">
-                  ${expense.amount.toFixed(2)}
+                  <FormattedCurrency amount={expense.amount} />
                 </td>
                 <td className="py-4 px-6">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(expense.status)}`}>

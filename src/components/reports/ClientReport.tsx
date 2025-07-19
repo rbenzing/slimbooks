@@ -5,6 +5,7 @@ import { DateRange, ReportType } from '../ReportsManagement';
 import { clientOperations, invoiceOperations, reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '@/lib/utils';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
+import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 
 interface ClientReportProps {
   onBack: () => void;
@@ -19,6 +20,8 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
   });
+
+  const { formatAmountSync } = useCurrencyFormatter();
 
   useEffect(() => {
     generateReportData();
@@ -82,13 +85,7 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
     });
   };
 
-  const formatCurrency = (amount: number | undefined | null) => {
-    const safeAmount = amount || 0;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(safeAmount);
-  };
+
 
   const getFormattedDateRange = () => {
     return formatDateRangeSync(dateRange.start, dateRange.end);
@@ -211,19 +208,27 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
             </div>
             <div className={themeClasses.statCard}>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Total Revenue</h3>
-              <p className={themeClasses.statValue}>{formatCurrency(reportData.totalRevenue)}</p>
+              <p className={themeClasses.statValue}>
+                <FormattedCurrency amount={reportData.totalRevenue} />
+              </p>
             </div>
             <div className={themeClasses.statCard}>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Paid Revenue</h3>
-              <p className={`${themeClasses.statValue} text-green-600 dark:text-green-400`}>{formatCurrency(reportData.totalPaidRevenue)}</p>
+              <p className={`${themeClasses.statValue} text-green-600 dark:text-green-400`}>
+                <FormattedCurrency amount={reportData.totalPaidRevenue} />
+              </p>
             </div>
             <div className={themeClasses.statCard}>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Pending Revenue</h3>
-              <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>{formatCurrency(reportData.totalPendingRevenue)}</p>
+              <p className={`${themeClasses.statValue} text-yellow-600 dark:text-yellow-400`}>
+                <FormattedCurrency amount={reportData.totalPendingRevenue} />
+              </p>
             </div>
             <div className={themeClasses.statCard}>
               <h3 className={`${themeClasses.statLabel} mb-2`}>Overdue Revenue</h3>
-              <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.totalOverdueRevenue || 0)}</p>
+              <p className={`${themeClasses.statValue} text-red-600 dark:text-red-400`}>
+                <FormattedCurrency amount={reportData.totalOverdueRevenue || 0} />
+              </p>
             </div>
           </div>
 
@@ -258,16 +263,16 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
                         <td className={themeClasses.tableCell}>{client.company}</td>
                         <td className={themeClasses.tableCell}>{client.totalInvoices}</td>
                         <td className={`${themeClasses.tableCell} font-medium`}>
-                          {formatCurrency(client.totalRevenue)}
+                          <FormattedCurrency amount={client.totalRevenue} />
                         </td>
                         <td className={`${themeClasses.tableCell} text-green-600 dark:text-green-400 font-medium`}>
-                          {formatCurrency(client.paidRevenue)}
+                          <FormattedCurrency amount={client.paidRevenue} />
                         </td>
                         <td className={`${themeClasses.tableCell} text-yellow-600 dark:text-yellow-400 font-medium`}>
-                          {formatCurrency(client.pendingRevenue)}
+                          <FormattedCurrency amount={client.pendingRevenue} />
                         </td>
                         <td className={`${themeClasses.tableCell} text-red-600 dark:text-red-400 font-medium`}>
-                          {formatCurrency(client.overdueRevenue || 0)}
+                          <FormattedCurrency amount={client.overdueRevenue || 0} />
                         </td>
                       </tr>
                     ))}

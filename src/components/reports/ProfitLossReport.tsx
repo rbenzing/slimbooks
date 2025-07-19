@@ -5,6 +5,7 @@ import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
+import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 
 interface ProfitLossReportProps {
   onBack: () => void;
@@ -20,6 +21,8 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
   });
+
+  const { formatAmountSync } = useCurrencyFormatter();
 
   useEffect(() => {
     generateReportData();
@@ -82,13 +85,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     });
   };
 
-  const formatCurrency = (amount: number | undefined | null) => {
-    const safeAmount = amount || 0;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(safeAmount);
-  };
+
 
   const getFormattedDateRange = () => {
     return formatDateRangeSync(dateRange.start, dateRange.end);
@@ -250,7 +247,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 <div className={themeClasses.statCardContent}>
                   <div>
                     <p className={themeClasses.statLabel}>Total Revenue</p>
-                    <p className={`${themeClasses.statValueMedium} text-green-600 dark:text-green-400`}>{formatCurrency(reportData.revenue.total)}</p>
+                    <p className={`${themeClasses.statValueMedium} text-green-600 dark:text-green-400`}>
+                      <FormattedCurrency amount={reportData.revenue.total} />
+                    </p>
                   </div>
                   <TrendingUp className={`${themeClasses.iconLarge} text-green-600 dark:text-green-400`} />
                 </div>
@@ -259,7 +258,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 <div className={themeClasses.statCardContent}>
                   <div>
                     <p className={themeClasses.statLabel}>Total Expenses</p>
-                    <p className={`${themeClasses.statValueMedium} text-red-600 dark:text-red-400`}>{formatCurrency(reportData.expenses.total)}</p>
+                    <p className={`${themeClasses.statValueMedium} text-red-600 dark:text-red-400`}>
+                      <FormattedCurrency amount={reportData.expenses.total} />
+                    </p>
                   </div>
                   <TrendingDown className={`${themeClasses.iconLarge} text-red-600 dark:text-red-400`} />
                 </div>
@@ -269,7 +270,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                   <div>
                     <p className={themeClasses.statLabel}>Net Income</p>
                     <p className={`${themeClasses.statValueMedium} ${reportData.netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {formatCurrency(reportData.netIncome)}
+                      <FormattedCurrency amount={reportData.netIncome} />
                     </p>
                   </div>
                   {reportData.netIncome >= 0 ? (
@@ -295,7 +296,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                       <div className="flex justify-between items-center py-2">
                         <span className={`${themeClasses.mutedText} flex-1`}>Invoice Revenue</span>
                         <div className="flex items-center space-x-4 min-w-0">
-                          <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.invoices)}</span>
+                          <span className={`font-medium ${themeClasses.bodyText}`}>
+                            <FormattedCurrency amount={reportData.revenue.invoices} />
+                          </span>
                           <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                             {reportData.revenue.total > 0 ? ((reportData.revenue.invoices / reportData.revenue.total) * 100).toFixed(1) : 0}%
                           </span>
@@ -304,7 +307,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                       <div className="flex justify-between items-center py-2">
                         <span className={`${themeClasses.mutedText} flex-1`}>Other Income</span>
                         <div className="flex items-center space-x-4 min-w-0">
-                          <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(reportData.revenue.otherIncome)}</span>
+                          <span className={`font-medium ${themeClasses.bodyText}`}>
+                            <FormattedCurrency amount={reportData.revenue.otherIncome} />
+                          </span>
                           <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                             {reportData.revenue.total > 0 ? ((reportData.revenue.otherIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%
                           </span>
@@ -314,7 +319,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                         <div className="flex justify-between items-center py-2">
                           <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Revenue</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(reportData.revenue.total)}</span>
+                            <span className="font-bold text-green-600 dark:text-green-400">
+                              <FormattedCurrency amount={reportData.revenue.total} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
                           </div>
                         </div>
@@ -333,7 +340,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                           <div key={category} className="flex justify-between items-center py-2">
                             <span className={`${themeClasses.mutedText} flex-1`}>{category}</span>
                             <div className="flex items-center space-x-4 min-w-0">
-                              <span className={`font-medium ${themeClasses.bodyText}`}>{formatCurrency(amount as number)}</span>
+                              <span className={`font-medium ${themeClasses.bodyText}`}>
+                                <FormattedCurrency amount={amount as number} />
+                              </span>
                               <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                                 {percentage.toFixed(1)}%
                               </span>
@@ -345,7 +354,9 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                         <div className="flex justify-between items-center py-2">
                           <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Expenses</span>
                           <div className="flex items-center space-x-4 min-w-0">
-                            <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(reportData.expenses.total)}</span>
+                            <span className="font-bold text-red-600 dark:text-red-400">
+                              <FormattedCurrency amount={reportData.expenses.total} />
+                            </span>
                             <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
                           </div>
                         </div>
@@ -359,7 +370,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                       <span className={`text-xl font-bold ${themeClasses.bodyText} flex-1`}>Net Income</span>
                       <div className="flex items-center space-x-4 min-w-0">
                         <span className={`text-xl font-bold ${reportData.netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {formatCurrency(reportData.netIncome)}
+                          <FormattedCurrency amount={reportData.netIncome} />
                         </span>
                         <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
                           {reportData.revenue.total > 0 ? ((reportData.netIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%

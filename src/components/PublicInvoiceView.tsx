@@ -5,6 +5,7 @@ import { invoiceOperations } from '@/lib/database';
 import { CompanyHeader } from './invoices/CompanyHeader';
 import { themeClasses } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 interface LineItem {
   id: string;
@@ -218,8 +219,12 @@ export const PublicInvoiceView: React.FC = () => {
                   <tr key={item.id} className="border-b border-border">
                     <td className="py-3 text-card-foreground">{item.description}</td>
                     <td className="py-3 text-center text-muted-foreground">{item.quantity}</td>
-                    <td className="py-3 text-right text-muted-foreground">${item.rate.toFixed(2)}</td>
-                    <td className="py-3 text-right font-medium text-card-foreground">${item.amount.toFixed(2)}</td>
+                    <td className="py-3 text-right text-muted-foreground">
+                      <FormattedCurrency amount={item.rate} />
+                    </td>
+                    <td className="py-3 text-right font-medium text-card-foreground">
+                      <FormattedCurrency amount={item.amount} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -231,23 +236,23 @@ export const PublicInvoiceView: React.FC = () => {
             <div className="w-64 space-y-2">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span><FormattedCurrency amount={subtotal} /></span>
               </div>
               {taxAmount > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Tax:</span>
-                  <span>${taxAmount.toFixed(2)}</span>
+                  <span><FormattedCurrency amount={taxAmount} /></span>
                 </div>
               )}
               {shippingAmount > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping:</span>
-                  <span>${shippingAmount.toFixed(2)}</span>
+                  <span><FormattedCurrency amount={shippingAmount} /></span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold text-card-foreground border-t border-border pt-2">
                 <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
+                <span><FormattedCurrency amount={total} /></span>
               </div>
             </div>
           </div>

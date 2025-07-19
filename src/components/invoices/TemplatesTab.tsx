@@ -6,6 +6,7 @@ import { templateOperations } from '@/lib/database';
 import { TemplateForm } from './TemplateForm';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '@/lib/utils';
+import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 export const TemplatesTab = () => {
   const navigate = useNavigate();
@@ -137,7 +138,7 @@ export const TemplatesTab = () => {
           <div className="space-y-3">
             <div className={`flex items-center text-sm ${themeClasses.mutedText}`}>
               <DollarSign className={`${themeClasses.iconSmall} mr-2 ${getIconColorClasses('green')}`} />
-              <span>${template.amount.toFixed(2)}</span>
+              <span><FormattedCurrency amount={template.amount} /></span>
             </div>
 
             <div className={`flex items-center text-sm ${themeClasses.mutedText}`}>
@@ -199,7 +200,7 @@ export const TemplatesTab = () => {
                 </td>
                 <td className="py-4 px-6 text-sm text-card-foreground">{template.client_name}</td>
                 <td className="py-4 px-6 text-sm font-medium text-card-foreground">
-                  ${template.amount.toFixed(2)}
+                  <FormattedCurrency amount={template.amount} />
                 </td>
                 <td className="py-4 px-6 text-sm text-card-foreground">
                   <span className="capitalize">{template.frequency}</span>
@@ -246,7 +247,9 @@ export const TemplatesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total MRR</p>
-              <p className="text-2xl font-bold text-green-600">${totalMRR.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-green-600">
+                <FormattedCurrency amount={totalMRR} />
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-green-600" />
           </div>
@@ -264,7 +267,9 @@ export const TemplatesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Net MRR</p>
-              <p className="text-2xl font-bold text-purple-600">${netMRR.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-purple-600">
+                <FormattedCurrency amount={netMRR} />
+              </p>
             </div>
             <TrendingUp className="h-8 w-8 text-purple-600" />
           </div>
@@ -273,7 +278,9 @@ export const TemplatesTab = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Avg Template Value</p>
-              <p className="text-2xl font-bold text-orange-600">${avgTemplateValue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-orange-600">
+                <FormattedCurrency amount={avgTemplateValue} />
+              </p>
             </div>
             <Repeat className="h-8 w-8 text-orange-600" />
           </div>
