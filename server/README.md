@@ -172,11 +172,7 @@ npm run dev
 
 ### Environment Variables
 
-The server uses environment variables for configuration. Copy `.env.example` to `.env` and update the values:
-
-```bash
-cp .env.example .env
-```
+The server uses environment variables for configuration from the project root `.env` file. The server automatically loads the `.env` file from the project root directory (one level up from the server folder).
 
 Key environment variables:
 
@@ -196,8 +192,8 @@ Key environment variables:
 - `REQUIRE_EMAIL_VERIFICATION` - Require email verification
 
 #### Database
-- `DB_PATH` - SQLite database file path
-- `DB_BACKUP_PATH` - Database backup directory
+- `DB_PATH` - SQLite database file path (relative to project root, default: data/slimbooks.db)
+- `DB_BACKUP_PATH` - Database backup directory (relative to project root, default: data/backups)
 
 #### Rate Limiting
 - `RATE_LIMIT_WINDOW_MS` - Rate limit window

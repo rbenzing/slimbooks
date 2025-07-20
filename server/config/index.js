@@ -3,13 +3,13 @@
 
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-// Load environment variables
-dotenv.config();
+import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load environment variables from project root
+dotenv.config({ path: join(__dirname, '..', '..', '.env') });
 
 /**
  * Server configuration
@@ -27,7 +27,7 @@ export const serverConfig = {
 
   // File upload configuration
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
-  uploadPath: process.env.UPLOAD_PATH || './uploads',
+  uploadPath: process.env.UPLOAD_PATH || 'uploads',
 
   // Security configuration
   enableDebugEndpoints: process.env.ENABLE_DEBUG_ENDPOINTS === 'true',
@@ -46,9 +46,9 @@ export const serverConfig = {
  * Database configuration
  */
 export const databaseConfig = {
-  // Database file path
-  dbPath: process.env.DB_PATH || './data/slimbooks.db',
-  backupPath: process.env.DB_BACKUP_PATH || './data/backups',
+  // Database file path (relative to project root)
+  dbPath: process.env.DB_PATH || 'data/slimbooks.db',
+  backupPath: process.env.DB_BACKUP_PATH || 'data/backups',
 
   // Connection settings
   timeout: 5000,
@@ -158,7 +158,6 @@ export const appConfig = {
   // Default admin user credentials
   defaultAdmin: {
     email: 'admin@slimbooks.app',
-    password: 'r1u2s3s4e5', // Should be changed in production
     name: 'Administrator',
     role: 'admin'
   }

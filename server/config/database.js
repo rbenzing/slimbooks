@@ -1,6 +1,6 @@
 // Database configuration and setup for Slimbooks
 import Database from 'better-sqlite3';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 
@@ -12,8 +12,11 @@ const __dirname = dirname(__filename);
  * @returns {Database} Configured database instance
  */
 export const initializeDatabase = () => {
-  // Get database path from environment or use default
-  const dbPath = process.env.DB_PATH || './data/slimbooks.db';
+  // Get database path from environment or use default (relative to project root)
+  const projectRoot = join(__dirname, '..', '..');
+  const dbPath = process.env.DB_PATH ?
+    resolve(projectRoot, process.env.DB_PATH) :
+    join(projectRoot, 'data', 'slimbooks.db');
 
   // Create data directory if it doesn't exist
   const dataDir = dirname(dbPath);
@@ -51,5 +54,8 @@ export const dbConfig = {
  * @returns {string} Database file path
  */
 export const getDatabasePath = () => {
-  return process.env.DB_PATH || './data/slimbooks.db';
+  const projectRoot = join(__dirname, '..', '..');
+  return process.env.DB_PATH ?
+    resolve(projectRoot, process.env.DB_PATH) :
+    join(projectRoot, 'data', 'slimbooks.db');
 };

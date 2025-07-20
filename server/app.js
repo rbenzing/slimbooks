@@ -5,13 +5,14 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join, resolve } from 'path';
 
 // Import configuration
-import config, { serverConfig, validateConfig } from './config/index.js';
+import { serverConfig, validateConfig } from './config/index.js';
 
 // Import database
 import { initializeCompleteDatabase } from './models/index.js';
+import { getDatabasePath } from './config/database.js';
 
 // Import middleware
 import {
@@ -60,8 +61,9 @@ export const createApp = async () => {
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Multer configuration for file uploads
+  const projectRoot = join(__dirname, '..');
   const upload = multer({
-    dest: serverConfig.uploadPath,
+    dest: resolve(projectRoot, serverConfig.uploadPath),
     limits: {
       fileSize: serverConfig.maxFileSize,
       files: 1,
@@ -157,7 +159,7 @@ export const startServer = async () => {
       console.log(`📊 Environment: ${serverConfig.nodeEnv}`);
       console.log(`🌐 CORS origin: ${serverConfig.corsOrigin}`);
       console.log(`🔒 CORS credentials: ${serverConfig.corsCredentials}`);
-      console.log(`💾 Database path: ${config.database.dbPath}`);
+      console.log(`💾 Database path: ${getDatabasePath()}`);
       console.log(`📁 Upload path: ${serverConfig.uploadPath}`);
       console.log(`⚡ Rate limiting: ${serverConfig.rateLimiting.maxRequests} requests per ${serverConfig.rateLimiting.windowMs / 1000}s`);
 
