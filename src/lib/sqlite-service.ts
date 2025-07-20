@@ -270,7 +270,7 @@ class SQLiteService {
 
   // ===== EXPENSE API METHODS =====
   async getExpenses(startDate?: string, endDate?: string): Promise<any[]> {
-    const params = startDate && endDate ? { startDate, endDate } : {};
+    const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
     const result = await this.apiCall('/expenses', 'GET', params);
     return result.data?.expenses || [];
   }

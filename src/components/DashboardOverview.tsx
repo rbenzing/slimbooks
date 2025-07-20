@@ -6,7 +6,10 @@ import { invoiceOperations, clientOperations, expenseOperations } from '../lib/d
 import { themeClasses, getIconColorClasses, getStatusColor } from '../lib/utils';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
+type TimePeriod = 'last-week' | 'last-month' | 'last-year' | 'year-to-date' | 'month-to-date';
+
 export const DashboardOverview = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalClients: 0,
@@ -19,12 +22,21 @@ export const DashboardOverview = () => {
     totalExpenses: 0,
     creditsRefunds: 0,
     recentInvoices: [] as any[],
-    allInvoices: [] as any[]
+    allInvoices: [] as any[],
+    allExpenses: [] as any[],
+    filteredInvoices: [] as any[],
+    filteredExpenses: [] as any[]
   });
 
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (stats.allInvoices.length > 0 || stats.allExpenses.length > 0) {
+      filterDataByPeriod();
+    }
+  }, [selectedPeriod, stats.allInvoices, stats.allExpenses]);
 
   const loadDashboardData = async () => {
     try {
@@ -32,59 +44,130 @@ export const DashboardOverview = () => {
       const clients = await clientOperations.getAll();
       const expenses = await expenseOperations.getAll();
 
-      // Calculate total revenue (excluding negative amounts which might be credits/refunds)
-      const totalRevenue = invoices.reduce((sum, invoice) => {
-        const amount = parseFloat(invoice.amount) || 0;
-        return amount > 0 ? sum + amount : sum;
-      }, 0);
-
-      // Map actual database statuses to dashboard categories
-      // 'pending' = pending (if we had this status)
-      // 'sent' = sent (invoices sent to clients, awaiting payment)
-      // 'overdue' = overdue (explicitly marked as overdue)
-      // 'paid' = paid (payment received)
-      // 'draft' = draft (not yet sent)
-      const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length; // if we had pending status
-      const sentInvoices = invoices.filter(inv => inv.status === 'sent').length;
-      const paidInvoices = invoices.filter(inv => inv.status === 'paid').length;
-      const overdueInvoices = invoices.filter(inv => inv.status === 'overdue').length;
-      const draftInvoices = invoices.filter(inv => inv.status === 'draft').length;
-
-      // Calculate credits/refunds (negative amounts)
-      const creditsRefunds = Math.abs(invoices.reduce((sum, invoice) => {
-        const amount = parseFloat(invoice.amount) || 0;
-        return amount < 0 ? sum + amount : sum;
-      }, 0));
-
-      const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-      const recentInvoices = invoices.slice(0, 5);
-
-      setStats({
-        totalRevenue,
+      setStats(prevStats => ({
+        ...prevStats,
         totalClients: clients.length,
-        totalInvoices: invoices.length,
-        pendingInvoices,
-        sentInvoices,
-        paidInvoices,
-        overdueInvoices,
-        draftInvoices,
-        totalExpenses,
-        creditsRefunds,
-        recentInvoices,
-        allInvoices: invoices
-      });
+        allInvoices: invoices,
+        allExpenses: expenses,
+        filteredInvoices: invoices,
+        filteredExpenses: expenses
+      }));
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
   };
 
+  const filterDataByPeriod = () => {
+    const currentDate = new Date();
+    let startDate: Date;
+    let endDate: Date = currentDate;
+
+    switch (selectedPeriod) {
+      case 'last-week':
+        startDate = new Date(currentDate);
+        startDate.setDate(currentDate.getDate() - 7);
+        break;
+      case 'last-month':
+        // Set to first day of last month
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        // Set end date to last day of last month
+        endDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0, 23, 59, 59);
+        break;
+      case 'last-year':
+        // Set to January 1st of last year
+        startDate = new Date(currentDate.getFullYear() - 1, 0, 1);
+        // Set end date to December 31st of last year
+        endDate = new Date(currentDate.getFullYear() - 1, 11, 31, 23, 59, 59);
+        break;
+      case 'year-to-date':
+        startDate = new Date(currentDate.getFullYear(), 0, 1);
+        break;
+      case 'month-to-date':
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        break;
+      default:
+        startDate = new Date(currentDate.getFullYear(), 0, 1);
+    }
+
+    // Filter invoices by date range
+    const filteredInvoices = stats.allInvoices.filter(invoice => {
+      const invoiceDate = new Date(invoice.created_at);
+      return invoiceDate >= startDate && invoiceDate <= endDate;
+    });
+
+    // Filter expenses by date range
+    const filteredExpenses = stats.allExpenses.filter(expense => {
+      const expenseDate = new Date(expense.created_at);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+
+    // Calculate filtered statistics
+    const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.amount) || 0;
+      return amount > 0 ? sum + amount : sum;
+    }, 0);
+
+    const pendingInvoices = filteredInvoices.filter(invoice => invoice.status === 'pending').length;
+    const sentInvoices = filteredInvoices.filter(invoice => invoice.status === 'sent').length;
+    const paidInvoices = filteredInvoices.filter(invoice => invoice.status === 'paid').length;
+    const overdueInvoices = filteredInvoices.filter(invoice => invoice.status === 'overdue').length;
+    const draftInvoices = filteredInvoices.filter(invoice => invoice.status === 'draft').length;
+
+    const creditsRefunds = Math.abs(filteredInvoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.amount) || 0;
+      return amount < 0 ? sum + amount : sum;
+    }, 0));
+
+    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const recentInvoices = filteredInvoices.slice(0, 5);
+
+    setStats(prevStats => ({
+      ...prevStats,
+      totalRevenue,
+      totalInvoices: filteredInvoices.length,
+      pendingInvoices,
+      sentInvoices,
+      paidInvoices,
+      overdueInvoices,
+      draftInvoices,
+      totalExpenses,
+      creditsRefunds,
+      recentInvoices,
+      filteredInvoices,
+      filteredExpenses
+    }));
+  };
+
+  const timePeriodOptions = [
+    { value: 'last-week', label: 'Last Week' },
+    { value: 'last-month', label: 'Last Month' },
+    { value: 'last-year', label: 'Last Year' },
+    { value: 'year-to-date', label: 'Year to Date' },
+    { value: 'month-to-date', label: 'Month to Date' }
+  ];
+
   return (
     <div className={themeClasses.page}>
       <div className={themeClasses.pageContainer}>
         {/* Header */}
-        <div className={themeClasses.pageHeader}>
-          <h1 className={themeClasses.pageTitle}>Dashboard</h1>
-          <p className={themeClasses.pageSubtitle}>Welcome back! Here's an overview of your business.</p>
+        <div className={`${themeClasses.pageHeader} flex justify-between items-start`}>
+          <div>
+            <h1 className={themeClasses.pageTitle}>Dashboard</h1>
+            <p className={themeClasses.pageSubtitle}>Welcome back! Here's an overview of your business.</p>
+          </div>
+          <div className="w-48">
+            <select
+              className={themeClasses.select}
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value as TimePeriod)}
+            >
+              {timePeriodOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -204,7 +287,7 @@ export const DashboardOverview = () => {
         {/* Chart and Recent Invoices */}
         <div className={themeClasses.contentGrid}>
           <div className={themeClasses.card}>
-            <DashboardChart invoices={stats.allInvoices} title="Revenue Trend" />
+            <DashboardChart invoices={stats.filteredInvoices} title="Revenue Trend" selectedPeriod={selectedPeriod} />
           </div>
 
           <div className={themeClasses.card}>

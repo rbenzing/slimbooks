@@ -6,12 +6,12 @@ import { themeClasses } from '../lib/utils';
 interface DashboardChartProps {
   invoices: any[];
   title?: string;
+  selectedPeriod: TimePeriod;
 }
 
 type TimePeriod = 'last-week' | 'last-month' | 'last-year' | 'year-to-date' | 'month-to-date';
 
-const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Revenue Trend" }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
+const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Revenue Trend", selectedPeriod }) => {
 
   // Generate chart data based on selected time period
   const generateChartData = () => {
@@ -37,6 +37,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
   const generateWeeklyData = () => {
     const dailyData: { [key: string]: number } = {};
 
+    // Use the already filtered invoices passed from parent
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
@@ -65,6 +66,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
   const generateLastMonthData = () => {
     const dailyData: { [key: string]: number } = {};
 
+    // Use the already filtered invoices passed from parent
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
@@ -95,6 +97,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
   const generateLastYearData = () => {
     const monthlyData: { [key: string]: number } = {};
 
+    // Use the already filtered invoices passed from parent
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -123,6 +126,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
   const generateYearToDateData = () => {
     const monthlyData: { [key: string]: number } = {};
 
+    // Use the already filtered invoices passed from parent
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -152,6 +156,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
   const generateMonthToDateData = () => {
     const dailyData: { [key: string]: number } = {};
 
+    // Use the already filtered invoices passed from parent
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
@@ -178,34 +183,11 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
 
   const data = generateChartData();
 
-  const timePeriodOptions = [
-    { value: 'last-week', label: 'Last Week' },
-    { value: 'last-month', label: 'Last Month' },
-    { value: 'last-year', label: 'Last Year' },
-    { value: 'year-to-date', label: 'Year to Date' },
-    { value: 'month-to-date', label: 'Month to Date' }
-  ];
-
-
-
   return (
     <div className="space-y-4">
-      {/* Title and Time Period Selector */}
+      {/* Title */}
       <div className="flex justify-between items-center">
         <h3 className={themeClasses.cardTitle}>{title}</h3>
-        <div className="w-48">
-          <select
-            className={themeClasses.select}
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value as TimePeriod)}
-          >
-            {timePeriodOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Chart */}
