@@ -77,17 +77,22 @@ const parseCSVLine = (line: string): string[] => {
 
 export const validateClientData = (data: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
-  if (!data.name || data.name.trim() === '') {
-    errors.push('Name is required');
+
+  // Check if we have either a full name or first/last name
+  const hasFullName = data.name && data.name.trim() !== '';
+  const hasFirstOrLastName = (data.first_name && data.first_name.trim() !== '') ||
+                            (data.last_name && data.last_name.trim() !== '');
+
+  if (!hasFullName && !hasFirstOrLastName) {
+    errors.push('Name is required (either full name or first/last name)');
   }
-  
+
   if (!data.email || data.email.trim() === '') {
     errors.push('Email is required');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     errors.push('Invalid email format');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors

@@ -7,11 +7,11 @@ import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { InternationalAddressForm } from '@/components/ui/InternationalAddressForm';
 
 interface ClientFormData {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
-  companyName: string;
+  company: string;
   companyEmail: string;
   companyPhone: string;
   address: string;
@@ -28,11 +28,11 @@ export const EditClientPage = () => {
   const isEditing = Boolean(id);
 
   const [formData, setFormData] = useState<ClientFormData>({
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
-    companyName: '',
+    company: '',
     companyEmail: '',
     companyPhone: '',
     address: '',
@@ -60,17 +60,16 @@ export const EditClientPage = () => {
     if (isEditing && id) {
       const client = clientOperations.getById(parseInt(id));
       if (client) {
-        // Parse existing name field into first and last name
-        const nameParts = client.name.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
+        // Use existing first_name and last_name if available, otherwise parse name field
+        const first_name = client.first_name || (client.name ? client.name.split(' ')[0] : '') || '';
+        const last_name = client.last_name || (client.name ? client.name.split(' ').slice(1).join(' ') : '') || '';
+
         const clientData = {
-          firstName,
-          lastName,
+          first_name,
+          last_name,
           email: client.email,
           phone: client.phone,
-          companyName: client.company,
+          company: client.company,
           companyEmail: '',
           companyPhone: '',
           address: client.address,
@@ -86,11 +85,11 @@ export const EditClientPage = () => {
     } else {
       // For new clients, set original data after initial load
       const initialData = {
-        firstName: '',
-        lastName: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
-        companyName: '',
+        company: '',
         companyEmail: '',
         companyPhone: '',
         address: '',
@@ -106,17 +105,17 @@ export const EditClientPage = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = 'First name is required';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -127,10 +126,12 @@ export const EditClientPage = () => {
     setIsLoading(true);
     try {
       const clientData = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        name: `${formData.first_name} ${formData.last_name}`.trim(),
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         email: formData.email,
         phone: formData.phone,
-        company: formData.companyName,
+        company: formData.company,
         address: formData.address,
         city: formData.city,
         state: formData.state,
@@ -209,22 +210,22 @@ export const EditClientPage = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  value={formData.first_name}
+                  onChange={(e) => handleInputChange('first_name', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.firstName ? 'border-red-300' : 'border-gray-300'
+                    errors.first_name ? 'border-red-300' : 'border-gray-300'
                   }`}
                 />
-                {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                {errors.first_name && (
+                  <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
                 <input
                   type="text"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  value={formData.last_name}
+                  onChange={(e) => handleInputChange('last_name', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -275,8 +276,8 @@ export const EditClientPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                 <input
                   type="text"
-                  value={formData.companyName}
-                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+                  value={formData.company}
+                  onChange={(e) => handleInputChange('company', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

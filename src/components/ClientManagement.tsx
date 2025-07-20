@@ -11,6 +11,8 @@ import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/util
 interface Client {
   id: number;
   name: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone: string;
   company: string;

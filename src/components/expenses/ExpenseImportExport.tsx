@@ -4,6 +4,7 @@ import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-
 import { expenseOperations } from '@/lib/database';
 import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
+import { themeClasses, getIconColorClasses, getButtonClasses } from '@/lib/utils';
 
 interface ExpenseImportExportProps {
   onClose: () => void;
@@ -202,35 +203,38 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
 
   if (mode === 'select') {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className={`${themeClasses.card} w-full max-w-md`}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Import/Export Expenses</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
+            <h2 className={themeClasses.cardTitle}>Import/Export Expenses</h2>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className={themeClasses.iconSmall} />
             </button>
           </div>
 
           <div className="space-y-4">
             <button
               onClick={() => setMode('export')}
-              className="w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              className="w-full flex items-center justify-center p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-accent transition-colors"
             >
-              <Download className="h-6 w-6 text-blue-600 mr-3" />
+              <Download className={`${themeClasses.iconMedium} ${getIconColorClasses('blue')} mr-3`} />
               <div className="text-left">
-                <div className="font-medium text-gray-900">Export Expenses</div>
-                <div className="text-sm text-gray-600">Download all expenses as CSV</div>
+                <div className="font-medium text-foreground">Export Expenses</div>
+                <div className="text-sm text-muted-foreground">Download all expenses as CSV</div>
               </div>
             </button>
 
             <button
               onClick={() => document.getElementById('expense-csv-upload')?.click()}
-              className="w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              className="w-full flex items-center justify-center p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-accent transition-colors"
             >
-              <Upload className="h-6 w-6 text-blue-600 mr-3" />
+              <Upload className={`${themeClasses.iconMedium} ${getIconColorClasses('blue')} mr-3`} />
               <div className="text-left">
-                <div className="font-medium text-gray-900">Import Expenses</div>
-                <div className="text-sm text-gray-600">Upload CSV file to import</div>
+                <div className="font-medium text-foreground">Import Expenses</div>
+                <div className="text-sm text-muted-foreground">Upload CSV file to import</div>
               </div>
             </button>
 
@@ -249,29 +253,32 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
 
   if (mode === 'export') {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className={`${themeClasses.card} w-full max-w-md`}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Export Expenses</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
+            <h2 className={themeClasses.cardTitle}>Export Expenses</h2>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className={themeClasses.iconSmall} />
             </button>
           </div>
 
           <div className="text-center py-6">
-            <FileText className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 mb-6">Export all expenses to a CSV file for backup or analysis.</p>
-            
+            <FileText className={`h-12 w-12 ${getIconColorClasses('blue')} mx-auto mb-4`} />
+            <p className="text-muted-foreground mb-6">Export all expenses to a CSV file for backup or analysis.</p>
+
             <div className="space-y-3">
               <button
                 onClick={handleExport}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                className={getButtonClasses('primary')}
               >
                 Download CSV
               </button>
               <button
                 onClick={() => setMode('select')}
-                className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
+                className={getButtonClasses('secondary')}
               >
                 Back
               </button>
@@ -283,32 +290,35 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className={`${themeClasses.card} w-full max-w-4xl max-h-[90vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Import Expenses</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="h-5 w-5" />
+          <h2 className={themeClasses.cardTitle}>Import Expenses</h2>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className={themeClasses.iconSmall} />
           </button>
         </div>
 
         <div className="space-y-6">
           {/* Field Mapping */}
           <div>
-            <h3 className="text-lg font-medium mb-4">Map CSV Fields</h3>
+            <h3 className="text-lg font-medium text-foreground mb-4">Map CSV Fields</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {EXPENSE_FIELDS.map(field => (
                 <div key={field.key} className="flex items-center space-x-3">
                   <div className="w-32">
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-foreground">
                       {field.label}
-                      {field.required && <span className="text-red-500">*</span>}
+                      {field.required && <span className="text-destructive">*</span>}
                     </label>
                   </div>
                   <select
                     value={fieldMappings.find(m => m.dbField === field.key)?.csvField || ''}
                     onChange={(e) => updateFieldMapping(field.key, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={themeClasses.select}
                   >
                     <option value="">Select CSV Column</option>
                     {csvHeaders.map(header => (
@@ -320,7 +330,7 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
             </div>
             <button
               onClick={generatePreview}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className={`${getButtonClasses('primary')} mt-4`}
             >
               Generate Preview
             </button>
@@ -329,14 +339,14 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
           {/* Preview */}
           {previewData.length > 0 && (
             <div>
-              <h3 className="text-lg font-medium mb-4">Preview (First 5 Records)</h3>
+              <h3 className="text-lg font-medium text-foreground mb-4">Preview (First 5 Records)</h3>
               <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-200">
-                  <thead className="bg-gray-50">
+                <table className={themeClasses.table}>
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-foreground">Status</th>
                       {EXPENSE_FIELDS.map(field => (
-                        <th key={field.key} className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                        <th key={field.key} className="px-4 py-2 text-left text-sm font-medium text-foreground">
                           {field.label}
                         </th>
                       ))}
@@ -344,16 +354,16 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
                   </thead>
                   <tbody>
                     {previewData.map((row, index) => (
-                      <tr key={index} className="border-t border-gray-200">
+                      <tr key={index} className="border-t border-border">
                         <td className="px-4 py-2">
                           {validationResults[index]?.isValid ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className={`${themeClasses.iconSmall} ${getIconColorClasses('green')}`} />
                           ) : (
-                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertCircle className={`${themeClasses.iconSmall} ${getIconColorClasses('red')}`} />
                           )}
                         </td>
                         {EXPENSE_FIELDS.map(field => (
-                          <td key={field.key} className="px-4 py-2 text-sm text-gray-900">
+                          <td key={field.key} className="px-4 py-2 text-sm text-foreground">
                             {field.key === 'amount' ? `$${row[field.key] || 0}` : (row[field.key] || '-')}
                           </td>
                         ))}
@@ -369,7 +379,7 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
           <div className="flex justify-between">
             <button
               onClick={() => setMode('select')}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className={getButtonClasses('secondary')}
             >
               Back
             </button>
@@ -377,7 +387,7 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
               <button
                 onClick={handleImport}
                 disabled={isProcessing || previewData.length === 0}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className={`${getButtonClasses('primary')} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isProcessing ? 'Importing...' : 'Import Expenses'}
               </button>

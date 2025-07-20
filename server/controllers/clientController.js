@@ -2,12 +2,13 @@
 // Handles all client-related business logic
 
 import { db } from '../models/index.js';
-import { 
-  AppError, 
-  NotFoundError, 
+import {
+  AppError,
+  NotFoundError,
   ValidationError,
   asyncHandler
 } from '../middleware/index.js';
+import { validateClientData } from '../utils/validation.js';
 
 /**
  * Get all clients
@@ -38,12 +39,19 @@ export const getClientById = asyncHandler(async (req, res) => {
 export const createClient = asyncHandler(async (req, res) => {
   const { clientData } = req.body;
 
-  if (!clientData || !clientData.name || !clientData.email) {
-    throw new ValidationError('Invalid client data - name and email are required');
+  if (!clientData) {
+    throw new ValidationError('Client data is required');
+  }
+
+  // Validate client data using production-ready validation
+  const { validated, errors } = validateClientData(clientData);
+
+  if (errors.length > 0) {
+    throw new ValidationError(`Validation failed: ${errors.join(', ')}`);
   }
 
   // Check if client with same email already exists
-  const existingClient = db.prepare('SELECT id FROM clients WHERE email = ?').get(clientData.email);
+  const existingClient = db.prepare('SELECT id FROM clients WHERE email = ?').get(validated.email);
   if (existingClient) {
     throw new ValidationError('Client with this email already exists');
   }
@@ -55,22 +63,24 @@ export const createClient = asyncHandler(async (req, res) => {
 
   const now = new Date().toISOString();
   const stmt = db.prepare(`
-    INSERT INTO clients (id, name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO clients (id, name, first_name, last_name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const result = stmt.run(
+  stmt.run(
     nextId,
-    clientData.name,
-    clientData.email,
-    clientData.phone || '',
-    clientData.company || '',
-    clientData.address || '',
-    clientData.city || '',
-    clientData.state || '',
-    clientData.zipCode || '',
-    clientData.country || '',
-    clientData.stripe_customer_id || null,
+    validated.name,
+    validated.first_name,
+    validated.last_name,
+    validated.email,
+    validated.phone || '',
+    validated.company || '',
+    validated.address || '',
+    validated.city || '',
+    validated.state || '',
+    validated.zipCode || '',
+    validated.country,
+    validated.stripe_customer_id,
     now,
     now
   );

@@ -11,12 +11,15 @@ export const runMigrations = (db) => {
   try {
     // Migration 1: Add missing columns to invoices table
     migrateInvoicesTable(db);
-    
+
     // Migration 2: Migrate templates table to new schema
     migrateTemplatesTable(db);
-    
+
     // Migration 3: Recover templates from backup if needed
     recoverTemplatesFromBackup(db);
+
+    // Migration 4: Add first_name and last_name columns to clients table
+    migrateClientsTable(db);
 
     console.log('Database migrations completed successfully');
   } catch (error) {
@@ -277,5 +280,38 @@ const recoverTemplatesFromBackup = (db) => {
     }
   } catch (recoveryError) {
     console.error('Template recovery failed:', recoveryError.message);
+  }
+};
+
+/**
+ * Add first_name and last_name columns to clients table
+ * @param {Database} db - SQLite database instance
+ */
+const migrateClientsTable = (db) => {
+  try {
+    // Check if clients table has the new columns
+    const tableInfo = db.prepare("PRAGMA table_info(clients)").all();
+    const existingColumns = tableInfo.map(col => col.name);
+
+    const newColumns = [
+      { name: 'first_name', type: 'TEXT' },
+      { name: 'last_name', type: 'TEXT' }
+    ];
+
+    // Add missing columns
+    newColumns.forEach(column => {
+      if (!existingColumns.includes(column.name)) {
+        try {
+          db.exec(`ALTER TABLE clients ADD COLUMN ${column.name} ${column.type}`);
+          console.log(`Added column ${column.name} to clients table`);
+        } catch (error) {
+          console.error(`Failed to add column ${column.name}:`, error.message);
+        }
+      }
+    });
+
+    console.log('Clients table migration completed');
+  } catch (error) {
+    console.error('Clients table migration failed:', error.message);
   }
 };

@@ -32,6 +32,8 @@ export const createTables = (db) => {
     CREATE TABLE IF NOT EXISTS clients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
       email TEXT NOT NULL,
       phone TEXT,
       company TEXT,

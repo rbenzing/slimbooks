@@ -5,6 +5,8 @@ import { X } from 'lucide-react';
 interface Client {
   id?: number;
   name: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone: string;
   company: string;
@@ -26,6 +28,8 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, onSave, onCancel, client }) => {
   const [formData, setFormData] = useState<Omit<Client, 'id'>>({
     name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     company: '',
@@ -40,6 +44,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
     if (client) {
       setFormData({
         name: client.name || '',
+        first_name: client.first_name || '',
+        last_name: client.last_name || '',
         email: client.email || '',
         phone: client.phone || '',
         company: client.company || '',
@@ -52,6 +58,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
     } else {
       setFormData({
         name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         company: '',
@@ -66,7 +74,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Ensure we have a name field - combine first and last name if needed
+    const submissionData = { ...formData };
+    if (!submissionData.name && (submissionData.first_name || submissionData.last_name)) {
+      submissionData.name = `${submissionData.first_name || ''} ${submissionData.last_name || ''}`.trim();
+    }
+
+    onSave(submissionData);
     if (onClose) onClose();
   };
 
@@ -88,14 +103,24 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Client Name *</label>
+              <label className="block text-sm font-medium text-foreground mb-1">First Name *</label>
               <input
                 type="text"
                 required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Last Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
