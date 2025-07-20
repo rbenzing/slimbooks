@@ -3,7 +3,6 @@
 
 import { initializeDatabase } from '../config/database.js';
 import { createTables } from './schema.js';
-import { runMigrations } from './migrations.js';
 import { initializeCounters, initializeAdminUser, initializeSampleData, addSampleInvoices } from './seedData.js';
 
 // Initialize database instance
@@ -19,9 +18,8 @@ export const initializeCompleteDatabase = async (includeSampleData = false) => {
     
     // Create tables
     createTables(db);
-    
-    // Run migrations
-    runMigrations(db);
+
+    // Database schema is now optimized - no migrations needed
     
     // Initialize counters
     initializeCounters(db);
@@ -45,7 +43,6 @@ export const initializeCompleteDatabase = async (includeSampleData = false) => {
 // Export individual functions for specific use cases
 export {
   createTables,
-  runMigrations,
   initializeCounters,
   initializeAdminUser,
   initializeSampleData,

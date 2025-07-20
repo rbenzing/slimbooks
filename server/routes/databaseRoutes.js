@@ -7,6 +7,8 @@ import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import {
+  getDatabaseHealth,
+  getDatabaseInfo,
   exportDatabase,
   importDatabase
 } from '../controllers/databaseController.js';
@@ -42,10 +44,16 @@ const upload = multer({
   }
 });
 
-// Database export endpoint
+// Database health check endpoint (Admin only)
+router.get('/health', requireAuth, requireAdmin, getDatabaseHealth);
+
+// Database schema information endpoint (Admin only)
+router.get('/info', requireAuth, requireAdmin, getDatabaseInfo);
+
+// Database export endpoint (DISABLED for security)
 router.get('/export', requireAuth, requireAdmin, exportDatabase);
 
-// Database import endpoint
+// Database import endpoint (DISABLED for security)
 router.post('/import', requireAuth, requireAdmin, upload.single('database'), importDatabase);
 
 export default router;

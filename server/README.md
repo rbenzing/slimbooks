@@ -32,7 +32,7 @@ server/
 ├── models/                  # Database models and schema
 │   ├── index.js            # Database instance and initialization
 │   ├── schema.js           # Table definitions
-│   ├── migrations.js       # Database migrations
+│   ├── sqlite-optimized-schema.sql # Production-ready optimized schema
 │   └── seedData.js         # Sample data initialization
 ├── routes/                  # API route definitions
 │   ├── index.js            # Route setup and exports
@@ -61,7 +61,9 @@ server/
 - **Authentication**: JWT-based authentication with role-based access control
 
 ### 📊 Database Management
-- **Migrations**: Automatic database schema updates
+- **Optimized Schema**: Production-ready SQLite schema with proper constraints
+- **Data Validation**: Database-level validation with CHECK constraints
+- **Performance Indexes**: Optimized indexes for common query patterns
 - **Seed Data**: Development sample data initialization
 - **Connection Management**: Proper database connection handling
 - **Error Handling**: Robust database error handling
@@ -119,11 +121,17 @@ The server uses a centralized configuration system located in `server/config/`:
 - `PUT /:id` - Update expense
 - `DELETE /:id` - Delete expense
 
-### Health Checks (`/health`)
+### Health Checks (`/api/health`)
 - `GET /` - Basic health check
 - `GET /detailed` - Detailed system information
 - `GET /ready` - Readiness probe
 - `GET /live` - Liveness probe
+
+### Database Management (`/api/db`) - Admin Only
+- `GET /health` - Database health status and statistics
+- `GET /info` - Database schema information (read-only)
+- `GET /export` - Database export (DISABLED for security)
+- `POST /import` - Database import (DISABLED for security)
 
 ## Middleware Stack
 
@@ -141,18 +149,31 @@ The application uses SQLite with the following features:
 
 - **WAL Mode**: Write-Ahead Logging for better concurrency
 - **Foreign Keys**: Enabled for data integrity
-- **Migrations**: Automatic schema updates
+- **Optimized Schema**: Production-ready schema with proper field types
+- **Data Validation**: CHECK constraints for data integrity
+- **Performance Indexes**: Optimized for common query patterns
+- **Automatic Triggers**: Timestamp updates and data consistency
 - **Seed Data**: Sample data for development
 
-### Tables
-- `users` - User accounts and authentication
-- `clients` - Customer information
-- `invoices` - Invoice records
-- `expenses` - Expense tracking
-- `templates` - Invoice templates
-- `reports` - Generated reports
-- `settings` - Application settings
+### Database Schema
+
+#### Core Tables
+- `users` - User accounts and authentication with role-based access
+- `clients` - Customer information with validation constraints
+- `invoices` - Invoice records with status tracking and email management
+- `expenses` - Expense tracking with categorization and approval workflow
+- `templates` - Invoice templates for recurring billing
+- `reports` - Generated reports with date range filtering
+- `settings` - Application settings with categorization
 - `counters` - ID counters for entities
+- `project_settings` - Environment-specific configuration overrides
+
+#### Key Schema Features
+- **Field Validation**: Length limits, format validation, and data type constraints
+- **Referential Integrity**: Foreign key relationships with appropriate cascade rules
+- **Performance Optimization**: Strategic indexes on frequently queried fields
+- **Data Consistency**: Automatic timestamp updates via triggers
+- **Security**: Input validation at database level to prevent injection attacks
 
 ## Error Handling
 
@@ -217,7 +238,6 @@ Key environment variables:
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 
 #### Development
-- `ENABLE_DEBUG_ENDPOINTS` - Enable debug endpoints
 - `ENABLE_SAMPLE_DATA` - Load sample data on startup
 
 ### Adding New Features

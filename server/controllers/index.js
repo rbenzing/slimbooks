@@ -81,6 +81,8 @@ export {
 
 // Database controller
 export {
+  getDatabaseHealth,
+  getDatabaseInfo,
   exportDatabase,
   importDatabase
 } from './databaseController.js';
