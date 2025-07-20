@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { clientOperations, invoiceOperations, templateOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -20,13 +21,15 @@ interface CreateRecurringInvoicePageProps {
 }
 
 export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProps> = ({ onBack, editingTemplate }) => {
+  const { id } = useParams<{ id: string }>();
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [templateData, setTemplateData] = useState({
     name: '',
     frequency: 'monthly',
     next_invoice_date: '',
-    status: 'active'
+    status: 'active',
+    payment_terms: 'net_30'
   });
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
@@ -38,6 +41,8 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
+  const [loadedTemplate, setLoadedTemplate] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
     isDirty,
@@ -50,9 +55,18 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
         const allClients = await clientOperations.getAll();
         setClients(allClients);
+
+        // Load template data if editing (from URL parameter)
+        if (id) {
+          const template = await templateOperations.getById(parseInt(id));
+          if (template) {
+            setLoadedTemplate(template);
+          }
+        }
 
         // Load tax rates from settings
         const savedTaxRates = localStorage.getItem('tax_rates');
@@ -72,27 +86,30 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       } catch (error) {
         console.error('Error loading data:', error);
       }
+      setLoading(false);
     };
 
     loadData();
-  }, [editingTemplate]);
+  }, [id]);
 
   // Load editing template data
   useEffect(() => {
     const loadTemplateData = async () => {
-      if (editingTemplate) {
+      const template = editingTemplate || loadedTemplate;
+      if (template) {
         // Load template data
         setTemplateData({
-          name: editingTemplate.name || '',
-          frequency: editingTemplate.frequency || 'monthly',
-          next_invoice_date: editingTemplate.next_invoice_date || '',
-          status: editingTemplate.status || 'active'
+          name: template.name || '',
+          frequency: template.frequency || 'monthly',
+          next_invoice_date: template.next_invoice_date || '',
+          status: template.status || 'active',
+          payment_terms: template.payment_terms || 'net_30'
         });
 
         // Load client
-        if (editingTemplate.client_id) {
+        if (template.client_id) {
           try {
-            const client = await clientOperations.getById(editingTemplate.client_id);
+            const client = await clientOperations.getById(template.client_id);
             setSelectedClient(client);
           } catch (error) {
             console.error('Error loading client:', error);
@@ -100,58 +117,72 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         }
 
         // Load line items
-        if (editingTemplate.line_items) {
+        if (template.line_items) {
           try {
-            const items = JSON.parse(editingTemplate.line_items);
-            setLineItems(items);
+            const items = JSON.parse(template.line_items);
+            if (items && items.length > 0) {
+              setLineItems(items);
+            }
           } catch (error) {
             console.error('Error parsing line items:', error);
           }
+        } else if (template.description && template.amount) {
+          // Fallback: create line item from description and amount
+          setLineItems([{
+            id: '1',
+            description: template.description,
+            quantity: 1,
+            rate: template.amount,
+            amount: template.amount
+          }]);
         }
 
         // Load thank you message
-        if (editingTemplate.notes) {
-          setThankYouMessage(editingTemplate.notes);
+        if (template.notes) {
+          setThankYouMessage(template.notes);
         }
       }
     };
 
     loadTemplateData();
-  }, [editingTemplate]);
+  }, [editingTemplate, loadedTemplate]);
 
   // Update tax and shipping rates when rates are loaded and we have a template
   useEffect(() => {
-    if (editingTemplate && taxRates.length > 0 && shippingRates.length > 0) {
+    const template = editingTemplate || loadedTemplate;
+    if (template && taxRates.length > 0 && shippingRates.length > 0) {
       // Set tax rate if saved in template
-      if (editingTemplate.tax_rate_id) {
-        const savedTaxRate = taxRates.find((r: any) => r.id === editingTemplate.tax_rate_id);
+      if (template.tax_rate_id) {
+        const savedTaxRate = taxRates.find((r: any) => r.id === template.tax_rate_id);
         if (savedTaxRate) {
           setSelectedTaxRate(savedTaxRate);
         }
       }
 
       // Set shipping rate if saved in template
-      if (editingTemplate.shipping_rate_id) {
-        const savedShippingRate = shippingRates.find((r: any) => r.id === editingTemplate.shipping_rate_id);
+      if (template.shipping_rate_id) {
+        const savedShippingRate = shippingRates.find((r: any) => r.id === template.shipping_rate_id);
         if (savedShippingRate) {
           setSelectedShippingRate(savedShippingRate);
         }
       }
     }
-  }, [editingTemplate, taxRates, shippingRates]);
+  }, [editingTemplate, loadedTemplate, taxRates, shippingRates]);
 
   // Track form changes - set dirty when any field changes
   useEffect(() => {
-    if (editingTemplate) {
+    const template = editingTemplate || loadedTemplate;
+    if (template) {
       // For editing, check if current values differ from original template
       const hasChanges =
-        templateData.name !== (editingTemplate.name || '') ||
-        templateData.frequency !== (editingTemplate.frequency || 'monthly') ||
-        templateData.next_invoice_date !== (editingTemplate.next_invoice_date || '') ||
-        templateData.status !== (editingTemplate.status || 'active') ||
-        selectedClient?.id !== editingTemplate.client_id ||
-        thankYouMessage !== (editingTemplate.notes || 'Thank you for your business!') ||
-        JSON.stringify(lineItems) !== (editingTemplate.line_items || JSON.stringify([{ id: '1', description: '', quantity: 1, rate: 0, amount: 0 }]));
+        templateData.name !== (template.name || '') ||
+        templateData.frequency !== (template.frequency || 'monthly') ||
+        templateData.next_invoice_date !== (template.next_invoice_date || '') ||
+        templateData.status !== (template.status || 'active') ||
+        templateData.payment_terms !== (template.payment_terms || 'net_30') ||
+        selectedClient?.id !== template.client_id ||
+        thankYouMessage !== (template.notes || 'Thank you for your business!') ||
+        JSON.stringify(lineItems) !== (template.line_items || JSON.stringify([{ id: '1', description: '', quantity: 1, rate: 0, amount: 0 }]));
 
       setIsDirty(hasChanges);
     } else {
@@ -163,7 +194,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
       setIsDirty(hasContent);
     }
-  }, [editingTemplate, templateData, selectedClient, lineItems, thankYouMessage]);
+  }, [editingTemplate, loadedTemplate, templateData, selectedClient, lineItems, thankYouMessage]);
 
   const addLineItem = () => {
     const newItem: LineItem = {
@@ -226,6 +257,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       frequency: templateData.frequency,
       amount: total,
       description: lineItems.map(item => item.description).join(', '),
+      payment_terms: templateData.payment_terms,
       next_invoice_date: templateData.next_invoice_date,
       line_items: JSON.stringify(lineItems),
       tax_amount: taxAmount,
@@ -235,9 +267,12 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       notes: thankYouMessage
     };
 
+
+
     try {
-      if (editingTemplate) {
-        await templateOperations.update(editingTemplate.id, templatePayload);
+      const template = editingTemplate || loadedTemplate;
+      if (template) {
+        await templateOperations.update(template.id, templatePayload);
       } else {
         await templateOperations.create(templatePayload);
       }
@@ -260,6 +295,17 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading template...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -278,7 +324,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
               disabled={!isValidForSave()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
             >
-              Save Template
+              {(editingTemplate || loadedTemplate) ? 'Update Template' : 'Save Template'}
             </button>
           </div>
         </div>
@@ -313,6 +359,20 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
                     <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Payment Terms</label>
+                  <select
+                    value={templateData.payment_terms}
+                    onChange={(e) => setTemplateData({...templateData, payment_terms: e.target.value})}
+                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                  >
+                    <option value="due_on_receipt">Due on Receipt</option>
+                    <option value="net_15">Net 15</option>
+                    <option value="net_30">Net 30</option>
+                    <option value="net_60">Net 60</option>
+                    <option value="net_90">Net 90</option>
                   </select>
                 </div>
                 <div>

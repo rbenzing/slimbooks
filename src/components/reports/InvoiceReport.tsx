@@ -161,7 +161,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
                 Quick Select
               </label>
               <select
-                className={themeClasses.select}
+                className={`w-full ${themeClasses.select}`}
                 value={dateRange.preset}
                 onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
               >

@@ -160,7 +160,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 Quick Select
               </label>
               <select
-                className={themeClasses.select}
+                className={`w-full ${themeClasses.select}`}
                 value={dateRange.preset}
                 onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
               >
@@ -200,7 +200,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 Accounting Method
               </label>
               <select
-                className={themeClasses.select}
+                className={`w-full ${themeClasses.select}`}
                 value={accountingMethod}
                 onChange={(e) => setAccountingMethod(e.target.value as 'cash' | 'accrual')}
               >

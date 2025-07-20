@@ -42,6 +42,7 @@ export const GeneralSettingsTab = () => {
     decimalSeparator: '.'
   });
   const [timeZone, setTimeZone] = useState('America/New_York');
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -52,17 +53,34 @@ export const GeneralSettingsTab = () => {
           await sqliteService.initialize();
         }
 
-        const savedTimeZone = await sqliteService.getSetting('default_timezone');
-        const savedInvoiceSettings = await getInvoiceNumberSettings();
-        const savedDateTimeSettings = await getDateTimeSettings();
-        const savedCurrencySettings = await getCurrencySettings();
+        // Use the new bulk settings API for better efficiency
+        try {
+          const allSettings = await sqliteService.getAllSettings('general');
 
-        if (savedTimeZone) setTimeZone(savedTimeZone);
-        setInvoiceSettings(savedInvoiceSettings);
-        setDateTimeSettings(savedDateTimeSettings);
-        setCurrencySettings(savedCurrencySettings);
+          // Load settings from bulk response
+          if (allSettings.default_timezone) setTimeZone(allSettings.default_timezone);
+          if (allSettings.currency_format_settings) setCurrencySettings(allSettings.currency_format_settings);
+          if (allSettings.date_time_settings) setDateTimeSettings(allSettings.date_time_settings);
+          if (allSettings.invoice_number_settings) setInvoiceSettings(allSettings.invoice_number_settings);
+        } catch (bulkError) {
+          console.warn('Bulk settings API failed, falling back to individual calls:', bulkError);
+
+          // Fallback to individual calls if bulk API fails
+          const savedTimeZone = await sqliteService.getSetting('default_timezone');
+          const savedInvoiceSettings = await getInvoiceNumberSettings();
+          const savedDateTimeSettings = await getDateTimeSettings();
+          const savedCurrencySettings = await getCurrencySettings();
+
+          if (savedTimeZone) setTimeZone(savedTimeZone);
+          setInvoiceSettings(savedInvoiceSettings);
+          setDateTimeSettings(savedDateTimeSettings);
+          setCurrencySettings(savedCurrencySettings);
+        }
+
+        setIsLoaded(true);
       } catch (error) {
         console.error('Error loading general settings:', error);
+        setIsLoaded(true);
       }
     };
 
@@ -77,26 +95,37 @@ export const GeneralSettingsTab = () => {
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await saveDateTimeSettings(dateTimeSettings);
-        await saveInvoiceNumberSettings(invoiceSettings);
-        await saveCurrencySettings(currencySettings);
-        await sqliteService.setSetting('default_timezone', timeZone, 'general');
+        // Use bulk save for better efficiency
+        const settingsToSave = {
+          'date_time_settings': { value: dateTimeSettings, category: 'general' },
+          'invoice_number_settings': { value: invoiceSettings, category: 'general' },
+          'currency_format_settings': { value: currencySettings, category: 'general' },
+          'default_timezone': { value: timeZone, category: 'general' }
+        };
+
+        await sqliteService.setMultipleSettings(settingsToSave);
       } catch (error) {
         console.error('Error saving general settings:', error);
+
+        // Fallback to individual saves if bulk save fails
+        try {
+          await saveDateTimeSettings(dateTimeSettings);
+          await saveInvoiceNumberSettings(invoiceSettings);
+          await saveCurrencySettings(currencySettings);
+          await sqliteService.setSetting('default_timezone', timeZone, 'general');
+        } catch (fallbackError) {
+          console.error('Error with fallback save:', fallbackError);
+        }
       }
     }, 500);
   }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone]);
 
   useEffect(() => {
-    // Only save if not initial load
-    if (dateTimeSettings.dateFormat !== 'MM/DD/YYYY' || dateTimeSettings.timeFormat !== '12-hour' ||
-        invoiceSettings.prefix !== 'INV' || currencySettings.currency !== 'USD' ||
-        currencySettings.symbolPosition !== 'before' || currencySettings.decimalPlaces !== 2 ||
-        currencySettings.thousandsSeparator !== ',' || currencySettings.decimalSeparator !== '.' ||
-        timeZone !== 'America/New_York') {
+    // Only save if settings have been loaded and this is a user change
+    if (isLoaded) {
       debouncedSaveSettings();
     }
-  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone, debouncedSaveSettings]);
+  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone, debouncedSaveSettings, isLoaded]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

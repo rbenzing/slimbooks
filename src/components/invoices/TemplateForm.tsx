@@ -19,6 +19,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
     frequency: 'monthly',
     amount: '',
     description: '',
+    payment_terms: 'net_30',
     next_invoice_date: ''
   });
 
@@ -45,6 +46,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
         frequency: template.frequency || 'monthly',
         amount: template.amount?.toString() || '',
         description: template.description || '',
+        payment_terms: template.payment_terms || 'net_30',
         next_invoice_date: template.next_invoice_date || ''
       });
     } else {
@@ -54,6 +56,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
         frequency: 'monthly',
         amount: '',
         description: '',
+        payment_terms: 'net_30',
         next_invoice_date: ''
       });
     }
@@ -123,6 +126,20 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-1`}>Payment Terms *</label>
+              <select
+                value={formData.payment_terms}
+                onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                className={themeClasses.select}
+              >
+                <option value="due_on_receipt">Due on Receipt</option>
+                <option value="net_15">Net 15</option>
+                <option value="net_30">Net 30</option>
+                <option value="net_60">Net 60</option>
+                <option value="net_90">Net 90</option>
               </select>
             </div>
             <div>

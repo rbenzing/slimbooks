@@ -6,16 +6,20 @@ import helmet from 'helmet';
 import { body, param, query, validationResult } from 'express-validator';
 
 // Rate limiting configurations
-export const createGeneralRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
+export const createGeneralRateLimit = (windowMs = 15 * 60 * 1000, max = 1000) => {
   return rateLimit({
     windowMs, // 15 minutes default
-    max, // limit each IP to max requests per windowMs
+    max, // limit each IP to max requests per windowMs (increased for development)
     message: {
       error: 'Too many requests from this IP, please try again later.',
       retryAfter: Math.ceil(windowMs / 1000)
     },
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    // Skip rate limiting for health checks
+    skip: (req) => {
+      return req.path === '/api/health';
+    },
     handler: (req, res) => {
       res.status(429).json({
         success: false,
@@ -100,19 +104,39 @@ export const validationRules = {
     .isLength({ min: 1, max: 100 })
     .withMessage('Name must be between 1 and 100 characters'),
   
-  // Database query validation
+  // Database query validation for read-only operations
   sql: body('sql')
     .custom((value) => {
-      // Block dangerous SQL operations
+      // Block dangerous SQL operations for read-only endpoints
       const dangerousPatterns = [
         /DROP\s+TABLE/i,
         /DELETE\s+FROM/i,
         /TRUNCATE/i,
         /ALTER\s+TABLE/i,
         /CREATE\s+TABLE/i,
-        /UPDATE.*SET/i
+        /UPDATE.*SET/i,
+        /INSERT\s+INTO/i
       ];
-      
+
+      for (const pattern of dangerousPatterns) {
+        if (pattern.test(value)) {
+          throw new Error('SQL operation not allowed');
+        }
+      }
+      return true;
+    }),
+
+  // Database query validation for write operations (more permissive)
+  sqlWrite: body('sql')
+    .custom((value) => {
+      // Only block extremely dangerous operations for write endpoints
+      const dangerousPatterns = [
+        /DROP\s+TABLE/i,
+        /DROP\s+DATABASE/i,
+        /TRUNCATE/i,
+        /CREATE\s+TABLE/i
+      ];
+
       for (const pattern of dangerousPatterns) {
         if (pattern.test(value)) {
           throw new Error('SQL operation not allowed');

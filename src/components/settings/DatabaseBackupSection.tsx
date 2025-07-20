@@ -36,25 +36,54 @@ export const DatabaseBackupSection = () => {
         await sqliteService.initialize();
       }
 
-      // Helper function to safely get count from table
-      const getTableCount = async (tableName: string): Promise<number> => {
-        try {
-          const result = await sqliteService.get(`SELECT COUNT(*) as count FROM ${tableName}`);
-          return result?.count || 0;
-        } catch (error) {
-          console.warn(`Table ${tableName} not found or error counting:`, error);
-          return 0;
-        }
-      };
+      // Use specific API endpoints to get counts
+      const [clients, invoices, templates, expenses, users] = await Promise.all([
+        sqliteService.getClients().catch(() => []),
+        sqliteService.getInvoices().catch(() => []),
+        sqliteService.getTemplates().catch(() => []),
+        sqliteService.getExpenses().catch(() => []),
+        sqliteService.getUsers().catch(() => [])
+      ]);
+
+      // For settings and webhook logs, we'll need to estimate or use alternative methods
+      // since there are no specific endpoints for these counts
+      let settingsCount = 0;
+      let webhookLogsCount = 0;
+
+      try {
+        // Try to get various settings to estimate count
+        const settingsToCheck = [
+          'company_settings',
+          'email_settings',
+          'stripe_settings',
+          'currency_format_settings',
+          'tax_rates',
+          'shipping_rates',
+          'project_settings'
+        ];
+
+        const settingsResults = await Promise.allSettled(
+          settingsToCheck.map(setting => sqliteService.getSetting(setting))
+        );
+
+        settingsCount = settingsResults.filter(result =>
+          result.status === 'fulfilled' && result.value != null
+        ).length;
+      } catch (error) {
+        console.warn('Could not count settings:', error);
+      }
+
+      // Webhook logs count is harder to determine without a specific endpoint
+      // For now, we'll leave it as 0 or implement a specific endpoint later
 
       const stats = {
-        clients: await getTableCount('clients'),
-        invoices: await getTableCount('invoices'),
-        templates: await getTableCount('templates'),
-        expenses: await getTableCount('expenses'),
-        users: await getTableCount('users'),
-        settings: await getTableCount('settings'),
-        webhookLogs: await getTableCount('stripe_webhook_logs')
+        clients: clients.length,
+        invoices: invoices.length,
+        templates: templates.length,
+        expenses: expenses.length,
+        users: users.length,
+        settings: settingsCount,
+        webhookLogs: webhookLogsCount
       };
 
       setDbStats(stats);

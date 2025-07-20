@@ -166,14 +166,22 @@ const createTables = () => {
     CREATE TABLE IF NOT EXISTS templates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      client_id INTEGER NOT NULL,
+      amount REAL NOT NULL,
       description TEXT,
-      items TEXT,
+      frequency TEXT NOT NULL,
+      payment_terms TEXT NOT NULL,
+      next_invoice_date TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      line_items TEXT, -- JSON string
+      tax_amount REAL DEFAULT 0,
+      tax_rate_id TEXT,
+      shipping_amount REAL DEFAULT 0,
+      shipping_rate_id TEXT,
       notes TEXT,
-      payment_terms TEXT,
-      hourly_rate REAL DEFAULT 0,
-      currency TEXT DEFAULT 'USD',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (client_id) REFERENCES clients (id)
     )
   `);
 
@@ -223,6 +231,17 @@ const createTables = () => {
     )
   `);
 
+  // Project settings table (for .env overrides)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      enabled INTEGER DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log('Database tables created successfully');
 };
 
@@ -260,6 +279,207 @@ const runMigrations = () => {
           console.log(`Column ${column.name} might already exist or error:`, error.message);
         }
       }
+    }
+
+    // Check if templates table has the new schema
+    const templateTableInfo = db.prepare("PRAGMA table_info(templates)").all();
+    const templateColumns = templateTableInfo.map(col => col.name);
+
+    // Check if we need to migrate templates table
+    const needsTemplateMigration = !templateColumns.includes('client_id') ||
+                                   !templateColumns.includes('frequency') ||
+                                   !templateColumns.includes('line_items');
+
+    if (needsTemplateMigration) {
+      console.log('Migrating templates table to new schema...');
+
+      try {
+        // Backup existing templates
+        const existingTemplates = db.prepare('SELECT * FROM templates').all();
+        console.log(`Found ${existingTemplates.length} existing templates to migrate`);
+
+        // Create backup table
+        db.exec('DROP TABLE IF EXISTS templates_backup');
+        db.exec('ALTER TABLE templates RENAME TO templates_backup');
+
+        // Create new templates table with correct schema
+        db.exec(`
+          CREATE TABLE templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            client_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            frequency TEXT NOT NULL,
+            payment_terms TEXT NOT NULL,
+            next_invoice_date TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            line_items TEXT,
+            tax_amount REAL DEFAULT 0,
+            tax_rate_id TEXT,
+            shipping_amount REAL DEFAULT 0,
+            shipping_rate_id TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (client_id) REFERENCES clients (id)
+          )
+        `);
+
+        // Try to migrate existing templates if they have compatible data
+        if (existingTemplates.length > 0) {
+          console.log('Attempting to migrate existing template data...');
+
+          for (const oldTemplate of existingTemplates) {
+            try {
+              // Only migrate if we have the minimum required fields
+              if (oldTemplate.name && oldTemplate.client_id) {
+                const migratedTemplate = {
+                  id: oldTemplate.id,
+                  name: oldTemplate.name,
+                  client_id: oldTemplate.client_id,
+                  amount: oldTemplate.amount || 0,
+                  description: oldTemplate.description || oldTemplate.items || '',
+                  frequency: oldTemplate.frequency || 'monthly',
+                  payment_terms: oldTemplate.payment_terms || 'net_30',
+                  next_invoice_date: oldTemplate.next_invoice_date || new Date().toISOString().split('T')[0],
+                  is_active: oldTemplate.is_active !== undefined ? oldTemplate.is_active : 1,
+                  line_items: oldTemplate.line_items || null,
+                  tax_amount: oldTemplate.tax_amount || 0,
+                  tax_rate_id: oldTemplate.tax_rate_id || null,
+                  shipping_amount: oldTemplate.shipping_amount || 0,
+                  shipping_rate_id: oldTemplate.shipping_rate_id || null,
+                  notes: oldTemplate.notes || '',
+                  created_at: oldTemplate.created_at || new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                };
+
+                const insertStmt = db.prepare(`
+                  INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
+                                        next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
+                                        shipping_amount, shipping_rate_id, notes, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+
+                insertStmt.run(
+                  migratedTemplate.id,
+                  migratedTemplate.name,
+                  migratedTemplate.client_id,
+                  migratedTemplate.amount,
+                  migratedTemplate.description,
+                  migratedTemplate.frequency,
+                  migratedTemplate.payment_terms,
+                  migratedTemplate.next_invoice_date,
+                  migratedTemplate.is_active,
+                  migratedTemplate.line_items,
+                  migratedTemplate.tax_amount,
+                  migratedTemplate.tax_rate_id,
+                  migratedTemplate.shipping_amount,
+                  migratedTemplate.shipping_rate_id,
+                  migratedTemplate.notes,
+                  migratedTemplate.created_at,
+                  migratedTemplate.updated_at
+                );
+
+                console.log(`Migrated template: ${migratedTemplate.name}`);
+              }
+            } catch (templateError) {
+              console.error(`Failed to migrate template ${oldTemplate.name}:`, templateError.message);
+            }
+          }
+        }
+
+        // Don't clean up backup table yet - keep it for recovery
+        console.log('Templates table migration completed successfully');
+
+      } catch (migrationError) {
+        console.error('Template migration failed:', migrationError);
+        // If migration fails, restore from backup if it exists
+        try {
+          db.exec('DROP TABLE IF EXISTS templates');
+          db.exec('ALTER TABLE templates_backup RENAME TO templates');
+          console.log('Restored templates from backup due to migration failure');
+        } catch (restoreError) {
+          console.error('Failed to restore templates backup:', restoreError);
+        }
+      }
+    }
+
+    // Check if templates_backup table exists and has data that main templates table doesn't
+    try {
+      const backupTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='templates_backup'").get();
+      if (backupTableExists) {
+        const backupTemplates = db.prepare('SELECT * FROM templates_backup').all();
+        const mainTemplates = db.prepare('SELECT * FROM templates').all();
+
+        console.log(`Found ${backupTemplates.length} templates in backup table and ${mainTemplates.length} in main table`);
+
+        if (backupTemplates.length > 0 && mainTemplates.length === 0) {
+          console.log('Recovering templates from backup table...');
+
+          for (const template of backupTemplates) {
+            try {
+              // Map old template structure to new structure
+              const migratedTemplate = {
+                id: template.id,
+                name: template.name || 'Untitled Template',
+                client_id: template.client_id || 1, // Default to first client if missing
+                amount: template.amount || 0,
+                description: template.description || template.items || '',
+                frequency: template.frequency || 'monthly',
+                payment_terms: template.payment_terms || 'net_30',
+                next_invoice_date: template.next_invoice_date || new Date().toISOString().split('T')[0],
+                is_active: template.status === 'active' ? 1 : 0,
+                line_items: template.items || null,
+                tax_amount: template.tax_amount || 0,
+                tax_rate_id: template.tax_rate_id || null,
+                shipping_amount: template.shipping_amount || 0,
+                shipping_rate_id: template.shipping_rate_id || null,
+                notes: template.notes || null,
+                created_at: template.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
+
+              const insertStmt = db.prepare(`
+                INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
+                                      next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
+                                      shipping_amount, shipping_rate_id, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+
+              insertStmt.run(
+                migratedTemplate.id,
+                migratedTemplate.name,
+                migratedTemplate.client_id,
+                migratedTemplate.amount,
+                migratedTemplate.description,
+                migratedTemplate.frequency,
+                migratedTemplate.payment_terms,
+                migratedTemplate.next_invoice_date,
+                migratedTemplate.is_active,
+                migratedTemplate.line_items,
+                migratedTemplate.tax_amount,
+                migratedTemplate.tax_rate_id,
+                migratedTemplate.shipping_amount,
+                migratedTemplate.shipping_rate_id,
+                migratedTemplate.notes,
+                migratedTemplate.created_at,
+                migratedTemplate.updated_at
+              );
+
+              console.log(`Successfully recovered template: ${migratedTemplate.name}`);
+            } catch (templateError) {
+              console.error(`Failed to recover template ${template.id}:`, templateError.message);
+            }
+          }
+
+          // Now clean up backup table
+          db.exec('DROP TABLE IF EXISTS templates_backup');
+          console.log('Template recovery completed and backup table cleaned up');
+        }
+      }
+    } catch (recoveryError) {
+      console.error('Template recovery failed:', recoveryError.message);
     }
 
     console.log('Database migrations completed successfully');
@@ -479,6 +699,7 @@ if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true' && NODE_ENV === 'development')
       const clients = db.prepare('SELECT * FROM clients ORDER BY created_at DESC LIMIT 5').all();
       const invoices = db.prepare('SELECT * FROM invoices ORDER BY created_at DESC LIMIT 5').all();
       const expenses = db.prepare('SELECT * FROM expenses ORDER BY created_at DESC LIMIT 5').all();
+      const templates = db.prepare('SELECT * FROM templates ORDER BY created_at DESC LIMIT 5').all();
 
       res.json({
         success: true,
@@ -494,6 +715,10 @@ if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true' && NODE_ENV === 'development')
           expenses: {
             count: db.prepare('SELECT COUNT(*) as count FROM expenses').get().count,
             sample: expenses
+          },
+          templates: {
+            count: db.prepare('SELECT COUNT(*) as count FROM templates').get().count,
+            sample: templates
           }
         }
       });
@@ -506,56 +731,658 @@ if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true' && NODE_ENV === 'development')
 // Generic database operations - RESTRICTED AND SECURED
 // These endpoints are dangerous and should only be used for specific operations
 
-// Secure database read operations - only allow SELECT statements
-app.post('/api/db/get',
-  validationRules.sql,
-  validateRequest,
-  (req, res) => {
-    try {
-      const { sql, params = [] } = req.body;
+// REMOVED: Direct SQL query endpoints - replaced with secure REST API endpoints
 
-      // Only allow SELECT statements
-      if (!sql.trim().toUpperCase().startsWith('SELECT')) {
-        return res.status(400).json({
-          success: false,
-          error: 'Only SELECT statements are allowed'
-        });
+// ===== USER MANAGEMENT API =====
+app.get('/api/users', (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, name, email, username, role, email_verified, two_factor_enabled, last_login, failed_login_attempts, account_locked_until, created_at, updated_at FROM users ORDER BY created_at DESC').all();
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = db.prepare('SELECT id, name, email, username, role, email_verified, two_factor_enabled, last_login, failed_login_attempts, account_locked_until, created_at, updated_at FROM users WHERE id = ?').get(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/users/email/:email', (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/users/update-login-attempts', (req, res) => {
+  try {
+    const { userId, attempts, lockedUntil } = req.body;
+
+    if (!userId || typeof attempts !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid parameters'
+      });
+    }
+
+    const stmt = db.prepare('UPDATE users SET failed_login_attempts = ?, account_locked_until = ? WHERE id = ?');
+    const result = stmt.run(attempts, lockedUntil || null, userId);
+
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/users/update-last-login', (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const stmt = db.prepare('UPDATE users SET last_login = ? WHERE id = ?');
+    const result = stmt.run(now, userId);
+
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/users', (req, res) => {
+  try {
+    const { userData } = req.body;
+
+    if (!userData || !userData.email || !userData.name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user data'
+      });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('users');
+    const nextId = (counterResult?.value || 0) + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'users');
+
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO users (
+        id, name, email, username, password_hash, role, email_verified,
+        google_id, two_factor_enabled, two_factor_secret, backup_codes,
+        last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      nextId,
+      userData.name,
+      userData.email,
+      userData.username,
+      userData.password_hash || null,
+      userData.role,
+      userData.email_verified ? 1 : 0,
+      userData.google_id || null,
+      userData.two_factor_enabled ? 1 : 0,
+      userData.two_factor_secret || null,
+      userData.backup_codes ? JSON.stringify(userData.backup_codes) : null,
+      userData.last_login || null,
+      userData.failed_login_attempts,
+      userData.account_locked_until || null,
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextId } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== CLIENT MANAGEMENT API =====
+app.get('/api/clients', (req, res) => {
+  try {
+    const clients = db.prepare('SELECT * FROM clients ORDER BY created_at DESC').all();
+    res.json({ success: true, data: clients });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/clients/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(id);
+
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Client not found' });
+    }
+
+    res.json({ success: true, data: client });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/clients', (req, res) => {
+  try {
+    const { clientData } = req.body;
+
+    if (!clientData || !clientData.name || !clientData.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid client data'
+      });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('clients');
+    const nextId = (counterResult?.value || 0) + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'clients');
+
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO clients (id, name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      nextId,
+      clientData.name,
+      clientData.email,
+      clientData.phone || '',
+      clientData.company || '',
+      clientData.address || '',
+      clientData.city || '',
+      clientData.state || '',
+      clientData.zipCode || '',
+      clientData.country || '',
+      clientData.stripe_customer_id || null,
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextId } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/clients/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clientData } = req.body;
+
+    if (!id || !clientData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid parameters'
+      });
+    }
+
+    const fields = Object.keys(clientData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(clientData), id];
+
+    const stmt = db.prepare(`UPDATE clients SET ${fields}, updated_at = datetime('now') WHERE id = ?`);
+    const result = stmt.run(values);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/clients/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM clients WHERE id = ?');
+    const result = stmt.run(id);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+app.post('/api/users/update-login-attempts', (req, res) => {
+  try {
+    const { userId, attempts, lockedUntil } = req.body;
+
+    if (!userId || typeof attempts !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid parameters'
+      });
+    }
+
+    const stmt = db.prepare('UPDATE users SET failed_login_attempts = ?, account_locked_until = ? WHERE id = ?');
+    const result = stmt.run(attempts, lockedUntil || null, userId);
+
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/users/update-last-login', (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const stmt = db.prepare('UPDATE users SET last_login = ? WHERE id = ?');
+    const result = stmt.run(now, userId);
+
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/users/create', (req, res) => {
+  try {
+    const { userData } = req.body;
+
+    if (!userData || !userData.email || !userData.name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user data'
+      });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('users');
+    const nextId = (counterResult?.value || 0) + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'users');
+
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO users (
+        id, name, email, username, password_hash, role, email_verified,
+        google_id, two_factor_enabled, two_factor_secret, backup_codes,
+        last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      nextId,
+      userData.name,
+      userData.email,
+      userData.username,
+      userData.password_hash || null,
+      userData.role,
+      userData.email_verified ? 1 : 0,
+      userData.google_id || null,
+      userData.two_factor_enabled ? 1 : 0,
+      userData.two_factor_secret || null,
+      userData.backup_codes ? JSON.stringify(userData.backup_codes) : null,
+      userData.last_login || null,
+      userData.failed_login_attempts,
+      userData.account_locked_until || null,
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextId } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get user by Google ID
+app.get('/api/users/google/:googleId', (req, res) => {
+  try {
+    const { googleId } = req.params;
+    const user = db.prepare('SELECT * FROM users WHERE google_id = ?').get(decodeURIComponent(googleId));
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update user
+app.put('/api/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userData } = req.body;
+
+    if (!id || !userData) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const fields = Object.keys(userData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(userData), id];
+
+    const stmt = db.prepare(`UPDATE users SET ${fields}, updated_at = datetime('now') WHERE id = ?`);
+    const result = stmt.run(values);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete user
+app.delete('/api/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+    const result = stmt.run(id);
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update user login attempts
+app.put('/api/users/:id/login-attempts', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { attempts, lockedUntil } = req.body;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET failed_login_attempts = ?, account_locked_until = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    stmt.run(attempts, lockedUntil || null, id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update user last login
+app.put('/api/users/:id/last-login', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET last_login = datetime('now'), updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    stmt.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Verify user email
+app.put('/api/users/:id/verify-email', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET email_verified = 1, updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    stmt.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Enable user 2FA
+app.put('/api/users/:id/2fa/enable', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { secret, backupCodes } = req.body;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET two_factor_enabled = 1, two_factor_secret = ?, backup_codes = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    stmt.run(secret, JSON.stringify(backupCodes), id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Disable user 2FA
+app.put('/api/users/:id/2fa/disable', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET two_factor_enabled = 0, two_factor_secret = NULL, backup_codes = NULL, updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    stmt.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== PASSWORD RESET API =====
+// Request password reset
+app.post('/api/auth/forgot-password', (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.json({ success: true, message: 'If an account with that email exists, we have sent a password reset link.' });
+    }
+
+    // Generate password reset token
+    const tokenPayload = {
+      email: user.email,
+      userId: user.id,
+      type: 'password_reset',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+    };
+
+    const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
+
+    // TODO: Send password reset email here
+    // For now, we'll just return success
+
+    res.json({
+      success: true,
+      message: 'If an account with that email exists, we have sent a password reset link.',
+      // In development, include the token for testing
+      ...(process.env.NODE_ENV === 'development' && { token })
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reset password with token
+app.post('/api/auth/reset-password', (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ success: false, error: 'Token and password are required' });
+    }
+
+    // Verify the token
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+
+      if (payload.exp && Date.now() > payload.exp * 1000) {
+        return res.status(400).json({ success: false, error: 'Reset token has expired' });
       }
 
-      const stmt = db.prepare(sql);
-      const result = stmt.get(params);
-      res.json({ success: true, result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
-
-app.post('/api/db/all',
-  validationRules.sql,
-  validateRequest,
-  (req, res) => {
-    try {
-      const { sql, params = [] } = req.body;
-
-      // Only allow SELECT statements
-      if (!sql.trim().toUpperCase().startsWith('SELECT')) {
-        return res.status(400).json({
-          success: false,
-          error: 'Only SELECT statements are allowed'
-        });
+      if (payload.type !== 'password_reset') {
+        return res.status(400).json({ success: false, error: 'Invalid token type' });
       }
 
-      const stmt = db.prepare(sql);
-      const result = stmt.all(params);
-      res.json({ success: true, result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
+      const user = db.prepare('SELECT * FROM users WHERE email = ? AND id = ?').get(payload.email, payload.userId);
 
-// REMOVED: /api/db/run endpoint - too dangerous for production
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      // Hash the new password
+      const bcrypt = require('bcrypt');
+      const saltRounds = 12;
+      const hashedPassword = bcrypt.hashSync(password, saltRounds);
+
+      // Update user password and reset failed attempts
+      const stmt = db.prepare(`
+        UPDATE users
+        SET password_hash = ?, failed_login_attempts = 0, account_locked_until = NULL, updated_at = datetime('now')
+        WHERE id = ?
+      `);
+
+      stmt.run(hashedPassword, user.id);
+
+      res.json({ success: true, message: 'Password reset successfully' });
+    } catch (tokenError) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired token' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== EMAIL VERIFICATION API =====
+// Verify email with token
+app.post('/api/auth/verify-email', (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token is required' });
+    }
+
+    // Verify the token (you'll need to implement token verification)
+    // For now, we'll extract user info from a simple JWT-like token
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+
+      if (payload.exp && Date.now() > payload.exp * 1000) {
+        return res.status(400).json({ success: false, error: 'Token has expired' });
+      }
+
+      const user = db.prepare('SELECT * FROM users WHERE email = ?').get(payload.email);
+
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      if (user.email_verified) {
+        return res.json({ success: true, message: 'Email already verified' });
+      }
+
+      // Update user as verified
+      const stmt = db.prepare(`
+        UPDATE users
+        SET email_verified = 1, updated_at = datetime('now')
+        WHERE id = ?
+      `);
+
+      stmt.run(user.id);
+
+      res.json({ success: true, message: 'Email verified successfully' });
+    } catch (tokenError) {
+      return res.status(400).json({ success: false, error: 'Invalid token' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Resend verification email
+app.post('/api/auth/resend-verification', (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.email_verified) {
+      return res.json({ success: true, message: 'Email is already verified' });
+    }
+
+    // Generate new verification token
+    const tokenPayload = {
+      email: user.email,
+      userId: user.id,
+      type: 'email_verification',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    };
+
+    const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
+
+    // TODO: Send verification email here
+    // For now, we'll just return success
+
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully',
+      // In development, include the token for testing
+      ...(process.env.NODE_ENV === 'development' && { token })
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Counter operations
 app.get('/api/counters/:name/next', (req, res) => {
@@ -571,7 +1398,699 @@ app.get('/api/counters/:name/next', (req, res) => {
   }
 });
 
+// ===== INVOICE MANAGEMENT API =====
+app.get('/api/invoices', (req, res) => {
+  try {
+    const invoices = db.prepare(`
+      SELECT
+        i.*,
+        c.name as client_name,
+        c.email as client_email,
+        c.phone as client_phone,
+        (c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      ORDER BY i.created_at DESC
+    `).all();
+    res.json({ success: true, data: invoices });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/invoices/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = db.prepare(`
+      SELECT
+        i.*,
+        c.name as client_name,
+        COALESCE(i.client_email, c.email) as client_email,
+        COALESCE(i.client_phone, c.phone) as client_phone,
+        COALESCE(i.client_address, c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.id = ?
+    `).get(id);
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: 'Invoice not found' });
+    }
+
+    res.json({ success: true, data: invoice });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/invoices', (req, res) => {
+  try {
+    const { invoiceData } = req.body;
+
+    if (!invoiceData) {
+      return res.status(400).json({ success: false, error: 'Invoice data is required' });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('invoices');
+    const currentValue = counterResult?.value || 0;
+    const nextValue = currentValue + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextValue, 'invoices');
+
+    const now = new Date().toISOString();
+
+    // Calculate total amount
+    const amount = invoiceData.amount || 0;
+    const taxAmount = invoiceData.tax_amount || 0;
+    const shippingAmount = invoiceData.shipping_amount || 0;
+    const totalAmount = amount + taxAmount + shippingAmount;
+
+    const stmt = db.prepare(`
+      INSERT INTO invoices (id, invoice_number, client_id, template_id, amount, tax_amount, total_amount, status, due_date, issue_date, description,
+                           stripe_invoice_id, type, client_name, client_email, client_phone, client_address,
+                           line_items, tax_rate_id, shipping_amount, shipping_rate_id, notes,
+                           email_status, email_sent_at, email_error, last_email_attempt, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      nextValue,
+      invoiceData.invoice_number,
+      invoiceData.client_id,
+      invoiceData.template_id || null,
+      amount,
+      taxAmount,
+      totalAmount,
+      invoiceData.status || 'draft',
+      invoiceData.due_date,
+      invoiceData.issue_date || now.split('T')[0], // Use current date if not provided
+      invoiceData.description || '',
+      invoiceData.stripe_invoice_id || null,
+      invoiceData.type || 'one-time',
+      invoiceData.client_name || '',
+      invoiceData.client_email || '',
+      invoiceData.client_phone || '',
+      invoiceData.client_address || '',
+      invoiceData.line_items || null,
+      invoiceData.tax_rate_id || null,
+      shippingAmount,
+      invoiceData.shipping_rate_id || null,
+      invoiceData.notes || '',
+      invoiceData.email_status || 'not_sent',
+      invoiceData.email_sent_at || null,
+      invoiceData.email_error || null,
+      invoiceData.last_email_attempt || null,
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextValue } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/invoices/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { invoiceData } = req.body;
+
+    if (!id || !invoiceData) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const fields = Object.keys(invoiceData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(invoiceData), id];
+
+    const stmt = db.prepare(`UPDATE invoices SET ${fields}, updated_at = datetime('now') WHERE id = ?`);
+    const result = stmt.run(values);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/invoices/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM invoices WHERE id = ?');
+    const result = stmt.run(id);
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== EXPENSE MANAGEMENT API =====
+app.get('/api/expenses', (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let query = 'SELECT * FROM expenses';
+    let params = [];
+
+    if (startDate && endDate) {
+      query += ' WHERE date(date) >= date(?) AND date(date) <= date(?)';
+      params = [startDate, endDate];
+    }
+
+    query += ' ORDER BY date DESC, created_at DESC';
+
+    const expenses = db.prepare(query).all(params);
+    res.json({ success: true, data: expenses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/expenses/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+
+    if (!expense) {
+      return res.status(404).json({ success: false, error: 'Expense not found' });
+    }
+
+    res.json({ success: true, data: expense });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/expenses', (req, res) => {
+  try {
+    const { expenseData } = req.body;
+
+    if (!expenseData) {
+      return res.status(400).json({ success: false, error: 'Expense data is required' });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('expenses');
+    const currentValue = counterResult?.value || 0;
+    const nextValue = currentValue + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextValue, 'expenses');
+
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO expenses (id, description, amount, category, date, receipt_url, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      nextValue,
+      expenseData.description,
+      expenseData.amount,
+      expenseData.category || 'general',
+      expenseData.date,
+      expenseData.receipt_url || null,
+      expenseData.notes || '',
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextValue } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/expenses/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { expenseData } = req.body;
+
+    if (!id || !expenseData) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const fields = Object.keys(expenseData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(expenseData), id];
+
+    const stmt = db.prepare(`UPDATE expenses SET ${fields}, updated_at = datetime('now') WHERE id = ?`);
+    const result = stmt.run(values);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/expenses/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
+    const result = stmt.run(id);
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== TEMPLATE RECOVERY ENDPOINT =====
+app.post('/api/templates/recover', (req, res) => {
+  try {
+    // Check if templates_backup table exists
+    const backupTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='templates_backup'").get();
+    if (!backupTableExists) {
+      return res.json({ success: false, message: 'No backup table found' });
+    }
+
+    const backupTemplates = db.prepare('SELECT * FROM templates_backup').all();
+    const mainTemplates = db.prepare('SELECT * FROM templates').all();
+
+    console.log(`Found ${backupTemplates.length} templates in backup table and ${mainTemplates.length} in main table`);
+
+    if (backupTemplates.length === 0) {
+      return res.json({ success: false, message: 'No templates found in backup table' });
+    }
+
+    let recoveredCount = 0;
+
+    for (const template of backupTemplates) {
+      try {
+        // Map old template structure to new structure
+        const migratedTemplate = {
+          id: template.id,
+          name: template.name || 'Untitled Template',
+          client_id: template.client_id || 1, // Default to first client if missing
+          amount: template.amount || 0,
+          description: template.description || template.items || '',
+          frequency: template.frequency || 'monthly',
+          payment_terms: template.payment_terms || 'net_30',
+          next_invoice_date: template.next_invoice_date || new Date().toISOString().split('T')[0],
+          is_active: template.status === 'active' ? 1 : 0,
+          line_items: template.items || null,
+          tax_amount: template.tax_amount || 0,
+          tax_rate_id: template.tax_rate_id || null,
+          shipping_amount: template.shipping_amount || 0,
+          shipping_rate_id: template.shipping_rate_id || null,
+          notes: template.notes || null,
+          created_at: template.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const insertStmt = db.prepare(`
+          INSERT OR REPLACE INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
+                                    next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
+                                    shipping_amount, shipping_rate_id, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+          migratedTemplate.id,
+          migratedTemplate.name,
+          migratedTemplate.client_id,
+          migratedTemplate.amount,
+          migratedTemplate.description,
+          migratedTemplate.frequency,
+          migratedTemplate.payment_terms,
+          migratedTemplate.next_invoice_date,
+          migratedTemplate.is_active,
+          migratedTemplate.line_items,
+          migratedTemplate.tax_amount,
+          migratedTemplate.tax_rate_id,
+          migratedTemplate.shipping_amount,
+          migratedTemplate.shipping_rate_id,
+          migratedTemplate.notes,
+          migratedTemplate.created_at,
+          migratedTemplate.updated_at
+        );
+
+        recoveredCount++;
+        console.log(`Successfully recovered template: ${migratedTemplate.name}`);
+      } catch (templateError) {
+        console.error(`Failed to recover template ${template.id}:`, templateError.message);
+      }
+    }
+
+    // Clean up backup table
+    db.exec('DROP TABLE IF EXISTS templates_backup');
+    console.log('Template recovery completed and backup table cleaned up');
+
+    res.json({
+      success: true,
+      message: `Successfully recovered ${recoveredCount} templates`,
+      recoveredCount
+    });
+  } catch (error) {
+    console.error('Template recovery failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== TEMPLATE MANAGEMENT API =====
+app.get('/api/templates', (req, res) => {
+  try {
+    const templates = db.prepare(`
+      SELECT
+        t.*,
+        c.name as client_name
+      FROM templates t
+      LEFT JOIN clients c ON t.client_id = c.id
+      ORDER BY t.created_at DESC
+    `).all();
+    res.json({ success: true, data: templates });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/templates/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const template = db.prepare(`
+      SELECT
+        t.*,
+        c.name as client_name
+      FROM templates t
+      LEFT JOIN clients c ON t.client_id = c.id
+      WHERE t.id = ?
+    `).get(id);
+
+    if (!template) {
+      return res.status(404).json({ success: false, error: 'Template not found' });
+    }
+
+    res.json({ success: true, data: template });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/templates', (req, res) => {
+  try {
+    const { templateData } = req.body;
+
+    if (!templateData) {
+      return res.status(400).json({ success: false, error: 'Template data is required' });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('templates');
+    const currentValue = counterResult?.value || 0;
+    const nextValue = currentValue + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextValue, 'templates');
+
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
+                            next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
+                            shipping_amount, shipping_rate_id, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      nextValue,
+      templateData.name,
+      templateData.client_id,
+      templateData.amount,
+      templateData.description || '',
+      templateData.frequency,
+      templateData.payment_terms || '',
+      templateData.next_invoice_date,
+      templateData.is_active ? 1 : 0,
+      templateData.line_items || null,
+      templateData.tax_amount || 0,
+      templateData.tax_rate_id || null,
+      templateData.shipping_amount || 0,
+      templateData.shipping_rate_id || null,
+      templateData.notes || '',
+      now,
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextValue } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/templates/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { templateData } = req.body;
+
+    if (!id || !templateData) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const fields = Object.keys(templateData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(templateData), id];
+
+    const stmt = db.prepare(`UPDATE templates SET ${fields}, updated_at = datetime('now') WHERE id = ?`);
+    const result = stmt.run(values);
+
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/templates/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM templates WHERE id = ?');
+    const result = stmt.run(id);
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== PROJECT SETTINGS API =====
+// Get project configuration (combines .env defaults with database overrides)
+app.get('/api/project-settings', (_req, res) => {
+  try {
+    // Get all project settings from database
+    const dbSettings = db.prepare('SELECT key, value, enabled FROM project_settings').all();
+
+    // Create settings object with .env defaults
+    const projectSettings = {
+      google_oauth: {
+        enabled: false,
+        client_id: process.env.GOOGLE_CLIENT_ID || '',
+        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+      },
+      stripe: {
+        enabled: false,
+        publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || '',
+        configured: !!(process.env.STRIPE_PUBLISHABLE_KEY && process.env.STRIPE_SECRET_KEY)
+      },
+      email: {
+        enabled: false,
+        smtp_host: process.env.SMTP_HOST || '',
+        smtp_port: process.env.SMTP_PORT || 587,
+        smtp_user: process.env.SMTP_USER || '',
+        email_from: process.env.EMAIL_FROM || '',
+        configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+      },
+      security: {
+        require_email_verification: process.env.REQUIRE_EMAIL_VERIFICATION === 'true',
+        max_failed_login_attempts: parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPTS) || 5,
+        account_lockout_duration: parseInt(process.env.ACCOUNT_LOCKOUT_DURATION) || 1800000
+      }
+    };
+
+    // Apply database overrides
+    dbSettings.forEach(setting => {
+      const keys = setting.key.split('.');
+      let current = projectSettings;
+
+      // Navigate to the nested property
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
+      }
+
+      // Set the value and enabled status
+      const lastKey = keys[keys.length - 1];
+      try {
+        const parsedValue = JSON.parse(setting.value);
+        current[lastKey] = parsedValue;
+      } catch {
+        current[lastKey] = setting.value;
+      }
+
+      // Set enabled status if it exists
+      if (setting.enabled !== null) {
+        current.enabled = setting.enabled === 1;
+      }
+    });
+
+    res.json({ success: true, settings: projectSettings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update project settings
+app.put('/api/project-settings', (req, res) => {
+  try {
+    const { settings } = req.body;
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: 'Settings object is required' });
+    }
+
+    // Flatten the settings object for database storage
+    const flattenSettings = (obj, prefix = '') => {
+      const flattened = [];
+      for (const [key, value] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+
+        if (key === 'enabled') {
+          // Handle enabled flag separately
+          continue;
+        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          flattened.push(...flattenSettings(value, fullKey));
+        } else {
+          flattened.push({
+            key: fullKey,
+            value: JSON.stringify(value),
+            enabled: obj.enabled !== undefined ? (obj.enabled ? 1 : 0) : null
+          });
+        }
+      }
+      return flattened;
+    };
+
+    const flatSettings = flattenSettings(settings);
+
+    // Use transaction for bulk updates
+    const stmt = db.prepare('INSERT OR REPLACE INTO project_settings (key, value, enabled) VALUES (?, ?, ?)');
+    const transaction = db.transaction((settingsData) => {
+      for (const setting of settingsData) {
+        stmt.run(setting.key, setting.value, setting.enabled);
+      }
+    });
+
+    transaction(flatSettings);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== REPORTS MANAGEMENT API =====
+app.get('/api/reports', (req, res) => {
+  try {
+    const reports = db.prepare('SELECT * FROM reports ORDER BY created_at DESC').all();
+    res.json({ success: true, data: reports });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/reports/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const report = db.prepare('SELECT * FROM reports WHERE id = ?').get(id);
+
+    if (!report) {
+      return res.status(404).json({ success: false, error: 'Report not found' });
+    }
+
+    // Parse data field if it exists
+    if (report.data) {
+      try {
+        report.data = JSON.parse(report.data);
+      } catch (e) {
+        console.warn('Failed to parse report data:', e);
+      }
+    }
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/reports', (req, res) => {
+  try {
+    const { reportData } = req.body;
+
+    if (!reportData) {
+      return res.status(400).json({ success: false, error: 'Report data is required' });
+    }
+
+    // Get next ID
+    const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('reports');
+    const currentValue = counterResult?.value || 0;
+    const nextValue = currentValue + 1;
+    db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextValue, 'reports');
+
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO reports (id, name, type, date_range_start, date_range_end, data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      nextValue,
+      reportData.name,
+      reportData.type,
+      reportData.date_range_start,
+      reportData.date_range_end,
+      JSON.stringify(reportData.data || {}),
+      now
+    );
+
+    res.json({ success: true, result: { lastInsertRowid: nextValue } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/reports/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM reports WHERE id = ?');
+    const result = stmt.run(id);
+    res.json({ success: true, result: { changes: result.changes } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Settings operations
+
+// Get all settings or filter by category
+app.get('/api/settings', (req, res) => {
+  try {
+    const { category } = req.query;
+    let query = 'SELECT key, value, category FROM settings';
+    let params = [];
+
+    if (category) {
+      query += ' WHERE category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY category, key';
+
+    const results = db.prepare(query).all(params);
+    const settings = {};
+
+    results.forEach(row => {
+      try {
+        settings[row.key] = JSON.parse(row.value);
+      } catch {
+        settings[row.key] = row.value;
+      }
+    });
+
+    res.json({ success: true, settings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get individual setting by key
 app.get('/api/settings/:key', (req, res) => {
   try {
     const { key } = req.params;
@@ -591,11 +2110,38 @@ app.get('/api/settings/:key', (req, res) => {
   }
 });
 
+// Save individual setting
 app.post('/api/settings', (req, res) => {
   try {
     const { key, value, category = 'general' } = req.body;
     const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
     db.prepare('INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)').run(key, jsonValue, category);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Save multiple settings at once
+app.put('/api/settings', (req, res) => {
+  try {
+    const { settings } = req.body;
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: 'Settings object is required' });
+    }
+
+    // Use a transaction for bulk updates
+    const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)');
+    const transaction = db.transaction((settingsData) => {
+      for (const [key, data] of Object.entries(settingsData)) {
+        const { value, category = 'general' } = data;
+        const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+        stmt.run(key, jsonValue, category);
+      }
+    });
+
+    transaction(settings);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

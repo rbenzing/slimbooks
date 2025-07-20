@@ -16,11 +16,13 @@ import { ReportsManagement } from './components/ReportsManagement';
 import { Settings } from './components/Settings';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import NotFound from './pages/NotFound';
 import PublicInvoiceView from './components/PublicInvoiceView';
 import { Toaster } from './components/ui/sonner';
 import { processRecurringInvoices } from './utils/recurringProcessor';
-import { DatabaseMigrations } from './lib/database-migrations';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -46,11 +48,7 @@ const App = () => {
     if (isAuthenticated) {
       const initializeApp = async () => {
         try {
-          // Run database migrations first
-          const migrations = DatabaseMigrations.getInstance();
-          await migrations.runMigrations();
-
-          // Then process recurring invoices
+          // Process recurring invoices (migrations are handled server-side)
           await processRecurringInvoices();
         } catch (error) {
           console.error('Error during app initialization:', error);
@@ -85,6 +83,9 @@ const App = () => {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/invoice/:id" element={<PublicInvoiceView />} />
 
           {/* Root redirect */}

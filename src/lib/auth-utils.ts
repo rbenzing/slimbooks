@@ -39,25 +39,29 @@ export class AuthUtils {
   }
 
   // Browser-compatible JWT token management
-  static generateAccessToken(payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string {
+  static generateAccessToken(payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>, rememberMe: boolean = false): string {
     const now = Date.now();
+    // Use longer expiry for remember me: 30 days vs 15 minutes
+    const expiry = rememberMe ? (30 * 24 * 60 * 60 * 1000) : ACCESS_TOKEN_EXPIRY;
     const tokenPayload: JWTPayload = {
       ...payload,
       type: 'access',
       iat: Math.floor(now / 1000),
-      exp: Math.floor((now + ACCESS_TOKEN_EXPIRY) / 1000)
+      exp: Math.floor((now + expiry) / 1000)
     };
 
     return this.createSimpleJWT(tokenPayload, JWT_SECRET);
   }
 
-  static generateRefreshToken(payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string {
+  static generateRefreshToken(payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>, rememberMe: boolean = false): string {
     const now = Date.now();
+    // Use longer expiry for remember me: 90 days vs 7 days
+    const expiry = rememberMe ? (90 * 24 * 60 * 60 * 1000) : REFRESH_TOKEN_EXPIRY;
     const tokenPayload: JWTPayload = {
       ...payload,
       type: 'refresh',
       iat: Math.floor(now / 1000),
-      exp: Math.floor((now + REFRESH_TOKEN_EXPIRY) / 1000)
+      exp: Math.floor((now + expiry) / 1000)
     };
 
     return this.createSimpleJWT(tokenPayload, JWT_REFRESH_SECRET);
@@ -76,6 +80,52 @@ export class AuthUtils {
     try {
       const decoded = this.verifySimpleJWT(token, JWT_REFRESH_SECRET);
       return decoded && decoded.type === 'refresh' ? decoded : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static generateEmailToken(email: string, userId: number): string {
+    const now = Date.now();
+    const tokenPayload = {
+      email,
+      userId,
+      type: 'email_verification',
+      iat: Math.floor(now / 1000),
+      exp: Math.floor((now + (24 * 60 * 60 * 1000)) / 1000) // 24 hours
+    };
+
+    return this.createSimpleJWT(tokenPayload, JWT_SECRET);
+  }
+
+  static verifyEmailToken(token: string): { email: string; userId: number } | null {
+    try {
+      const decoded = this.verifySimpleJWT(token, JWT_SECRET);
+      return decoded && decoded.type === 'email_verification' ?
+        { email: decoded.email, userId: decoded.userId } : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static generatePasswordResetToken(email: string, userId: number): string {
+    const now = Date.now();
+    const tokenPayload = {
+      email,
+      userId,
+      type: 'password_reset',
+      iat: Math.floor(now / 1000),
+      exp: Math.floor((now + (60 * 60 * 1000)) / 1000) // 1 hour
+    };
+
+    return this.createSimpleJWT(tokenPayload, JWT_SECRET);
+  }
+
+  static verifyPasswordResetToken(token: string): { email: string; userId: number } | null {
+    try {
+      const decoded = this.verifySimpleJWT(token, JWT_SECRET);
+      return decoded && decoded.type === 'password_reset' ?
+        { email: decoded.email, userId: decoded.userId } : null;
     } catch (error) {
       return null;
     }

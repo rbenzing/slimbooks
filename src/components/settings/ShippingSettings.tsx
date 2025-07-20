@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
+import { sqliteService } from '@/lib/sqlite-service';
 
 interface ShippingRate {
   id: string;
@@ -16,24 +17,51 @@ export const ShippingSettings = () => {
   const [editForm, setEditForm] = useState({ name: '', amount: 0 });
 
   useEffect(() => {
-    const saved = localStorage.getItem('shipping_rates');
-    if (saved) {
-      setShippingRates(JSON.parse(saved));
-    } else {
-      const defaultRates = [
-        { id: '1', name: 'No Shipping', amount: 0, isDefault: true },
-        { id: '2', name: 'Standard Shipping', amount: 10, isDefault: false },
-        { id: '3', name: 'Express Shipping', amount: 25, isDefault: false },
-        { id: '4', name: 'Overnight Shipping', amount: 50, isDefault: false }
-      ];
-      setShippingRates(defaultRates);
-      localStorage.setItem('shipping_rates', JSON.stringify(defaultRates));
-    }
+    const loadShippingRates = async () => {
+      try {
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const saved = await sqliteService.getSetting('shipping_rates');
+        if (saved) {
+          setShippingRates(saved);
+        } else {
+          // Migrate from localStorage if it exists
+          const localStorageData = localStorage.getItem('shipping_rates');
+          let defaultRates;
+
+          if (localStorageData) {
+            defaultRates = JSON.parse(localStorageData);
+            // Clear localStorage after migration
+            localStorage.removeItem('shipping_rates');
+          } else {
+            defaultRates = [
+              { id: '1', name: 'No Shipping', amount: 0, isDefault: true },
+              { id: '2', name: 'Standard Shipping', amount: 10, isDefault: false },
+              { id: '3', name: 'Express Shipping', amount: 25, isDefault: false },
+              { id: '4', name: 'Overnight Shipping', amount: 50, isDefault: false }
+            ];
+          }
+
+          setShippingRates(defaultRates);
+          await sqliteService.setSetting('shipping_rates', defaultRates, 'shipping');
+        }
+      } catch (error) {
+        console.error('Error loading shipping rates:', error);
+      }
+    };
+
+    loadShippingRates();
   }, []);
 
-  const saveShippingRates = (rates: ShippingRate[]) => {
+  const saveShippingRates = async (rates: ShippingRate[]) => {
     setShippingRates(rates);
-    localStorage.setItem('shipping_rates', JSON.stringify(rates));
+    try {
+      await sqliteService.setSetting('shipping_rates', rates, 'shipping');
+    } catch (error) {
+      console.error('Error saving shipping rates:', error);
+    }
   };
 
   const addShippingRate = () => {

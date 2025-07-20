@@ -9,7 +9,7 @@ import { AuthService } from '@/lib/auth-service';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthResponse>;
   register: (name: string, email: string, password: string, confirmPassword: string) => Promise<AuthResponse>;
   logout: () => void;
   verify2FA: (token: string) => Promise<AuthResponse>;
@@ -41,17 +41,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Initialize admin user
       await authService.initializeAdminUser();
 
-      // Check for existing session
-      const token = localStorage.getItem('auth_token');
+      // Check for existing session (localStorage first, then sessionStorage)
+      let token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (token) {
         const user = await authService.verifyToken(token);
         if (user) {
           setUser(user);
           authService.setCurrentUser(user);
         } else {
-          // Invalid token, remove it
+          // Invalid token, remove it from both storages
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
+          localStorage.removeItem('remember_me');
+          sessionStorage.removeItem('auth_token');
+          sessionStorage.removeItem('refresh_token');
         }
       }
     } catch (error) {
@@ -61,15 +64,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string): Promise<AuthResponse> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<AuthResponse> => {
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email, password, rememberMe });
 
       if (response.success && response.user && response.session_token) {
         setUser(response.user);
-        localStorage.setItem('auth_token', response.session_token);
-        if (response.refresh_token) {
-          localStorage.setItem('refresh_token', response.refresh_token);
+
+        // Store tokens based on remember me preference
+        if (rememberMe) {
+          // Use localStorage for persistent storage
+          localStorage.setItem('auth_token', response.session_token);
+          localStorage.setItem('remember_me', 'true');
+          if (response.refresh_token) {
+            localStorage.setItem('refresh_token', response.refresh_token);
+          }
+        } else {
+          // Use sessionStorage for session-only storage
+          sessionStorage.setItem('auth_token', response.session_token);
+          localStorage.removeItem('remember_me');
+          if (response.refresh_token) {
+            sessionStorage.setItem('refresh_token', response.refresh_token);
+          }
         }
       }
 
@@ -127,13 +143,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     authService.logout();
+    // Clear tokens from both storages
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('refresh_token');
   };
 
   const refreshUser = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (token && user) {
         const updatedUser = await authService.verifyToken(token);
         if (updatedUser) {

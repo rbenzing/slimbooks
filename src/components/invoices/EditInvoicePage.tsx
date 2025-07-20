@@ -10,6 +10,7 @@ import { statusColors, themeClasses, getButtonClasses } from '@/lib/utils';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getInvoiceStatusPermissions } from '@/utils/invoiceValidation';
 import { InvoiceEmailService } from '@/services/invoiceEmailService';
 import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
 import { toast } from 'sonner';
 
 interface LineItem {
@@ -44,6 +45,7 @@ export const EditInvoicePage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [emailConfig, setEmailConfig] = useState<EmailConfigStatus | null>(null);
 
   const { confirmNavigation, NavigationGuard } = useFormNavigation({
     isDirty,
@@ -138,6 +140,10 @@ export const EditInvoicePage = () => {
               setSelectedShippingRate(savedShippingRates.find((r: any) => r.isDefault) || savedShippingRates[0]);
             }
           }
+
+          // Load email configuration
+          const emailConfigStatus = await getEmailConfigurationStatus();
+          setEmailConfig(emailConfigStatus);
         }
       } catch (error) {
         console.error('Error loading settings:', error);
@@ -194,7 +200,8 @@ export const EditInvoicePage = () => {
         invoice_number: invoiceData.invoice_number,
         client_id: selectedClient.id,
         template_id: invoice.template_id,
-        amount: total,
+        amount: subtotal,
+        total_amount: total,
         status: invoiceData.status,
         due_date: invoiceData.due_date,
         description: lineItems.map(item => item.description).join(', '),
@@ -450,29 +457,60 @@ export const EditInvoicePage = () => {
                     </button>
                   )}
 
-                  {permissions.canSend && (
-                    <>
-                      {hasClientEmail ? (
+                  {(() => {
+                    const canSendEmails = emailConfig?.canSendEmails ?? false;
+                    const isInvoiceAlreadySent = invoice?.status === 'sent';
+
+                    // Show send button only if:
+                    // 1. Permissions allow sending
+                    // 2. Client has email
+                    // 3. Email is configured
+                    // 4. Invoice is not already sent (unless we want to allow resending)
+                    const shouldShowSendButton = permissions.canSend && hasClientEmail && canSendEmails && !isInvoiceAlreadySent;
+
+                    if (shouldShowSendButton) {
+                      return (
                         <button
                           onClick={handleSendInvoice}
                           disabled={!isValidForSend() || isSending}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
                         >
                           <Send className="h-4 w-4 mr-2" />
-                          {isSending ? 'Sending...' : (invoice.status === 'sent' ? 'Resend Invoice' : 'Send Invoice')}
+                          {isSending ? 'Sending...' : 'Send Invoice'}
                         </button>
-                      ) : (
-                        <button
-                          onClick={handlePrintInvoice}
-                          disabled={!isValidForSave()}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          Print Invoice
-                        </button>
-                      )}
-                    </>
-                  )}
+                      );
+                    } else if (hasClientEmail || !canSendEmails) {
+                      // Show print button as fallback with tooltip explaining why send is not available
+                      let tooltipMessage = '';
+                      if (!hasClientEmail) {
+                        tooltipMessage = 'Client email is required to send invoices';
+                      } else if (!canSendEmails) {
+                        tooltipMessage = 'Email settings need to be configured in Settings to send invoices';
+                      } else if (isInvoiceAlreadySent) {
+                        tooltipMessage = 'Invoice has already been sent';
+                      }
+
+                      return (
+                        <div className="relative group">
+                          <button
+                            onClick={handlePrintInvoice}
+                            disabled={!isValidForSave()}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                          >
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print Invoice
+                          </button>
+                          {tooltipMessage && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              {tooltipMessage}
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </>
               );
             })()}

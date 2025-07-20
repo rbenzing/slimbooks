@@ -1,20 +1,62 @@
 
 import React, { useState, useEffect } from 'react';
 import { themeClasses } from '@/lib/utils';
+import { sqliteService } from '@/lib/sqlite-service';
 
 export const AppearanceSettingsTab = () => {
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'system';
-  });
-  
-  const [invoiceTemplate, setInvoiceTemplate] = useState(() => {
-    return localStorage.getItem('invoiceTemplate') || 'modern-blue';
-  });
+  const [theme, setTheme] = useState('system');
+  const [invoiceTemplate, setInvoiceTemplate] = useState('modern-blue');
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  // Load settings from database on component mount
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        if (!sqliteService.isReady()) {
+          await sqliteService.initialize();
+        }
+
+        const settings = await sqliteService.getAllSettings('appearance');
+
+        // Migrate from localStorage if database settings don't exist
+        if (!settings.theme && !settings.invoice_template) {
+          const localTheme = localStorage.getItem('theme') || 'system';
+          const localTemplate = localStorage.getItem('invoiceTemplate') || 'modern-blue';
+
+          setTheme(localTheme);
+          setInvoiceTemplate(localTemplate);
+
+          // Save to database and clear localStorage
+          await sqliteService.setMultipleSettings({
+            'theme': { value: localTheme, category: 'appearance' },
+            'invoice_template': { value: localTemplate, category: 'appearance' }
+          });
+
+          localStorage.removeItem('theme');
+          localStorage.removeItem('invoiceTemplate');
+        } else {
+          // Use database settings
+          if (settings.theme) setTheme(settings.theme);
+          if (settings.invoice_template) setInvoiceTemplate(settings.invoice_template);
+        }
+
+        setIsLoaded(true);
+      } catch (error) {
+        console.error('Error loading appearance settings:', error);
+        setIsLoaded(true);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Apply theme changes
+  useEffect(() => {
+    if (!isLoaded) return;
+
     const applyTheme = (selectedTheme: string) => {
       const root = document.documentElement;
-      
+
       if (selectedTheme === 'system') {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         root.classList.toggle('dark', systemTheme === 'dark');
@@ -24,7 +66,9 @@ export const AppearanceSettingsTab = () => {
     };
 
     applyTheme(theme);
-    localStorage.setItem('theme', theme);
+
+    // Save to database
+    sqliteService.setSetting('theme', theme, 'appearance').catch(console.error);
 
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -32,11 +76,14 @@ export const AppearanceSettingsTab = () => {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [theme]);
+  }, [theme, isLoaded]);
 
+  // Save invoice template changes
   useEffect(() => {
-    localStorage.setItem('invoiceTemplate', invoiceTemplate);
-  }, [invoiceTemplate]);
+    if (!isLoaded) return;
+
+    sqliteService.setSetting('invoice_template', invoiceTemplate, 'appearance').catch(console.error);
+  }, [invoiceTemplate, isLoaded]);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);

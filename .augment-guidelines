@@ -2,7 +2,6 @@
 - Always use the utility functions for dynamic styling (colors, variants, etc.)
 - Always test components for syntax errors.
 - Always use semantic color names rather than specific color values.
-- Always reference the frontend at http://localhost:4173/
-- Always reference the backend at http://localhost:3002
+- Always run the server and client using `npm run dev`.
 - Do NOT create markdown files to explain your changes unless asked to do so
 - Project documentation is located in the documentation folder 

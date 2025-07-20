@@ -10,6 +10,7 @@ import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/i
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
 import { InvoiceEmailService } from '@/services/invoiceEmailService';
 import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
 import { toast } from 'sonner';
 
 interface LineItem {
@@ -47,6 +48,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [originalFormData, setOriginalFormData] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [emailConfig, setEmailConfig] = useState<EmailConfigStatus | null>(null);
 
   // Track if form has been modified
   const currentState = {
@@ -91,6 +93,10 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           setShippingRates(rates);
           setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
         }
+
+        // Load email configuration
+        const emailConfigStatus = await getEmailConfigurationStatus();
+        setEmailConfig(emailConfigStatus);
 
         // Load existing invoice data if editing
         if (editingInvoice) {
@@ -216,7 +222,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       const invoicePayload = {
         ...invoiceData,
         client_id: selectedClient.id,
-        amount: total,
+        amount: subtotal,
+        total_amount: total,
+        issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time',
         client_name: selectedClient.name,
@@ -272,7 +280,9 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       const invoicePayload = {
         ...updatedInvoiceData,
         client_id: selectedClient.id,
-        amount: total,
+        amount: subtotal,
+        total_amount: total,
+        issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time',
         client_name: selectedClient.name,
@@ -384,8 +394,16 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
               {(() => {
                 const actions = getActionAvailability();
                 const hasClientEmail = selectedClient?.email && selectedClient.email.trim() !== '';
+                const isInvoiceAlreadySent = editingInvoice?.status === 'sent';
+                const canSendEmails = emailConfig?.canSendEmails ?? false;
 
-                if (hasClientEmail) {
+                // Show send button only if:
+                // 1. Client has email
+                // 2. Email is configured
+                // 3. Invoice is not already sent
+                const shouldShowSendButton = hasClientEmail && canSendEmails && !isInvoiceAlreadySent;
+
+                if (shouldShowSendButton) {
                   return (
                     <button
                       onClick={handleSendInvoice}
@@ -397,15 +415,33 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     </button>
                   );
                 } else {
+                  // Show print button as fallback with tooltip explaining why send is not available
+                  let tooltipMessage = '';
+                  if (!hasClientEmail) {
+                    tooltipMessage = 'Client email is required to send invoices';
+                  } else if (!canSendEmails) {
+                    tooltipMessage = 'Email settings need to be configured in Settings to send invoices';
+                  } else if (isInvoiceAlreadySent) {
+                    tooltipMessage = 'Invoice has already been sent';
+                  }
+
                   return (
-                    <button
-                      onClick={handlePrintInvoice}
-                      disabled={!isValidForSave()}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
-                    >
-                      <Printer className="h-4 w-4 mr-2" />
-                      Print Invoice
-                    </button>
+                    <div className="relative group">
+                      <button
+                        onClick={handlePrintInvoice}
+                        disabled={!isValidForSave()}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        Print Invoice
+                      </button>
+                      {tooltipMessage && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                          {tooltipMessage}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      )}
+                    </div>
                   );
                 }
               })()}

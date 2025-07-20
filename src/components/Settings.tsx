@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Save } from 'lucide-react';
 import { TaxSettings } from './settings/TaxSettings';
@@ -10,6 +10,7 @@ import { EmailSettings } from './settings/EmailSettings';
 import { StripeSettingsTab } from './settings/StripeSettingsTab';
 import { NotificationSettingsTab } from './settings/NotificationSettingsTab';
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab';
+import { ProjectSettingsTab, ProjectSettingsRef } from './settings/ProjectSettingsTab';
 import { DatabaseBackupSection } from './settings/DatabaseBackupSection';
 import { themeClasses, getButtonClasses } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -18,10 +19,11 @@ export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
+  const projectSettingsRef = useRef<ProjectSettingsRef>(null);
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['company', 'general', 'tax', 'shipping', 'email', 'stripe', 'notifications', 'appearance', 'backup'].includes(hash)) {
+    if (hash && ['company', 'general', 'tax', 'shipping', 'email', 'stripe', 'notifications', 'appearance', 'project', 'backup'].includes(hash)) {
       setActiveTab(hash);
     } else {
       setActiveTab('company');
@@ -31,11 +33,17 @@ export const Settings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // The individual settings components handle their own saving
-      // This is just a unified save action that triggers success feedback
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Settings saved successfully');
+      // Handle specific tab saving
+      if (activeTab === 'project' && projectSettingsRef.current) {
+        await projectSettingsRef.current.saveSettings();
+      } else {
+        // For other tabs, the individual settings components handle their own saving
+        // This is just a unified save action that triggers success feedback
+        await new Promise(resolve => setTimeout(resolve, 500));
+        toast.success('Settings saved successfully');
+      }
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast.error('Failed to save settings');
     } finally {
       setIsLoading(false);
@@ -71,6 +79,7 @@ export const Settings = () => {
           {activeTab === 'stripe' && <StripeSettingsTab />}
           {activeTab === 'notifications' && <NotificationSettingsTab />}
           {activeTab === 'appearance' && <AppearanceSettingsTab />}
+          {activeTab === 'project' && <ProjectSettingsTab ref={projectSettingsRef} />}
           {activeTab === 'backup' && <DatabaseBackupSection />}
         </div>
       </div>

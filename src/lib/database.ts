@@ -25,8 +25,11 @@ interface Invoice {
   client_id: number;
   template_id?: number;
   amount: number;
+  tax_amount?: number;
+  total_amount: number;
   status: string;
   due_date: string;
+  issue_date?: string;
   description: string;
   stripe_invoice_id?: string;
   type: string;
@@ -37,7 +40,6 @@ interface Invoice {
   client_phone?: string;
   client_address?: string;
   line_items?: string;
-  tax_amount?: number;
   tax_rate_id?: string;
   shipping_amount?: number;
   shipping_rate_id?: string;
@@ -52,20 +54,20 @@ interface InvoiceTemplate {
   id: number;
   name: string;
   client_id: number;
-  frequency: string;
   amount: number;
-  description: string;
+  description?: string;
+  frequency: string;
+  payment_terms: string;
   next_invoice_date: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_active: number; // SQLite uses INTEGER for boolean
   line_items?: string;
   tax_amount?: number;
   tax_rate_id?: string;
   shipping_amount?: number;
   shipping_rate_id?: string;
   notes?: string;
-  payment_terms?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Expense {
@@ -108,10 +110,10 @@ const ensureInitialized = async (): Promise<void> => {
 // Initialize database with sample data (SQLite version)
 export const initDatabase = async () => {
   await ensureInitialized();
-  
+
   // Check if data already exists
-  const existingClients = await sqliteService.all('SELECT COUNT(*) as count FROM clients');
-  if (existingClients[0]?.count > 0) {
+  const existingClients = await sqliteService.getClients();
+  if (existingClients.length > 0) {
     return; // Already initialized
   }
 
@@ -122,41 +124,19 @@ export const initDatabase = async () => {
 export const clientOperations = {
   getAll: async (): Promise<Client[]> => {
     await ensureInitialized();
-    return await sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
+    return await sqliteService.getClients();
   },
 
   getById: async (id: number): Promise<Client | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM clients WHERE id = ?', [id]);
+    const result = await sqliteService.getClientById(id);
     return result || undefined;
   },
   
   create: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     try {
       await ensureInitialized();
-      const id = await sqliteService.getNextId('clients');
-      const now = new Date().toISOString();
-
-      await sqliteService.run(`
-        INSERT INTO clients (id, name, email, phone, company, address, city, state, zipCode, country, stripe_customer_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        id,
-        clientData.name,
-        clientData.email,
-        clientData.phone || '',
-        clientData.company || '',
-        clientData.address || '',
-        clientData.city || '',
-        clientData.state || '',
-        clientData.zipCode || '',
-        clientData.country || '',
-        clientData.stripe_customer_id || null,
-        now,
-        now
-      ]);
-
-      return { lastInsertRowid: id };
+      return await sqliteService.createClient(clientData);
     } catch (error) {
       console.error('Error creating client:', error);
       throw new Error('Failed to create client');
@@ -166,12 +146,7 @@ export const clientOperations = {
   update: async (id: number, clientData: Partial<Omit<Client, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
     try {
       await ensureInitialized();
-
-      const fields = Object.keys(clientData).map(key => `${key} = ?`).join(', ');
-      const values = [...Object.values(clientData), id];
-
-      await sqliteService.run(`UPDATE clients SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
-      return { changes: 1 };
+      return await sqliteService.updateClient(id, clientData);
     } catch (error) {
       console.error('Error updating client:', error);
       throw new Error('Failed to update client');
@@ -179,14 +154,8 @@ export const clientOperations = {
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
-    try {
-      await ensureInitialized();
-      await sqliteService.run('DELETE FROM clients WHERE id = ?', [id]);
-      return { changes: 1 };
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      throw new Error('Failed to delete client');
-    }
+    await ensureInitialized();
+    return await sqliteService.deleteClient(id);
   }
 };
 
@@ -194,93 +163,28 @@ export const clientOperations = {
 export const invoiceOperations = {
   getAll: async (): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[]> => {
     await ensureInitialized();
-    return await sqliteService.all(`
-      SELECT
-        i.*,
-        c.name as client_name,
-        c.email as client_email,
-        c.phone as client_phone,
-        (c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
-      FROM invoices i
-      LEFT JOIN clients c ON i.client_id = c.id
-      ORDER BY i.created_at DESC
-    `);
+    return await sqliteService.getInvoices();
   },
-  
+
   getById: async (id: number): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string }) | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get(`
-      SELECT 
-        i.*,
-        c.name as client_name,
-        COALESCE(i.client_email, c.email) as client_email,
-        COALESCE(i.client_phone, c.phone) as client_phone,
-        COALESCE(i.client_address, c.address || ', ' || c.city || ', ' || c.state || ' ' || c.zipCode) as client_address
-      FROM invoices i
-      LEFT JOIN clients c ON i.client_id = c.id
-      WHERE i.id = ?
-    `, [id]);
+    const result = await sqliteService.getInvoiceById(id);
     return result || undefined;
   },
   
   create: async (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = await sqliteService.getNextId('invoices');
-    const now = new Date().toISOString();
-
-    await sqliteService.run(`
-      INSERT INTO invoices (id, invoice_number, client_id, template_id, amount, status, due_date, description,
-                           stripe_invoice_id, type, client_name, client_email, client_phone, client_address,
-                           line_items, tax_amount, tax_rate_id, shipping_amount, shipping_rate_id, notes,
-                           email_status, email_sent_at, email_error, last_email_attempt, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      invoiceData.invoice_number,
-      invoiceData.client_id,
-      invoiceData.template_id || null,
-      invoiceData.amount,
-      invoiceData.status,
-      invoiceData.due_date,
-      invoiceData.description || '',
-      invoiceData.stripe_invoice_id || null,
-      invoiceData.type || 'one-time',
-      invoiceData.client_name || '',
-      invoiceData.client_email || '',
-      invoiceData.client_phone || '',
-      invoiceData.client_address || '',
-      invoiceData.line_items || null,
-      invoiceData.tax_amount || 0,
-      invoiceData.tax_rate_id || null,
-      invoiceData.shipping_amount || 0,
-      invoiceData.shipping_rate_id || null,
-      invoiceData.notes || '',
-      invoiceData.email_status || 'not_sent',
-      invoiceData.email_sent_at || null,
-      invoiceData.email_error || null,
-      invoiceData.last_email_attempt || null,
-      now,
-      now
-    ]);
-    
-    return { lastInsertRowid: id };
+    return await sqliteService.createInvoice(invoiceData);
   },
-  
+
   update: async (id: number, invoiceData: Partial<Omit<Invoice, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
     await ensureInitialized();
-    
-    const fields = Object.keys(invoiceData).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(invoiceData);
-    values.push(id);
-    
-    await sqliteService.run(`UPDATE invoices SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
-    return { changes: 1 };
+    return await sqliteService.updateInvoice(id, invoiceData);
   },
-  
+
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    await sqliteService.run('DELETE FROM invoices WHERE id = ?', [id]);
-    return { changes: 1 };
+    return await sqliteService.deleteInvoice(id);
   }
 };
 
@@ -288,76 +192,28 @@ export const invoiceOperations = {
 export const templateOperations = {
   getAll: async (): Promise<(InvoiceTemplate & { client_name: string })[]> => {
     await ensureInitialized();
-    return await sqliteService.all(`
-      SELECT
-        t.*,
-        c.name as client_name
-      FROM templates t
-      LEFT JOIN clients c ON t.client_id = c.id
-      ORDER BY t.created_at DESC
-    `);
+    return await sqliteService.getTemplates();
   },
 
   getById: async (id: number): Promise<(InvoiceTemplate & { client_name: string }) | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get(`
-      SELECT
-        t.*,
-        c.name as client_name
-      FROM templates t
-      LEFT JOIN clients c ON t.client_id = c.id
-      WHERE t.id = ?
-    `, [id]);
+    const result = await sqliteService.getTemplateById(id);
     return result || undefined;
   },
 
   create: async (templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = await sqliteService.getNextId('templates');
-    const now = new Date().toISOString();
-
-    await sqliteService.run(`
-      INSERT INTO templates (id, name, client_id, amount, description, frequency, payment_terms,
-                            next_invoice_date, is_active, line_items, tax_amount, tax_rate_id,
-                            shipping_amount, shipping_rate_id, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      templateData.name,
-      templateData.client_id,
-      templateData.amount,
-      templateData.description || '',
-      templateData.frequency,
-      templateData.payment_terms || '',
-      templateData.next_invoice_date,
-      templateData.is_active ? 1 : 0,
-      templateData.line_items || null,
-      templateData.tax_amount || 0,
-      templateData.tax_rate_id || null,
-      templateData.shipping_amount || 0,
-      templateData.shipping_rate_id || null,
-      templateData.notes || '',
-      now,
-      now
-    ]);
-
-    return { lastInsertRowid: id };
+    return await sqliteService.createTemplate(templateData);
   },
 
   update: async (id: number, templateData: Partial<Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
     await ensureInitialized();
-
-    const fields = Object.keys(templateData).map(key => `${key} = ?`).join(', ');
-    const values = [...Object.values(templateData), id];
-
-    await sqliteService.run(`UPDATE templates SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
-    return { changes: 1 };
+    return await sqliteService.updateTemplate(id, templateData);
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    await sqliteService.run('DELETE FROM templates WHERE id = ?', [id]);
-    return { changes: 1 };
+    return await sqliteService.deleteTemplate(id);
   }
 };
 
@@ -365,78 +221,33 @@ export const templateOperations = {
 export const expenseOperations = {
   getAll: async (): Promise<Expense[]> => {
     await ensureInitialized();
-    return await sqliteService.all('SELECT * FROM expenses ORDER BY date DESC, created_at DESC');
+    return await sqliteService.getExpenses();
   },
 
   getById: async (id: number): Promise<Expense | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM expenses WHERE id = ?', [id]);
+    const result = await sqliteService.getExpenseById(id);
     return result || undefined;
   },
 
   getByDateRange: async (startDate: string, endDate: string): Promise<Expense[]> => {
     await ensureInitialized();
-    return await sqliteService.all(`
-      SELECT * FROM expenses
-      WHERE date(date) >= date(?) AND date(date) <= date(?)
-      ORDER BY date DESC, created_at DESC
-    `, [startDate, endDate]);
+    return await sqliteService.getExpenses(startDate, endDate);
   },
 
   create: async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
-    try {
-      await ensureInitialized();
-      const id = await sqliteService.getNextId('expenses');
-      const now = new Date().toISOString();
-
-      await sqliteService.run(`
-        INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        id,
-        expenseData.date,
-        expenseData.merchant,
-        expenseData.category,
-        expenseData.amount,
-        expenseData.description,
-        expenseData.receipt_url || null,
-        expenseData.status,
-        now,
-        now
-      ]);
-
-      return { lastInsertRowid: id };
-    } catch (error) {
-      console.error('Error creating expense:', error);
-      throw new Error('Failed to create expense');
-    }
+    await ensureInitialized();
+    return await sqliteService.createExpense(expenseData);
   },
 
   update: async (id: number, expenseData: Partial<Omit<Expense, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
-    try {
-      await ensureInitialized();
-
-      const fields = Object.keys(expenseData).map(key => `${key} = ?`).join(', ');
-      const values = Object.values(expenseData);
-      values.push(id);
-
-      await sqliteService.run(`UPDATE expenses SET ${fields}, updated_at = datetime('now') WHERE id = ?`, values);
-      return { changes: 1 };
-    } catch (error) {
-      console.error('Error updating expense:', error);
-      throw new Error('Failed to update expense');
-    }
+    await ensureInitialized();
+    return await sqliteService.updateExpense(id, expenseData);
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
-    try {
-      await ensureInitialized();
-      await sqliteService.run('DELETE FROM expenses WHERE id = ?', [id]);
-      return { changes: 1 };
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-      throw new Error('Failed to delete expense');
-    }
+    await ensureInitialized();
+    return await sqliteService.deleteExpense(id);
   }
 };
 
@@ -444,64 +255,40 @@ export const expenseOperations = {
 export const reportOperations = {
   getAll: async (): Promise<Report[]> => {
     await ensureInitialized();
-    return await sqliteService.all('SELECT * FROM reports ORDER BY created_at DESC');
+    return await sqliteService.getReports();
   },
 
   getById: async (id: number): Promise<Report | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM reports WHERE id = ?', [id]);
-    if (result && result.data) {
-      try {
-        result.data = JSON.parse(result.data);
-      } catch (e) {
-        console.warn('Failed to parse report data:', e);
-      }
-    }
+    const result = await sqliteService.getReportById(id);
     return result || undefined;
   },
 
   create: async (reportData: Omit<Report, 'id' | 'created_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = await sqliteService.getNextId('reports');
-    const now = new Date().toISOString();
-
-    await sqliteService.run(`
-      INSERT INTO reports (id, name, type, date_range_start, date_range_end, data, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      reportData.name,
-      reportData.type,
-      reportData.date_range_start,
-      reportData.date_range_end,
-      JSON.stringify(reportData.data || {}),
-      now
-    ]);
-
-    return { lastInsertRowid: id };
+    return await sqliteService.createReport(reportData);
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    await sqliteService.run('DELETE FROM reports WHERE id = ?', [id]);
-    return { changes: 1 };
+    return await sqliteService.deleteReport(id);
   },
 
   // Generate Profit & Loss Report Data
   generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual'): Promise<any> => {
     await ensureInitialized();
 
-    // Get invoices in date range
-    const invoices = await sqliteService.all(`
-      SELECT * FROM invoices
-      WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)
-    `, [startDate, endDate]);
+    // Get all invoices and filter by date range
+    const allInvoices = await sqliteService.getInvoices();
+    const invoices = allInvoices.filter((invoice: any) => {
+      const invoiceDate = new Date(invoice.created_at);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return invoiceDate >= start && invoiceDate <= end;
+    });
 
-    // Get expenses in date range
-    const expenses = await sqliteService.all(`
-      SELECT * FROM expenses
-      WHERE date(date) >= date(?) AND date(date) <= date(?)
-    `, [startDate, endDate]);
+    // Get expenses in date range using the API
+    const expenses = await sqliteService.getExpenses(startDate, endDate);
 
     // Helper function to safely convert to number
     const toNumber = (value: any): number => {
@@ -563,11 +350,7 @@ export const reportOperations = {
   generateExpenseData: async (startDate: string, endDate: string): Promise<any> => {
     await ensureInitialized();
 
-    const expenses = await sqliteService.all(`
-      SELECT * FROM expenses
-      WHERE date(date) >= date(?) AND date(date) <= date(?)
-      ORDER BY date DESC
-    `, [startDate, endDate]);
+    const expenses = await sqliteService.getExpenses(startDate, endDate);
 
     // Helper function to safely convert to number
     const toNumber = (value: any): number => {
@@ -603,15 +386,14 @@ export const reportOperations = {
   generateInvoiceData: async (startDate: string, endDate: string): Promise<any> => {
     await ensureInitialized();
 
-    const invoices = await sqliteService.all(`
-      SELECT
-        i.*,
-        c.name as client_name
-      FROM invoices i
-      LEFT JOIN clients c ON i.client_id = c.id
-      WHERE date(i.created_at) >= date(?) AND date(i.created_at) <= date(?)
-      ORDER BY i.created_at DESC
-    `, [startDate, endDate]);
+    // Get all invoices and filter by date range
+    const allInvoices = await sqliteService.getInvoices();
+    const invoices = allInvoices.filter((invoice: any) => {
+      const invoiceDate = new Date(invoice.created_at);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return invoiceDate >= start && invoiceDate <= end;
+    });
 
     // Helper function to safely convert to number
     const toNumber = (value: any): number => {
@@ -659,24 +441,20 @@ export const reportOperations = {
   generateClientData: async (startDate?: string, endDate?: string): Promise<any> => {
     await ensureInitialized();
 
-    const clients = await sqliteService.all('SELECT * FROM clients ORDER BY created_at DESC');
+    const clients = await sqliteService.getClients();
 
-    // Build invoice query with optional date filtering
-    let invoiceQuery = `
-      SELECT
-        i.*,
-        c.name as client_name
-      FROM invoices i
-      LEFT JOIN clients c ON i.client_id = c.id
-    `;
-    const queryParams: string[] = [];
+    // Get all invoices and filter by date range if provided
+    const allInvoices = await sqliteService.getInvoices();
+    let invoices = allInvoices;
 
     if (startDate && endDate) {
-      invoiceQuery += ' WHERE date(i.created_at) >= date(?) AND date(i.created_at) <= date(?)';
-      queryParams.push(startDate, endDate);
+      invoices = allInvoices.filter((invoice: any) => {
+        const invoiceDate = new Date(invoice.created_at);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        return invoiceDate >= start && invoiceDate <= end;
+      });
     }
-
-    const invoices = await sqliteService.all(invoiceQuery, queryParams);
 
     // Helper function to safely convert to number
     const toNumber = (value: any): number => {
@@ -728,107 +506,64 @@ export const reportOperations = {
 export const userOperations = {
   getAll: async (): Promise<User[]> => {
     await ensureInitialized();
-    return await sqliteService.all('SELECT * FROM users ORDER BY created_at DESC');
+    return await sqliteService.getUsers();
   },
 
   getById: async (id: number): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM users WHERE id = ?', [id]);
+    const result = await sqliteService.getUserById(id);
     return result || undefined;
   },
 
   getByEmail: async (email: string): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM users WHERE email = ?', [email]);
+    const result = await sqliteService.getUserByEmail(email);
     return result || undefined;
   },
 
   getByGoogleId: async (googleId: string): Promise<User | undefined> => {
     await ensureInitialized();
-    const result = await sqliteService.get('SELECT * FROM users WHERE google_id = ?', [googleId]);
+    const result = await sqliteService.getUserByGoogleId(googleId);
     return result || undefined;
   },
 
   create: async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> => {
     await ensureInitialized();
-    const id = await sqliteService.getNextId('users');
-    const now = new Date().toISOString();
-
-    await sqliteService.run(`
-      INSERT INTO users (
-        id, name, email, username, password_hash, role, email_verified,
-        google_id, two_factor_enabled, two_factor_secret, backup_codes,
-        last_login, failed_login_attempts, account_locked_until, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      userData.name,
-      userData.email,
-      userData.username,
-      userData.password_hash || null,
-      userData.role,
-      userData.email_verified ? 1 : 0,
-      userData.google_id || null,
-      userData.two_factor_enabled ? 1 : 0,
-      userData.two_factor_secret || null,
-      userData.backup_codes ? JSON.stringify(userData.backup_codes) : null,
-      userData.last_login || null,
-      userData.failed_login_attempts,
-      userData.account_locked_until || null,
-      now,
-      now
-    ]);
-
-    return { lastInsertRowid: id };
+    return await sqliteService.createUser(userData);
   },
 
   update: async (id: number, userData: Partial<User>): Promise<{ changes: number }> => {
     await ensureInitialized();
-    const fields = Object.keys(userData).map(key => `${key} = ?`).join(', ');
-    const values = [...Object.values(userData), id];
-
-    await sqliteService.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
-    return { changes: 1 };
+    return await sqliteService.updateUser(id, userData);
   },
 
   delete: async (id: number): Promise<{ changes: number }> => {
     await ensureInitialized();
-    await sqliteService.run('DELETE FROM users WHERE id = ?', [id]);
-    return { changes: 1 };
+    return await sqliteService.deleteUser(id);
   },
 
   updateLoginAttempts: async (id: number, attempts: number, lockedUntil?: string): Promise<void> => {
     await ensureInitialized();
-    await sqliteService.run(
-      'UPDATE users SET failed_login_attempts = ?, account_locked_until = ? WHERE id = ?',
-      [attempts, lockedUntil || null, id]
-    );
+    await sqliteService.updateUserLoginAttempts(id, attempts, lockedUntil);
   },
 
   updateLastLogin: async (id: number): Promise<void> => {
     await ensureInitialized();
-    const now = new Date().toISOString();
-    await sqliteService.run('UPDATE users SET last_login = ? WHERE id = ?', [now, id]);
+    await sqliteService.updateUserLastLogin(id);
   },
 
   verifyEmail: async (id: number): Promise<void> => {
     await ensureInitialized();
-    await sqliteService.run('UPDATE users SET email_verified = 1 WHERE id = ?', [id]);
+    await sqliteService.verifyUserEmail(id);
   },
 
   enable2FA: async (id: number, secret: string, backupCodes: string[]): Promise<void> => {
     await ensureInitialized();
-    await sqliteService.run(
-      'UPDATE users SET two_factor_enabled = 1, two_factor_secret = ?, backup_codes = ? WHERE id = ?',
-      [secret, JSON.stringify(backupCodes), id]
-    );
+    await sqliteService.enableUser2FA(id, secret, backupCodes);
   },
 
   disable2FA: async (id: number): Promise<void> => {
     await ensureInitialized();
-    await sqliteService.run(
-      'UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL, backup_codes = NULL WHERE id = ?',
-      [id]
-    );
+    await sqliteService.disableUser2FA(id);
   }
 };

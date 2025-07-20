@@ -91,11 +91,28 @@ export class AuthService {
         return { success: false, message: 'Failed to create user' };
       }
 
+      // Send verification email if email verification is required
+      if (DEFAULT_SECURITY_SETTINGS.require_email_verification) {
+        try {
+          const verificationToken = AuthUtils.generateEmailToken(user.email, user.id);
+
+          // TODO: Send verification email using email service
+          // For now, we'll just log the token in development
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Verification token for ${user.email}: ${verificationToken}`);
+            console.log(`Verification link: ${window.location.origin}/verify-email?token=${verificationToken}`);
+          }
+        } catch (emailError) {
+          console.error('Failed to send verification email:', emailError);
+          // Don't fail registration if email sending fails
+        }
+      }
+
       return {
         success: true,
         user,
-        message: 'Registration successful. Please verify your email.',
-        requires_email_verification: true
+        message: 'Registration successful. Please check your email for verification instructions.',
+        requires_email_verification: DEFAULT_SECURITY_SETTINGS.require_email_verification
       };
     } catch (error) {
       console.error('Registration error:', error);
@@ -104,7 +121,7 @@ export class AuthService {
   }
 
   // User login
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginCredentials & { rememberMe?: boolean }): Promise<AuthResponse> {
     try {
       // Find user by email
       const user = await userOperations.getByEmail(credentials.email);
@@ -157,8 +174,8 @@ export class AuthService {
 
       // Successful login
       await this.completeLogin(user);
-      
-      const tokens = this.generateTokens(user);
+
+      const tokens = this.generateTokens(user, credentials.rememberMe);
       return {
         success: true,
         user,
@@ -180,7 +197,7 @@ export class AuthService {
   }
 
   // Generate JWT tokens
-  private generateTokens(user: User): { accessToken: string; refreshToken: string } {
+  private generateTokens(user: User, rememberMe: boolean = false): { accessToken: string; refreshToken: string } {
     const payload = {
       userId: user.id,
       email: user.email,
@@ -188,8 +205,8 @@ export class AuthService {
     };
 
     return {
-      accessToken: AuthUtils.generateAccessToken(payload),
-      refreshToken: AuthUtils.generateRefreshToken(payload)
+      accessToken: AuthUtils.generateAccessToken(payload, rememberMe),
+      refreshToken: AuthUtils.generateRefreshToken(payload, rememberMe)
     };
   }
 
@@ -211,7 +228,7 @@ export class AuthService {
           await userOperations.update(userId, { backup_codes: backupCodes });
           
           await this.completeLogin(user);
-          const tokens = this.generateTokens(user);
+          const tokens = this.generateTokens(user, false); // 2FA doesn't use remember me
           return {
             success: true,
             user,
@@ -228,7 +245,7 @@ export class AuthService {
       }
 
       await this.completeLogin(user);
-      const tokens = this.generateTokens(user);
+      const tokens = this.generateTokens(user, false); // 2FA doesn't use remember me
       return {
         success: true,
         user,
