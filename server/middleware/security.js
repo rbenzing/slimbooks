@@ -4,12 +4,16 @@
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { body, param, query, validationResult } from 'express-validator';
+import { serverConfig } from '../config/index.js';
 
 // Rate limiting configurations
-export const createGeneralRateLimit = (windowMs = 15 * 60 * 1000, max = 1000) => {
+export const createGeneralRateLimit = (
+  windowMs = serverConfig.rateLimiting.windowMs,
+  max = serverConfig.rateLimiting.maxRequests
+) => {
   return rateLimit({
-    windowMs, // 15 minutes default
-    max, // limit each IP to max requests per windowMs (increased for development)
+    windowMs,
+    max,
     message: {
       error: 'Too many requests from this IP, please try again later.',
       retryAfter: Math.ceil(windowMs / 1000)
@@ -18,9 +22,9 @@ export const createGeneralRateLimit = (windowMs = 15 * 60 * 1000, max = 1000) =>
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     // Skip rate limiting for health checks
     skip: (req) => {
-      return req.path === '/api/health';
+      return req.path === '/api/health' || req.path === '/health';
     },
-    handler: (req, res) => {
+    handler: (_req, res) => {
       res.status(429).json({
         success: false,
         error: 'Too many requests from this IP, please try again later.',
@@ -30,16 +34,19 @@ export const createGeneralRateLimit = (windowMs = 15 * 60 * 1000, max = 1000) =>
   });
 };
 
-export const createLoginRateLimit = (windowMs = 15 * 60 * 1000, max = 5) => {
+export const createLoginRateLimit = (
+  windowMs = serverConfig.rateLimiting.loginWindowMs,
+  max = serverConfig.rateLimiting.loginMaxRequests
+) => {
   return rateLimit({
-    windowMs, // 15 minutes default
-    max, // limit each IP to max login attempts per windowMs
+    windowMs,
+    max,
     message: {
       error: 'Too many login attempts from this IP, please try again later.',
       retryAfter: Math.ceil(windowMs / 1000)
     },
     skipSuccessfulRequests: true, // Don't count successful requests
-    handler: (req, res) => {
+    handler: (_req, res) => {
       res.status(429).json({
         success: false,
         error: 'Too many login attempts from this IP, please try again later.',
@@ -256,10 +263,13 @@ export const requireAdmin = (req, res, next) => {
 };
 
 // CORS configuration
-export const createCorsOptions = (origin = 'http://localhost:8080') => {
+export const createCorsOptions = (
+  origin = serverConfig.corsOrigin,
+  credentials = serverConfig.corsCredentials
+) => {
   return {
     origin: origin,
-    credentials: true,
+    credentials: credentials,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400 // 24 hours
