@@ -14,11 +14,11 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const reports = db.prepare(`
-      SELECT id, name, type, description, parameters, created_at, updated_at
-      FROM reports 
+      SELECT id, name, type, date_range_start, date_range_end, data, created_at
+      FROM reports
       ORDER BY created_at DESC
     `).all();
-    
+
     res.json({
       success: true,
       data: reports
@@ -36,29 +36,21 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const report = db.prepare(`
-      SELECT id, name, type, description, parameters, data, created_at, updated_at
-      FROM reports 
+      SELECT id, name, type, date_range_start, date_range_end, data, created_at
+      FROM reports
       WHERE id = ?
     `).get(id);
-    
+
     if (!report) {
       return res.status(404).json({
         success: false,
         error: 'Report not found'
       });
     }
-    
-    // Parse JSON fields
-    if (report.parameters) {
-      try {
-        report.parameters = JSON.parse(report.parameters);
-      } catch (e) {
-        console.warn('Failed to parse report parameters:', e);
-      }
-    }
-    
+
+    // Parse JSON data field if it exists
     if (report.data) {
       try {
         report.data = JSON.parse(report.data);
@@ -66,7 +58,7 @@ router.get('/:id', async (req, res) => {
         console.warn('Failed to parse report data:', e);
       }
     }
-    
+
     res.json({
       success: true,
       data: report
@@ -84,36 +76,35 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { reportData } = req.body;
-    
+
     if (!reportData || !reportData.name || !reportData.type) {
       return res.status(400).json({
         success: false,
         error: 'Report name and type are required'
       });
     }
-    
+
     // Get next ID
     const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('reports');
     const nextId = (counterResult?.value || 0) + 1;
     db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'reports');
-    
+
     const now = new Date().toISOString();
     const stmt = db.prepare(`
-      INSERT INTO reports (id, name, type, description, parameters, data, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO reports (id, name, type, date_range_start, date_range_end, data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const result = stmt.run(
       nextId,
       reportData.name,
       reportData.type,
-      reportData.description || null,
-      reportData.parameters ? JSON.stringify(reportData.parameters) : null,
+      reportData.date_range_start || '',
+      reportData.date_range_end || '',
       reportData.data ? JSON.stringify(reportData.data) : null,
-      now,
       now
     );
-    
+
     res.json({
       success: true,
       result: {
@@ -135,38 +126,36 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { reportData } = req.body;
-    
+
     if (!reportData) {
       return res.status(400).json({
         success: false,
         error: 'Report data is required'
       });
     }
-    
-    const now = new Date().toISOString();
+
     const stmt = db.prepare(`
-      UPDATE reports 
-      SET name = ?, type = ?, description = ?, parameters = ?, data = ?, updated_at = ?
+      UPDATE reports
+      SET name = ?, type = ?, date_range_start = ?, date_range_end = ?, data = ?
       WHERE id = ?
     `);
-    
+
     const result = stmt.run(
       reportData.name,
       reportData.type,
-      reportData.description || null,
-      reportData.parameters ? JSON.stringify(reportData.parameters) : null,
+      reportData.date_range_start || '',
+      reportData.date_range_end || '',
       reportData.data ? JSON.stringify(reportData.data) : null,
-      now,
       id
     );
-    
+
     if (result.changes === 0) {
       return res.status(404).json({
         success: false,
         error: 'Report not found'
       });
     }
-    
+
     res.json({
       success: true,
       result: {
