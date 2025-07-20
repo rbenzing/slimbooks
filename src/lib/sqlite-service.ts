@@ -52,11 +52,19 @@ class SQLiteService {
   // API helper methods
   private async apiCall(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
     let url = `${this.baseUrl}${endpoint}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if token is available
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const options: RequestInit = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     };
 
     if (method === 'GET' && body) {
@@ -165,13 +173,7 @@ class SQLiteService {
     await this.apiCall(`/users/${id}/verify-email`, 'PUT');
   }
 
-  async enableUser2FA(id: number, secret: string, backupCodes: string[]): Promise<void> {
-    await this.apiCall(`/users/${id}/2fa/enable`, 'PUT', { secret, backupCodes });
-  }
 
-  async disableUser2FA(id: number): Promise<void> {
-    await this.apiCall(`/users/${id}/2fa/disable`, 'PUT');
-  }
 
   // ===== CLIENT API METHODS =====
   async getClients(): Promise<any[]> {
@@ -236,7 +238,7 @@ class SQLiteService {
   // ===== INVOICE API METHODS =====
   async getInvoices(): Promise<any[]> {
     const result = await this.apiCall('/invoices');
-    return result.data;
+    return result.data?.invoices || [];
   }
 
   async getInvoiceById(id: number): Promise<any> {
@@ -270,7 +272,7 @@ class SQLiteService {
   async getExpenses(startDate?: string, endDate?: string): Promise<any[]> {
     const params = startDate && endDate ? { startDate, endDate } : {};
     const result = await this.apiCall('/expenses', 'GET', params);
-    return result.data;
+    return result.data?.expenses || [];
   }
 
   async getExpenseById(id: number): Promise<any> {

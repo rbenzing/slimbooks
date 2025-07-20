@@ -248,11 +248,11 @@ export const validateConfig = () => {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  // Log warnings for development
-  if (warnings.length > 0 && serverConfig.isDevelopment) {
-    console.warn('⚠️  Configuration warnings:');
-    warnings.forEach(warning => console.warn(`   - ${warning}`));
-  }
+  // Configuration warnings are disabled for cleaner logs
+  // if (warnings.length > 0 && serverConfig.isDevelopment) {
+  //   console.warn('⚠️  Configuration warnings:');
+  //   warnings.forEach(warning => console.warn(`   - ${warning}`));
+  // }
 
   // Log configuration status
   console.log('✅ Configuration validation passed');

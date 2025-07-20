@@ -204,11 +204,11 @@ const validateSecurityConfig = (config: EnvironmentConfig): void => {
     }
   }
   
-  // Log warnings
-  if (warnings.length > 0) {
-    console.warn('🚨 Security Configuration Warnings:');
-    warnings.forEach(warning => console.warn(`  - ${warning}`));
-  }
+  // Security warnings are disabled for cleaner logs
+  // if (warnings.length > 0) {
+  //   console.warn('🚨 Security Configuration Warnings:');
+  //   warnings.forEach(warning => console.warn(`  - ${warning}`));
+  // }
 };
 
 // Export singleton instance

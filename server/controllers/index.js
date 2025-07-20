@@ -14,9 +14,7 @@ export {
   updateUserLastLogin,
   updateLoginAttemptsByUserId,
   updateLastLoginByUserId,
-  verifyUserEmail,
-  enableUser2FA,
-  disableUser2FA
+  verifyUserEmail
 } from './userController.js';
 
 // Client controller
@@ -70,3 +68,28 @@ export {
   updateProfile,
   changePassword
 } from './authController.js';
+
+// Settings controller
+export {
+  getAllSettings,
+  getSettingByKey,
+  saveSetting,
+  saveMultipleSettings,
+  getProjectSettings,
+  updateProjectSettings
+} from './settingsController.js';
+
+// Database controller
+export {
+  exportDatabase,
+  importDatabase
+} from './databaseController.js';
+
+// Template controller
+export {
+  getAllTemplates,
+  getTemplateById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate
+} from './templateController.js';

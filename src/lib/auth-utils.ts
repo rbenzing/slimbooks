@@ -190,10 +190,6 @@ export class AuthUtils {
     return crypto.lib.WordArray.random(32).toString();
   }
 
-  static generatePasswordResetToken(): string {
-    return crypto.lib.WordArray.random(32).toString();
-  }
-
   // Token expiration helpers
   static getEmailTokenExpiry(): Date {
     return new Date(Date.now() + EMAIL_TOKEN_EXPIRY);

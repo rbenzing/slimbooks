@@ -12,7 +12,6 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthResponse>;
   register: (name: string, email: string, password: string, confirmPassword: string) => Promise<AuthResponse>;
   logout: () => void;
-  verify2FA: (token: string) => Promise<AuthResponse>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   refreshUser: () => Promise<void>;
@@ -68,25 +67,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.login({ email, password, rememberMe });
 
-      if (response.success && response.user && response.session_token) {
-        setUser(response.user);
-
-        // Store tokens based on remember me preference
+      if (response.success && response.data?.user && response.data?.token) {
+        // Store tokens BEFORE setting user state to ensure they're available for API calls
         if (rememberMe) {
           // Use localStorage for persistent storage
-          localStorage.setItem('auth_token', response.session_token);
+          localStorage.setItem('auth_token', response.data.token);
           localStorage.setItem('remember_me', 'true');
-          if (response.refresh_token) {
-            localStorage.setItem('refresh_token', response.refresh_token);
+          if (response.data.refresh_token) {
+            localStorage.setItem('refresh_token', response.data.refresh_token);
           }
         } else {
           // Use sessionStorage for session-only storage
-          sessionStorage.setItem('auth_token', response.session_token);
+          sessionStorage.setItem('auth_token', response.data.token);
           localStorage.removeItem('remember_me');
-          if (response.refresh_token) {
-            sessionStorage.setItem('refresh_token', response.refresh_token);
+          if (response.data.refresh_token) {
+            sessionStorage.setItem('refresh_token', response.data.refresh_token);
           }
         }
+
+        // Set user state AFTER tokens are stored
+        setUser(response.data.user);
       }
 
       return response;
@@ -117,28 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verify2FA = async (token: string): Promise<AuthResponse> => {
-    try {
-      if (!user) {
-        return { success: false, message: 'No user found for 2FA verification' };
-      }
 
-      const response = await authService.verify2FA(user.id, token);
-
-      if (response.success && response.user && response.session_token) {
-        setUser(response.user);
-        localStorage.setItem('auth_token', response.session_token);
-        if (response.refresh_token) {
-          localStorage.setItem('refresh_token', response.refresh_token);
-        }
-      }
-
-      return response;
-    } catch (error) {
-      console.error('2FA verification error:', error);
-      return { success: false, message: '2FA verification failed. Please try again.' };
-    }
-  };
 
   const logout = () => {
     setUser(null);
@@ -171,7 +150,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
-    verify2FA,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     refreshUser

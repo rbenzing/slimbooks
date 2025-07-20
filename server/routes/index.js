@@ -8,11 +8,14 @@ import clientRoutes from './clientRoutes.js';
 import invoiceRoutes from './invoiceRoutes.js';
 import expenseRoutes from './expenseRoutes.js';
 import healthRoutes from './healthRoutes.js';
+import settingsRoutes from './settingsRoutes.js';
+import projectSettingsRoutes from './projectSettingsRoutes.js';
+import databaseRoutes from './databaseRoutes.js';
+import templateRoutes from './templateRoutes.js';
+import counterRoutes from './counterRoutes.js';
+import reportRoutes from './reportRoutes.js';
 
 const router = Router();
-
-// Health check routes (no /api prefix needed)
-router.use('/health', healthRoutes);
 
 // API routes with /api prefix
 router.use('/api/auth', authRoutes);
@@ -20,8 +23,14 @@ router.use('/api/users', userRoutes);
 router.use('/api/clients', clientRoutes);
 router.use('/api/invoices', invoiceRoutes);
 router.use('/api/expenses', expenseRoutes);
+router.use('/api/templates', templateRoutes);
+router.use('/api/settings', settingsRoutes);
+router.use('/api/project-settings', projectSettingsRoutes);
+router.use('/api/db', databaseRoutes);
+router.use('/api/counters', counterRoutes);
+router.use('/api/reports', reportRoutes);
 
-// Legacy health check route (for backward compatibility)
+// Health check routes
 router.use('/api/health', healthRoutes);
 
 export default router;

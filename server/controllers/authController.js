@@ -61,6 +61,7 @@ export const login = asyncHandler(async (req, res) => {
       user: userResponse,
       token
     },
+    requires_email_verification: false, // Email verification is handled separately
     message: 'Login successful'
   });
 });

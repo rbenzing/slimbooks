@@ -60,28 +60,53 @@ export const getCurrencySymbol = (currencyCode: string): string => {
   return currency?.symbol || currencyCode;
 };
 
+// Cache for currency settings to prevent duplicate API calls
+let currencySettingsCache: CurrencySettings | null = null;
+let currencySettingsPromise: Promise<CurrencySettings> | null = null;
+
 // Get current currency settings from SQLite (async)
 export const getCurrencySettings = async (): Promise<CurrencySettings> => {
-  try {
-    // Use dynamic import to avoid circular dependencies
-    const { sqliteService } = await import('@/lib/sqlite-service');
-
-    if (sqliteService.isReady()) {
-      const settings = await sqliteService.getSetting('currency_format_settings');
-      if (settings) {
-        return {
-          currency: settings.currency || DEFAULT_CURRENCY_SETTINGS.currency,
-          symbolPosition: settings.symbolPosition || DEFAULT_CURRENCY_SETTINGS.symbolPosition,
-          decimalPlaces: settings.decimalPlaces ?? DEFAULT_CURRENCY_SETTINGS.decimalPlaces,
-          thousandsSeparator: settings.thousandsSeparator || DEFAULT_CURRENCY_SETTINGS.thousandsSeparator,
-          decimalSeparator: settings.decimalSeparator || DEFAULT_CURRENCY_SETTINGS.decimalSeparator
-        };
-      }
-    }
-  } catch (error) {
-    console.error('Error loading currency settings:', error);
+  // Return cached settings if available
+  if (currencySettingsCache) {
+    return currencySettingsCache;
   }
-  return DEFAULT_CURRENCY_SETTINGS;
+
+  // Return existing promise if one is already in progress
+  if (currencySettingsPromise) {
+    return currencySettingsPromise;
+  }
+
+  // Create new promise and cache it
+  currencySettingsPromise = (async () => {
+    try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/lib/sqlite-service');
+
+      if (sqliteService.isReady()) {
+        const settings = await sqliteService.getSetting('currency_format_settings');
+        if (settings) {
+          const result = {
+            currency: settings.currency || DEFAULT_CURRENCY_SETTINGS.currency,
+            symbolPosition: settings.symbolPosition || DEFAULT_CURRENCY_SETTINGS.symbolPosition,
+            decimalPlaces: settings.decimalPlaces ?? DEFAULT_CURRENCY_SETTINGS.decimalPlaces,
+            thousandsSeparator: settings.thousandsSeparator || DEFAULT_CURRENCY_SETTINGS.thousandsSeparator,
+            decimalSeparator: settings.decimalSeparator || DEFAULT_CURRENCY_SETTINGS.decimalSeparator
+          };
+          currencySettingsCache = result;
+          return result;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading currency settings:', error);
+    }
+
+    currencySettingsCache = DEFAULT_CURRENCY_SETTINGS;
+    return DEFAULT_CURRENCY_SETTINGS;
+  })();
+
+  const result = await currencySettingsPromise;
+  currencySettingsPromise = null; // Clear promise after completion
+  return result;
 };
 
 // Save currency settings to SQLite

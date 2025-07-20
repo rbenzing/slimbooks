@@ -33,14 +33,14 @@ export const initializeCounters = (db) => {
 export const initializeAdminUser = async (db) => {
   try {
     const adminUser = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@slimbooks.app');
-    
+
     if (!adminUser) {
-      const hashedPassword = await bcrypt.hash('r1u2s3s4e5', 12);
+      const hashedPassword = await bcrypt.hash('password', 12);
       const stmt = db.prepare(`
         INSERT INTO users (name, email, username, password_hash, role, email_verified)
         VALUES (?, ?, ?, ?, ?, ?)
       `);
-      
+
       stmt.run(
         'Administrator',
         'admin@slimbooks.app',
@@ -49,8 +49,8 @@ export const initializeAdminUser = async (db) => {
         'admin',
         1
       );
-      
-      console.log('✅ Admin user created: admin@slimbooks.app / r1u2s3s4e5');
+
+      console.log('✅ Admin user created: admin@slimbooks.app / password');
     } else {
       console.log('✅ Admin user already exists');
     }

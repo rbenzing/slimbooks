@@ -1,6 +1,6 @@
 // Login page with email/password and Google OAuth support
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,16 +16,21 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [requires2FA, setRequires2FA] = useState(false);
-  const [twoFactorToken, setTwoFactorToken] = useState('');
 
-  const { login, verify2FA } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const { settings: projectSettings } = useProjectSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Get redirect path from location state or default to dashboard
   const from = location.state?.from?.pathname || '/';
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate, from]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -57,9 +62,7 @@ export const LoginPage: React.FC = () => {
       const response = await login(formData.email, formData.password, rememberMe);
 
       if (response.success) {
-        if (response.requires_2fa) {
-          setRequires2FA(true);
-        } else if (response.requires_email_verification) {
+        if (response.requires_email_verification) {
           setError('Please verify your email address before logging in. Check your inbox for a verification link.');
         } else {
           // Successful login
@@ -76,92 +79,20 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handle2FASubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
 
-    try {
-      if (!twoFactorToken) {
-        setError('Please enter your 2FA code');
-        return;
-      }
-
-      const response = await verify2FA(twoFactorToken);
-
-      if (response.success) {
-        navigate(from, { replace: true });
-      } else {
-        setError(response.message || '2FA verification failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('2FA verification error:', error);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = () => {
     // TODO: Implement Google OAuth
     setError('Google login will be available soon');
   };
 
-  if (requires2FA) {
+  // Show loading while checking authentication
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-lg shadow-lg p-8 border">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-card-foreground">Two-Factor Authentication</h1>
-              <p className="text-muted-foreground mt-2">
-                Enter the 6-digit code from your authenticator app or use a backup code
-              </p>
-            </div>
-
-            <form onSubmit={handle2FASubmit} className="space-y-6">
-              {error && (
-                <div className="flex items-center space-x-2 text-destructive bg-destructive/10 p-3 rounded-lg">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm">{error}</span>
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="twoFactorToken" className="block text-sm font-medium text-card-foreground mb-2">
-                  Authentication Code
-                </label>
-                <input
-                  type="text"
-                  id="twoFactorToken"
-                  value={twoFactorToken}
-                  onChange={(e) => setTwoFactorToken(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-card-foreground text-center text-lg tracking-widest"
-                  placeholder="000000"
-                  maxLength={8}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? 'Verifying...' : 'Verify'}
-              </button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setRequires2FA(false)}
-                  className="text-muted-foreground hover:text-card-foreground text-sm"
-                >
-                  Back to login
-                </button>
-              </div>
-            </form>
-          </div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Checking authentication...</p>
         </div>
       </div>
     );

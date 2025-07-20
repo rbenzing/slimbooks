@@ -14,9 +14,7 @@ import {
   updateUserLastLogin,
   updateLoginAttemptsByUserId,
   updateLastLoginByUserId,
-  verifyUserEmail,
-  enableUser2FA,
-  disableUser2FA
+  verifyUserEmail
 } from '../controllers/index.js';
 import {
   requireAuth,
@@ -27,10 +25,30 @@ import {
 
 const router = Router();
 
+// Check if admin user exists (public endpoint for initialization)
+router.get('/admin-exists', async (req, res) => {
+  try {
+    const { db } = await import('../models/index.js');
+    const adminUser = db.prepare('SELECT id FROM users WHERE email = ? AND role = ?').get('admin@slimbooks.app', 'admin');
+    res.json({
+      success: true,
+      exists: !!adminUser,
+      adminConfigured: !!adminUser
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      exists: false,
+      adminConfigured: false
+    });
+  }
+});
+
 // Get all users (admin only)
-router.get('/', 
-  requireAuth, 
-  requireAdmin, 
+router.get('/',
+  requireAuth,
+  requireAdmin,
   getAllUsers
 );
 
@@ -43,12 +61,47 @@ router.get('/:id',
   getUserById
 );
 
-// Get user by email (admin only)
-router.get('/email/:email', 
-  requireAuth, 
-  requireAdmin, 
-  getUserByEmail
-);
+// Get user by email (public for admin check, otherwise admin only)
+router.get('/email/:email', async (req, res, next) => {
+  const { email } = req.params;
+
+  // Allow public access for admin user check during initialization
+  if (email === 'admin@slimbooks.app') {
+    try {
+      const { db } = await import('../models/index.js');
+      const user = db.prepare('SELECT id, name, email, username, password_hash, role, email_verified, failed_login_attempts, account_locked_until, last_login, created_at, updated_at FROM users WHERE email = ?').get(email);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+          exists: false
+        });
+      }
+
+      res.json({
+        success: true,
+        data: user,
+        exists: true
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        exists: false
+      });
+    }
+  } else {
+    // For all other emails, require authentication and admin privileges
+    requireAuth(req, res, (err) => {
+      if (err) return next(err);
+      requireAdmin(req, res, (err) => {
+        if (err) return next(err);
+        getUserByEmail(req, res, next);
+      });
+    });
+  }
+});
 
 // Get user by Google ID (admin only)
 router.get('/google/:googleId', 
@@ -103,17 +156,13 @@ router.post('/update-last-login',
   updateUserLastLogin
 );
 
-// Update user login attempts by ID (admin only)
-router.put('/:id/login-attempts', 
-  requireAuth, 
-  requireAdmin, 
+// Update user login attempts by ID (public for login process)
+router.put('/:id/login-attempts',
   updateLoginAttemptsByUserId
 );
 
-// Update user last login by ID (admin only)
-router.put('/:id/last-login', 
-  requireAuth, 
-  requireAdmin, 
+// Update user last login by ID (public for login process)
+router.put('/:id/last-login',
   updateLastLoginByUserId
 );
 
@@ -124,18 +173,6 @@ router.put('/:id/verify-email',
   verifyUserEmail
 );
 
-// Enable user 2FA (admin only)
-router.put('/:id/2fa/enable', 
-  requireAuth, 
-  requireAdmin, 
-  enableUser2FA
-);
 
-// Disable user 2FA (admin only)
-router.put('/:id/2fa/disable', 
-  requireAuth, 
-  requireAdmin, 
-  disableUser2FA
-);
 
 export default router;

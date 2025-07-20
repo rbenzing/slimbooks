@@ -30,7 +30,7 @@ export class AuthService {
       const adminUser = await userOperations.getByEmail('admin@slimbooks.app');
 
       if (!adminUser) {
-        const hashedPassword = await AuthUtils.hashPassword('r1u2s3s4e5');
+        const hashedPassword = await AuthUtils.hashPassword('password');
         await userOperations.create({
           name: 'Administrator',
           email: 'admin@slimbooks.app',
@@ -123,66 +123,34 @@ export class AuthService {
   // User login
   async login(credentials: LoginCredentials & { rememberMe?: boolean }): Promise<AuthResponse> {
     try {
-      // Find user by email
-      const user = await userOperations.getByEmail(credentials.email);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+          rememberMe: credentials.rememberMe || false
+        })
+      });
 
-      if (!user) {
-        return { success: false, message: 'Invalid email or password' };
-      }
+      const result = await response.json();
 
-      // Check if account is locked
-      if (AuthUtils.isAccountLocked(
-        user.failed_login_attempts,
-        DEFAULT_SECURITY_SETTINGS.max_failed_attempts,
-        user.account_locked_until
-      )) {
-        return { success: false, message: 'Account is temporarily locked. Please try again later.' };
-      }
-
-      // Verify password
-      if (!user.password_hash || !await AuthUtils.verifyPassword(credentials.password, user.password_hash)) {
-        // Increment failed attempts
-        const newAttempts = user.failed_login_attempts + 1;
-        let lockedUntil: string | undefined;
-
-        if (newAttempts >= DEFAULT_SECURITY_SETTINGS.max_failed_attempts) {
-          lockedUntil = AuthUtils.calculateLockoutTime(DEFAULT_SECURITY_SETTINGS.lockout_duration).toISOString();
-        }
-
-        await userOperations.updateLoginAttempts(user.id, newAttempts, lockedUntil);
-        return { success: false, message: 'Invalid email or password' };
-      }
-
-      // Check email verification
-      if (!user.email_verified && DEFAULT_SECURITY_SETTINGS.require_email_verification) {
-        return { 
-          success: false, 
-          message: 'Please verify your email address before logging in.',
-          requires_email_verification: true
-        };
-      }
-
-      // Check 2FA
-      if (user.two_factor_enabled) {
+      if (!response.ok) {
         return {
-          success: true,
-          user,
-          message: 'Two-factor authentication required',
-          requires_2fa: true
+          success: false,
+          message: result.message || 'Login failed. Please try again.'
         };
       }
 
-      // Successful login
-      await this.completeLogin(user);
+      // Store user and token if login successful
+      if (result.success && result.data?.user && result.data?.token) {
+        this.currentUser = result.data.user;
+        this.sessionToken = result.data.token;
+      }
 
-      const tokens = this.generateTokens(user, credentials.rememberMe);
-      return {
-        success: true,
-        user,
-        session_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        message: 'Login successful'
-      };
+      return result;
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, message: 'Login failed. Please try again.' };
@@ -210,97 +178,9 @@ export class AuthService {
     };
   }
 
-  // Verify 2FA token
-  async verify2FA(userId: number, token: string): Promise<AuthResponse> {
-    try {
-      const user = await userOperations.getById(userId);
-      if (!user || !user.two_factor_secret) {
-        return { success: false, message: 'Invalid user or 2FA not enabled' };
-      }
 
-      // Check if it's a backup code
-      if (user.backup_codes) {
-        const backupCodes = JSON.parse(user.backup_codes);
-        const codeIndex = backupCodes.indexOf(token.toUpperCase());
-        if (codeIndex !== -1) {
-          // Remove used backup code
-          backupCodes.splice(codeIndex, 1);
-          await userOperations.update(userId, { backup_codes: backupCodes });
-          
-          await this.completeLogin(user);
-          const tokens = this.generateTokens(user, false); // 2FA doesn't use remember me
-          return {
-            success: true,
-            user,
-            session_token: tokens.accessToken,
-            refresh_token: tokens.refreshToken,
-            message: 'Login successful with backup code'
-          };
-        }
-      }
 
-      // Verify TOTP token
-      if (!AuthUtils.verifyTwoFactorToken(token, user.two_factor_secret)) {
-        return { success: false, message: 'Invalid 2FA token' };
-      }
 
-      await this.completeLogin(user);
-      const tokens = this.generateTokens(user, false); // 2FA doesn't use remember me
-      return {
-        success: true,
-        user,
-        session_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        message: 'Login successful'
-      };
-    } catch (error) {
-      console.error('2FA verification error:', error);
-      return { success: false, message: '2FA verification failed' };
-    }
-  }
-
-  // Setup 2FA for user
-  async setup2FA(userId: number): Promise<TwoFactorSetup | null> {
-    try {
-      const user = await userOperations.getById(userId);
-      if (!user) return null;
-
-      const { secret, otpauth_url } = AuthUtils.generateTwoFactorSecret(user.email);
-      const qr_code = await AuthUtils.generateQRCode(otpauth_url);
-      const backup_codes = AuthUtils.generateBackupCodes();
-
-      return {
-        secret,
-        qr_code,
-        backup_codes
-      };
-    } catch (error) {
-      console.error('2FA setup error:', error);
-      return null;
-    }
-  }
-
-  // Enable 2FA for user
-  async enable2FA(userId: number, secret: string, token: string): Promise<{ success: boolean; message: string; backup_codes?: string[] }> {
-    try {
-      // Verify the token first
-      if (!AuthUtils.verifyTwoFactorToken(token, secret)) {
-        return { success: false, message: 'Invalid 2FA token' };
-      }
-
-      const backup_codes = AuthUtils.generateBackupCodes();
-      await userOperations.enable2FA(userId, secret, backup_codes);
-
-      return {
-        success: true,
-        message: '2FA enabled successfully',
-        backup_codes
-      };
-    } catch (error) {
-      console.error('Enable 2FA error:', error);
-      return { success: false, message: 'Failed to enable 2FA' };
-    }
-  }
 
   // Disable 2FA for user
   async disable2FA(userId: number, password: string): Promise<{ success: boolean; message: string }> {
@@ -340,15 +220,28 @@ export class AuthService {
     // In a real app, you'd also invalidate the session in the database
   }
 
-  // Verify session token
+  // Verify session token with server
   async verifyToken(token: string): Promise<User | null> {
     try {
-      const payload = AuthUtils.verifyAccessToken(token);
-      if (!payload) return null;
+      // Make a simple authenticated API call to verify the token
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/auth/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      const user = await userOperations.getById(payload.userId);
-      if (!user) return null;
+      if (!response.ok) {
+        return null;
+      }
 
+      const result = await response.json();
+      if (!result.success || !result.data) {
+        return null;
+      }
+
+      const user = result.data;
       this.currentUser = user;
       this.sessionToken = token;
       return user;

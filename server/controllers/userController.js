@@ -18,9 +18,9 @@ import {
  */
 export const getAllUsers = asyncHandler(async (req, res) => {
   const users = db.prepare(`
-    SELECT id, name, email, username, role, email_verified, two_factor_enabled, 
-           last_login, failed_login_attempts, account_locked_until, created_at, updated_at 
-    FROM users 
+    SELECT id, name, email, username, role, email_verified,
+           last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+    FROM users
     ORDER BY created_at DESC
   `).all();
   
@@ -34,9 +34,9 @@ export const getUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
   const user = db.prepare(`
-    SELECT id, name, email, username, role, email_verified, two_factor_enabled, 
-           last_login, failed_login_attempts, account_locked_until, created_at, updated_at 
-    FROM users 
+    SELECT id, name, email, username, role, email_verified,
+           last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+    FROM users
     WHERE id = ?
   `).get(id);
 
@@ -102,9 +102,8 @@ export const createUser = asyncHandler(async (req, res) => {
   const stmt = db.prepare(`
     INSERT INTO users (
       id, name, email, username, password_hash, role, email_verified,
-      google_id, two_factor_enabled, two_factor_secret, backup_codes,
-      last_login, failed_login_attempts, account_locked_until, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      google_id, last_login, failed_login_attempts, account_locked_until, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -116,9 +115,6 @@ export const createUser = asyncHandler(async (req, res) => {
     userData.role || 'user',
     userData.email_verified ? 1 : 0,
     userData.google_id || null,
-    userData.two_factor_enabled ? 1 : 0,
-    userData.two_factor_secret || null,
-    userData.backup_codes ? JSON.stringify(userData.backup_codes) : null,
     userData.last_login || null,
     userData.failed_login_attempts || 0,
     userData.account_locked_until || null,
@@ -282,39 +278,4 @@ export const verifyUserEmail = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Email verified successfully' });
 });
 
-/**
- * Enable user 2FA
- */
-export const enableUser2FA = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { secret, backupCodes } = req.body;
 
-  if (!secret || !backupCodes) {
-    throw new ValidationError('Secret and backup codes are required');
-  }
-
-  const stmt = db.prepare(`
-    UPDATE users
-    SET two_factor_enabled = 1, two_factor_secret = ?, backup_codes = ?, updated_at = datetime('now')
-    WHERE id = ?
-  `);
-
-  stmt.run(secret, JSON.stringify(backupCodes), id);
-  res.json({ success: true, message: '2FA enabled successfully' });
-});
-
-/**
- * Disable user 2FA
- */
-export const disableUser2FA = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const stmt = db.prepare(`
-    UPDATE users
-    SET two_factor_enabled = 0, two_factor_secret = NULL, backup_codes = NULL, updated_at = datetime('now')
-    WHERE id = ?
-  `);
-
-  stmt.run(id);
-  res.json({ success: true, message: '2FA disabled successfully' });
-});

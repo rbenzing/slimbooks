@@ -172,6 +172,7 @@ export const generateToken = (user) => {
     userId: user.id,
     email: user.email,
     role: user.role,
+    type: 'access',
     iat: Math.floor(Date.now() / 1000)
   };
 
