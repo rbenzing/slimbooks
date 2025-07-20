@@ -23,12 +23,29 @@ import NotFound from './pages/NotFound';
 import PublicInvoiceView from './components/PublicInvoiceView';
 import { Toaster } from './components/ui/sonner';
 import { processRecurringInvoices } from './utils/recurringProcessor';
+import { useConnectionMonitor } from './hooks/useConnectionMonitor';
+import { ConnectionLostDialog } from './components/ConnectionLostDialog';
 import './App.css';
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
+
+  // Connection monitoring - only start when authenticated
+  const {
+    isConnected,
+    isChecking,
+    retryCount,
+    hasExceededMaxRetries,
+    lastError,
+    startConnectionMonitoring,
+    stopConnectionMonitoring
+  } = useConnectionMonitor({
+    checkInterval: 60000, // Check every minute when connected
+    retryInterval: 20000, // Retry every 20 seconds when disconnected
+    maxRetries: 30, // Max 30 retries (10 minutes)
+  });
 
   // Apply theme on app load
   useEffect(() => {
@@ -42,6 +59,15 @@ const App = () => {
       root.classList.toggle('dark', theme === 'dark');
     }
   }, []);
+
+  // Start/stop connection monitoring based on authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      startConnectionMonitoring();
+    } else {
+      stopConnectionMonitoring();
+    }
+  }, [isAuthenticated, startConnectionMonitoring, stopConnectionMonitoring]);
 
   // Process recurring invoices on app load and periodically
   useEffect(() => {
@@ -257,6 +283,16 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
+
+        {/* Connection Lost Dialog - only show when authenticated and disconnected */}
+        <ConnectionLostDialog
+          isVisible={isAuthenticated && !isConnected}
+          retryCount={retryCount}
+          maxRetries={30}
+          isChecking={isChecking}
+          hasExceededMaxRetries={hasExceededMaxRetries}
+          lastError={lastError}
+        />
       </Router>
     </QueryClientProvider>
   );

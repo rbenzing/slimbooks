@@ -82,14 +82,32 @@ class SQLiteService {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, options);
-    const result = await response.json();
+    try {
+      const response = await fetch(url, options);
 
-    if (!result.success) {
-      throw new Error(result.error || 'API call failed');
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        // Network or server error - this could indicate connection issues
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'API call failed');
+      }
+
+      return result;
+    } catch (error) {
+      // Re-throw with more context for connection monitoring
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // Network error - likely connection issue
+        throw new Error('Network connection failed');
+      }
+
+      // Re-throw other errors as-is
+      throw error;
     }
-
-    return result;
   }
 
 
