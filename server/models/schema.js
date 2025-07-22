@@ -6,7 +6,7 @@
  * @param {Database} db - SQLite database instance
  */
 export const createTables = (db) => {
-  console.log('Creating database tables...');
+  // Tables are created silently - only log if there are issues
 
   // Users table
   db.exec(`
@@ -167,5 +167,5 @@ export const createTables = (db) => {
     )
   `);
 
-  console.log('Database tables created successfully');
+  // Tables created successfully (silent)
 };

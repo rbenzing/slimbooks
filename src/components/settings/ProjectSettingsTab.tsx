@@ -1,7 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Settings, Globe, CreditCard, Mail, Shield, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 import { toast } from 'sonner';
 
 interface ProjectSettings {

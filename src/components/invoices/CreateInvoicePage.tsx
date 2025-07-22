@@ -8,8 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { themeClasses } from '@/lib/utils';
 import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/invoiceNumbering';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
-import { InvoiceEmailService } from '@/services/invoiceEmailService';
-import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { InvoiceEmailService } from '@/services/invoiceEmail.svc';
+import { pdfService } from '@/services/pdf.svc';
+import { InvoiceStatusService } from '@/services/invoiceStatus.svc';
 import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
 import { toast } from 'sonner';
 
@@ -348,13 +349,27 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = async () => {
     if (!isValidForSave() || viewOnly) {
       return;
     }
 
-    // TODO: Implement print functionality
-    toast.info('Print functionality will be implemented soon');
+    // First save the invoice if it hasn't been saved yet
+    if (!invoiceData.id) {
+      await handleSaveInvoice();
+    }
+
+    if (invoiceData.id) {
+      try {
+        await pdfService.downloadInvoicePDF(
+          invoiceData.id,
+          invoiceData.invoice_number
+        );
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast.error('Failed to generate PDF. Please try again.');
+      }
+    }
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

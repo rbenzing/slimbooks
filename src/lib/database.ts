@@ -1,5 +1,5 @@
 // SQLite-based database operations for Slimbooks application
-import { sqliteService } from './sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 import { User } from '@/types/auth';
 
 // Interfaces (keeping the same structure for compatibility)

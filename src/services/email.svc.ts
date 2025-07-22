@@ -28,7 +28,7 @@ export class EmailService {
    */
   private async getStoredEmailSettings(): Promise<any | null> {
     try {
-      const { sqliteService } = await import('./sqlite-service');
+      const { sqliteService } = await import('./sqlite.svc');
       if (sqliteService.isReady()) {
         return await sqliteService.getSetting('email_settings');
       }
@@ -269,7 +269,7 @@ export class EmailService {
     userName: string
   ): Promise<{ success: boolean; message: string }> {
     const loginLink = `${window.location.origin}/login`;
-    
+
     const template: EmailTemplate = {
       id: 0,
       name: 'welcome',
@@ -281,7 +281,7 @@ export class EmailService {
           <p>Your account has been successfully created and verified.</p>
           <p>You can now start using all the features of Slimbooks to manage your invoices, clients, and expenses.</p>
           <p style="margin: 20px 0;">
-            <a href="${loginLink}" 
+            <a href="${loginLink}"
                style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Get Started
             </a>

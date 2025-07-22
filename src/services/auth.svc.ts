@@ -1,13 +1,12 @@
 // Authentication service for login, registration, and session management
 
-import { userOperations } from './database';
-import { AuthUtils } from './auth-utils';
+import { userOperations } from '@/lib/database';
+import { AuthUtils } from '@/lib/auth-utils';
 import { 
   User, 
   LoginCredentials, 
   RegisterData, 
   AuthResponse, 
-  TwoFactorSetup,
   DEFAULT_SECURITY_SETTINGS 
 } from '@/types/auth';
 
@@ -148,6 +147,8 @@ export class AuthService {
       if (result.success && result.data?.user && result.data?.token) {
         this.currentUser = result.data.user;
         this.sessionToken = result.data.token;
+
+        await this.completeLogin(result.data.user);
       }
 
       return result;
@@ -176,31 +177,6 @@ export class AuthService {
       accessToken: AuthUtils.generateAccessToken(payload, rememberMe),
       refreshToken: AuthUtils.generateRefreshToken(payload, rememberMe)
     };
-  }
-
-
-
-
-
-  // Disable 2FA for user
-  async disable2FA(userId: number, password: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const user = await userOperations.getById(userId);
-      if (!user || !user.password_hash) {
-        return { success: false, message: 'User not found' };
-      }
-
-      // Verify password
-      if (!await AuthUtils.verifyPassword(password, user.password_hash)) {
-        return { success: false, message: 'Invalid password' };
-      }
-
-      await userOperations.disable2FA(userId);
-      return { success: true, message: '2FA disabled successfully' };
-    } catch (error) {
-      console.error('Disable 2FA error:', error);
-      return { success: false, message: 'Failed to disable 2FA' };
-    }
   }
 
   // Get current user

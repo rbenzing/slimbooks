@@ -1,6 +1,6 @@
 // Email configuration utilities
 
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 
 export interface EmailConfigStatus {
   isConfigured: boolean;

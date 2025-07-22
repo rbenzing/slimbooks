@@ -1,6 +1,6 @@
 // Stripe webhook utilities and handlers
 
-import { StripeService } from '@/services/stripeService';
+import { StripeService } from '@/services/stripe.svc';
 
 export interface WebhookEvent {
   id: string;
@@ -100,7 +100,7 @@ export class StripeWebhookHandler {
     error?: string
   ): Promise<void> {
     try {
-      const { sqliteService } = await import('@/lib/sqlite-service');
+      const { sqliteService } = await import('@/services/sqlite.svc');
       
       if (sqliteService.isReady()) {
         const logEntry = {
@@ -133,7 +133,7 @@ export class StripeWebhookHandler {
    */
   async getWebhookLogs(limit: number = 20): Promise<any[]> {
     try {
-      const { sqliteService } = await import('@/lib/sqlite-service');
+      const { sqliteService } = await import('@/services/sqlite.svc');
       
       if (sqliteService.isReady()) {
         const logs = await sqliteService.getSetting('webhook_logs') || [];

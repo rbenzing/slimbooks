@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 
 interface ShippingRate {
   id: string;

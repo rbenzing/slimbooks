@@ -46,6 +46,41 @@ router.get('/currency_format_settings', async (_req, res) => {
   }
 });
 
+// Get company settings (public for UI display and invoice generation)
+router.get('/company_settings', async (_req, res) => {
+  try {
+    const { db } = await import('../models/index.js');
+    const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('company_settings');
+
+    if (result?.value) {
+      try {
+        const parsedValue = JSON.parse(result.value);
+        res.json({ success: true, value: parsedValue });
+      } catch {
+        res.json({ success: true, value: result.value });
+      }
+    } else {
+      // Return default company settings
+      res.json({
+        success: true,
+        value: {
+          companyName: 'ClientBill Pro',
+          ownerName: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          email: '',
+          phone: '',
+          brandingImage: ''
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Settings operations (require auth)
 
 // Get all settings or filter by category

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, TestTube, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 import { themeClasses } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -102,7 +102,7 @@ export const EmailSettings = () => {
       await saveSettings();
 
       // Test the connection using the email service
-      const { EmailService } = await import('@/lib/email-service');
+      const { EmailService } = await import('@/services/email.svc');
       const emailService = EmailService.getInstance();
       
       const testResult = await emailService.testConnection();
@@ -129,7 +129,7 @@ export const EmailSettings = () => {
     }
 
     try {
-      const { EmailService } = await import('@/lib/email-service');
+      const { EmailService } = await import('@/services/email.svc');
       const emailService = EmailService.getInstance();
       
       const result = await emailService.sendEmail(

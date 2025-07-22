@@ -6,6 +6,7 @@ import { CompanyHeader } from './invoices/CompanyHeader';
 import { themeClasses } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
+import { pdfService } from '@/services/pdf.svc';
 
 interface LineItem {
   id: string;
@@ -25,6 +26,7 @@ export const PublicInvoiceView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -35,22 +37,30 @@ export const PublicInvoiceView: React.FC = () => {
       }
 
       try {
-        // Verify token and load invoice
-        const isValidToken = await verifyInvoiceToken(id, token);
-        if (!isValidToken) {
-          setError('Invalid or expired link');
+        // Use the new secure public endpoint
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/invoices/public/${id}?token=${token}`);
+
+        if (!response.ok) {
+          setError('Invalid or expired invoice link');
           setLoading(false);
           return;
         }
 
-        const invoiceRecord = await invoiceOperations.getById(parseInt(id));
-        if (!invoiceRecord) {
+        const result = await response.json();
+        if (!result.success || !result.data) {
           setError('Invoice not found');
           setLoading(false);
           return;
         }
 
+        const invoiceRecord = result.data;
+
         setInvoice(invoiceRecord);
+
+        // Set company logo from the included settings
+        if (invoiceRecord.companySettings?.brandingImage) {
+          setCompanyLogo(invoiceRecord.companySettings.brandingImage);
+        }
 
         // Parse line items
         if (invoiceRecord.line_items) {
@@ -63,15 +73,6 @@ export const PublicInvoiceView: React.FC = () => {
             setLineItems([
               { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
             ]);
-          }
-        }
-
-        // Load company logo
-        const { sqliteService } = await import('@/lib/sqlite-service');
-        if (sqliteService.isReady()) {
-          const companySettings = await sqliteService.getSetting('company_settings');
-          if (companySettings?.brandingImage) {
-            setCompanyLogo(companySettings.brandingImage);
           }
         }
 
@@ -102,9 +103,22 @@ export const PublicInvoiceView: React.FC = () => {
   const shippingAmount = invoice?.shipping_amount || 0;
   const total = subtotal + taxAmount + shippingAmount;
 
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF generation
-    console.log('Download PDF functionality to be implemented');
+  const handleDownloadPDF = async () => {
+    if (!id || !token || !invoice) return;
+
+    setIsGeneratingPDF(true);
+    try {
+      await pdfService.downloadPublicInvoicePDF(
+        parseInt(id),
+        token,
+        invoice.invoice_number
+      );
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   if (loading) {
@@ -151,10 +165,11 @@ export const PublicInvoiceView: React.FC = () => {
           <div className="flex space-x-3">
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+              disabled={isGeneratingPDF}
+              className="flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
             </button>
           </div>
         </div>

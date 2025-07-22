@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { User, AuthResponse } from '@/types/auth';
-import { AuthService } from '@/lib/auth-service';
+import { AuthService } from '@/services/auth.svc';
 
 interface AuthContextType {
   user: User | null;

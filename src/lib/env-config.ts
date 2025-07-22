@@ -45,7 +45,6 @@ interface EnvironmentConfig {
   MAX_FAILED_LOGIN_ATTEMPTS: number;
   ACCOUNT_LOCKOUT_DURATION: number;
   REQUIRE_EMAIL_VERIFICATION: boolean;
-  ENABLE_2FA: boolean;
   
   // Development/Debug
   ENABLE_DEBUG_ENDPOINTS: boolean;
@@ -93,7 +92,6 @@ const DEFAULT_CONFIG: EnvironmentConfig = {
   MAX_FAILED_LOGIN_ATTEMPTS: 5,
   ACCOUNT_LOCKOUT_DURATION: 30 * 60 * 1000, // 30 minutes
   REQUIRE_EMAIL_VERIFICATION: false,
-  ENABLE_2FA: true,
   
   ENABLE_DEBUG_ENDPOINTS: false,
   ENABLE_SAMPLE_DATA: false,
@@ -161,7 +159,6 @@ export const loadEnvironmentConfig = (): EnvironmentConfig => {
     MAX_FAILED_LOGIN_ATTEMPTS: parseNumber(env.MAX_FAILED_LOGIN_ATTEMPTS, DEFAULT_CONFIG.MAX_FAILED_LOGIN_ATTEMPTS),
     ACCOUNT_LOCKOUT_DURATION: parseNumber(env.ACCOUNT_LOCKOUT_DURATION, DEFAULT_CONFIG.ACCOUNT_LOCKOUT_DURATION),
     REQUIRE_EMAIL_VERIFICATION: parseBoolean(env.REQUIRE_EMAIL_VERIFICATION, DEFAULT_CONFIG.REQUIRE_EMAIL_VERIFICATION),
-    ENABLE_2FA: parseBoolean(env.ENABLE_2FA, DEFAULT_CONFIG.ENABLE_2FA),
     
     ENABLE_DEBUG_ENDPOINTS: parseBoolean(env.ENABLE_DEBUG_ENDPOINTS, DEFAULT_CONFIG.ENABLE_DEBUG_ENDPOINTS),
     ENABLE_SAMPLE_DATA: parseBoolean(env.ENABLE_SAMPLE_DATA, DEFAULT_CONFIG.ENABLE_SAMPLE_DATA),
@@ -203,12 +200,6 @@ const validateSecurityConfig = (config: EnvironmentConfig): void => {
       warnings.push('JWT_REFRESH_SECRET should be at least 32 characters long!');
     }
   }
-  
-  // Security warnings are disabled for cleaner logs
-  // if (warnings.length > 0) {
-  //   console.warn('🚨 Security Configuration Warnings:');
-  //   warnings.forEach(warning => console.warn(`  - ${warning}`));
-  // }
 };
 
 // Export singleton instance

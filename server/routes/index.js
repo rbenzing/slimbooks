@@ -14,6 +14,7 @@ import databaseRoutes from './databaseRoutes.js';
 import templateRoutes from './templateRoutes.js';
 import counterRoutes from './counterRoutes.js';
 import reportRoutes from './reportRoutes.js';
+import pdfRoutes from './pdfRoutes.js';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.use('/api/project-settings', projectSettingsRoutes);
 router.use('/api/db', databaseRoutes);
 router.use('/api/counters', counterRoutes);
 router.use('/api/reports', reportRoutes);
+router.use('/api/pdf', pdfRoutes);
 
 // Health check routes
 router.use('/api/health', healthRoutes);

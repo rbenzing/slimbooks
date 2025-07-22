@@ -8,8 +8,9 @@ import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { statusColors, themeClasses, getButtonClasses } from '@/lib/utils';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getInvoiceStatusPermissions } from '@/utils/invoiceValidation';
-import { InvoiceEmailService } from '@/services/invoiceEmailService';
-import { InvoiceStatusService } from '@/services/invoiceStatusService';
+import { InvoiceEmailService } from '@/services/invoiceEmail.svc';
+import { pdfService } from '@/services/pdf.svc';
+import { InvoiceStatusService } from '@/services/invoiceStatus.svc';
 import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
 import { toast } from 'sonner';
 
@@ -114,7 +115,7 @@ export const EditInvoicePage = () => {
     const loadSettings = async (invoiceRecord?: any) => {
       try {
         // Load tax rates from SQLite settings
-        const { sqliteService } = await import('@/lib/sqlite-service');
+        const { sqliteService } = await import('@/services/sqlite.svc');
         if (sqliteService.isReady()) {
           const savedTaxRates = await sqliteService.getSetting('tax_rates');
           if (savedTaxRates) {
@@ -323,13 +324,20 @@ export const EditInvoicePage = () => {
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = async () => {
     if (!isValidForSave()) {
       return;
     }
 
-    // TODO: Implement print functionality
-    toast.info('Print functionality will be implemented soon');
+    try {
+      await pdfService.downloadInvoicePDF(
+        invoice.id,
+        invoice.invoice_number
+      );
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF. Please try again.');
+    }
   };
 
   const handleDelete = async () => {

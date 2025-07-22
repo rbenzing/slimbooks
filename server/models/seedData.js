@@ -22,7 +22,7 @@ export const initializeCounters = (db) => {
     counters.forEach(counter => {
       stmt.run(counter.name, counter.value);
     });
-    console.log('Counters initialized');
+    // Counters initialized silently
   }
 };
 
@@ -52,7 +52,7 @@ export const initializeAdminUser = async (db) => {
 
       console.log('✅ Admin user created: admin@slimbooks.app / password');
     } else {
-      console.log('✅ Admin user already exists');
+      // Admin user already exists (silent)
     }
   } catch (error) {
     console.error('Error initializing admin user:', error);
@@ -68,10 +68,8 @@ export const initializeSampleData = (db) => {
     // Check if we already have sample data
     const clientCount = db.prepare('SELECT COUNT(*) as count FROM clients').get();
 
-    console.log(`📊 Current database state: ${clientCount.count} clients`);
-
     if (clientCount.count === 0) {
-      console.log('🌱 Adding sample data for development...');
+      console.log(`📊 Adding sample data: ${clientCount.count} clients found, creating samples...`);
 
       // Sample clients
       const clientStmt = db.prepare(`
@@ -120,11 +118,9 @@ export const initializeSampleData = (db) => {
       db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(4, 'clients');
       db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(14, 'expenses');
 
-      console.log('✅ Sample data added successfully');
-      console.log('   - 4 sample clients');
-      console.log('   - 14 sample expenses (2024-2025)');
+      console.log('✅ Sample data added: 4 clients, 14 expenses');
     } else {
-      console.log('✅ Sample data already exists');
+      console.log(`📊 Sample data exists: ${clientCount.count} clients`);
     }
   } catch (error) {
     console.error('Error initializing sample data:', error);
@@ -138,13 +134,11 @@ export const initializeSampleData = (db) => {
 export const addSampleInvoices = (db) => {
   try {
     const invoiceCount = db.prepare('SELECT COUNT(*) as count FROM invoices').get();
-    console.log(`📋 Current invoices: ${invoiceCount.count}`);
-
     // Check if we have historical data (invoices from 2024 or earlier)
     const historicalCount = db.prepare('SELECT COUNT(*) as count FROM invoices WHERE created_at < ?').get('2025-01-01');
 
     if (invoiceCount.count === 0 || historicalCount.count === 0) {
-      console.log('🧾 Adding sample invoices with historical data...');
+      console.log(`📋 Adding sample invoices: ${invoiceCount.count} existing...`);
 
       // Get first few clients
       const clients = db.prepare('SELECT * FROM clients ORDER BY id LIMIT 4').all();
@@ -187,7 +181,7 @@ export const addSampleInvoices = (db) => {
           try {
             invoiceStmt.run(...invoice);
           } catch (err) {
-            console.log('Invoice insert error (might already exist):', err.message);
+            // Invoice might already exist (silent)
           }
         });
 
@@ -195,13 +189,13 @@ export const addSampleInvoices = (db) => {
         try {
           db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(16, 'invoices');
         } catch (err) {
-          console.log('Counter update error:', err.message);
+          // Counter update error (silent)
         }
 
-        console.log('✅ Sample invoices added with historical data (2023-2025)');
+        console.log('✅ Sample invoices added (2023-2025)');
       }
     } else {
-      console.log('✅ Invoices already exist');
+      console.log(`📋 Invoices exist: ${invoiceCount.count} total`);
     }
   } catch (error) {
     console.error('Error adding sample invoices:', error);

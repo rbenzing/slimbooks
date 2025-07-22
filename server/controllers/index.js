@@ -33,6 +33,8 @@ export {
 export {
   getAllInvoices,
   getInvoiceById,
+  getPublicInvoiceById,
+  generatePublicInvoiceToken,
   createInvoice,
   updateInvoice,
   deleteInvoice,
@@ -95,3 +97,12 @@ export {
   updateTemplate,
   deleteTemplate
 } from './templateController.js';
+
+// PDF controller
+export {
+  generateInvoicePDF,
+  generateInvoicePDFWithToken,
+  generatePagePDF,
+  getPDFServiceStatus,
+  initializePDFService
+} from './pdfController.js';

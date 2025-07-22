@@ -6,6 +6,7 @@ import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
+import { pdfService } from '@/services/pdf.svc';
 
 interface ProfitLossReportProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ interface ProfitLossReportProps {
 export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [accountingMethod, setAccountingMethod] = useState<'cash' | 'accrual'>('accrual');
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -97,6 +99,22 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     }
   };
 
+  const handleExportPDF = async () => {
+    setIsExportingPDF(true);
+    try {
+      // Create a URL for the current report view
+      const currentUrl = `${window.location.origin}/reports/profit-loss?start=${dateRange.start}&end=${dateRange.end}&method=${accountingMethod}`;
+      const reportName = `Profit-Loss-Report-${getFormattedDateRange()}`;
+
+      await pdfService.downloadReportPDF(currentUrl, reportName);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -141,9 +159,13 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
               <Save className={themeClasses.iconButton} />
               Save Report
             </button>
-            <button className={getButtonClasses('secondary')}>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExportingPDF}
+              className={getButtonClasses('secondary')}
+            >
               <Download className={themeClasses.iconButton} />
-              Export PDF
+              {isExportingPDF ? 'Generating...' : 'Export PDF'}
             </button>
           </div>
         </div>

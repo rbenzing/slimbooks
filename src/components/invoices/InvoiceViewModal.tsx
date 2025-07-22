@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Download } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
+import { pdfService } from '@/services/pdf.svc';
 
 interface InvoiceViewModalProps {
   invoice: any;
@@ -13,12 +14,13 @@ interface InvoiceViewModalProps {
 
 export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose }) => {
   const [companySettings, setCompanySettings] = useState<any>({});
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
         // Use dynamic import to avoid circular dependencies
-        const { sqliteService } = await import('@/lib/sqlite-service');
+        const { sqliteService } = await import('@/services/sqlite.svc');
 
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
@@ -162,18 +164,95 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
 
   const styles = getTemplateStyles();
 
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+
+    setIsGeneratingPDF(true);
+    try {
+      // For authenticated users, use the direct invoice PDF method
+      await pdfService.downloadInvoicePDF(
+        invoice.id,
+        invoice.invoice_number
+      );
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+
+      // Show user-friendly error dialog
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.';
+
+      // Create and show error dialog
+      const dialog = document.createElement('div');
+      dialog.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        ">
+          <div style="
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 400px;
+            margin: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+          ">
+            <h3 style="margin: 0 0 16px 0; color: #dc2626;">PDF Generation Failed</h3>
+            <p style="margin: 0 0 20px 0; color: #374151;">${errorMessage}</p>
+            <button onclick="this.closest('div').remove()" style="
+              background: #dc2626;
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 4px;
+              cursor: pointer;
+            ">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(dialog);
+
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        if (dialog.parentNode) {
+          dialog.remove();
+        }
+      }, 10000);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className={`${styles.container} rounded-lg shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto`}>
         {/* Modal Header */}
         <div className={`flex justify-between items-center p-4 ${styles.modalHeader} rounded-t-lg`}>
           <h2 className="text-lg font-semibold text-foreground">Invoice Preview</h2>
-          <button
-            onClick={onClose}
-            className={styles.closeButton}
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+            </button>
+            <button
+              onClick={onClose}
+              className={styles.closeButton}
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Invoice Content */}

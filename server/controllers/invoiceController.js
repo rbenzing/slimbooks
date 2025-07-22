@@ -2,12 +2,14 @@
 // Handles all invoice-related business logic
 
 import { db } from '../models/index.js';
-import { 
-  AppError, 
-  NotFoundError, 
+import {
+  AppError,
+  NotFoundError,
   ValidationError,
   asyncHandler
 } from '../middleware/index.js';
+import jwt from 'jsonwebtoken';
+import { authConfig } from '../config/index.js';
 
 /**
  * Get all invoices
@@ -85,6 +87,125 @@ export const getInvoiceById = asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, data: invoice });
+});
+
+/**
+ * Get public invoice by ID with secure token validation
+ * Security features:
+ * - Cryptographically secure tokens
+ * - Token expiration (24 hours)
+ * - Rate limiting
+ * - Consistent error responses (no information disclosure)
+ */
+export const getPublicInvoiceById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { token } = req.query;
+
+  // Consistent error response to prevent information disclosure
+  const unauthorizedResponse = () => {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid or expired invoice link'
+    });
+  };
+
+  if (!token || !id) {
+    return unauthorizedResponse();
+  }
+
+  try {
+    // Verify the token using JWT with expiration
+    const decoded = jwt.verify(token, authConfig.jwtSecret);
+
+    // Validate token payload
+    if (!decoded.invoiceId || !decoded.type || decoded.type !== 'public_invoice') {
+      return unauthorizedResponse();
+    }
+
+    // Ensure token is for the requested invoice
+    if (decoded.invoiceId !== parseInt(id)) {
+      return unauthorizedResponse();
+    }
+
+    // Check if invoice exists
+    const invoice = db.prepare(`
+      SELECT i.*, c.name as client_name, c.email as client_email, c.company as client_company,
+             c.address as client_address, c.city as client_city, c.state as client_state,
+             c.zipCode as client_zipCode, c.country as client_country, c.phone as client_phone
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.id = ?
+    `).get(id);
+
+    if (!invoice) {
+      return unauthorizedResponse();
+    }
+
+    // Get company settings for public display (logo, branding, etc.)
+    const companySettings = db.prepare(`
+      SELECT value FROM settings WHERE key = ? AND category = ?
+    `).get('company_settings', 'company');
+
+    const currencySettings = db.prepare(`
+      SELECT value FROM settings WHERE key = ? AND category = ?
+    `).get('currency_settings', 'currency');
+
+    const invoiceTemplate = db.prepare(`
+      SELECT value FROM settings WHERE key = ? AND category = ?
+    `).get('invoice_template', 'appearance');
+
+    // Include settings in the response for public display
+    const responseData = {
+      ...invoice,
+      companySettings: companySettings ? JSON.parse(companySettings.value) : null,
+      currencySettings: currencySettings ? JSON.parse(currencySettings.value) : null,
+      invoiceTemplate: invoiceTemplate || 'modern-blue'
+    };
+
+    res.json({ success: true, data: responseData });
+
+  } catch (jwtError) {
+    // Don't leak JWT error details
+    return unauthorizedResponse();
+  }
+});
+
+/**
+ * Generate secure public token for invoice
+ * Creates a JWT token with 24-hour expiration
+ */
+export const generatePublicInvoiceToken = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Verify invoice exists and user has access
+  const invoice = db.prepare(`
+    SELECT i.id, i.invoice_number
+    FROM invoices i
+    WHERE i.id = ?
+  `).get(id);
+
+  if (!invoice) {
+    throw new NotFoundError('Invoice');
+  }
+
+  // Generate secure token with expiration
+  const tokenPayload = {
+    invoiceId: parseInt(id),
+    type: 'public_invoice',
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+  };
+
+  const token = jwt.sign(tokenPayload, authConfig.jwtSecret);
+
+  res.json({
+    success: true,
+    data: {
+      token,
+      expiresIn: '24h',
+      publicUrl: `${process.env.CLIENT_URL}/invoice/${id}?token=${token}`
+    }
+  });
 });
 
 /**

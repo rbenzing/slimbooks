@@ -49,7 +49,7 @@ export const getDateTimeSettings = async (): Promise<DateTimeSettings> => {
 // Async version for components that can handle async operations
 export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
   try {
-    const { sqliteService } = await import('@/lib/sqlite-service');
+    const { sqliteService } = await import('@/services/sqlite.svc');
 
     if (sqliteService.isReady()) {
       const settings = await sqliteService.getSetting('date_time_settings');
@@ -70,7 +70,7 @@ export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
 export const saveDateTimeSettings = async (settings: DateTimeSettings): Promise<void> => {
   try {
     // Use dynamic import to avoid circular dependencies
-    const { sqliteService } = await import('@/lib/sqlite-service');
+    const { sqliteService } = await import('@/services/sqlite.svc');
 
     if (sqliteService.isReady()) {
       await sqliteService.setSetting('date_time_settings', settings, 'general');

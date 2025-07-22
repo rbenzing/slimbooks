@@ -80,7 +80,7 @@ export const getCurrencySettings = async (): Promise<CurrencySettings> => {
   currencySettingsPromise = (async () => {
     try {
       // Use dynamic import to avoid circular dependencies
-      const { sqliteService } = await import('@/lib/sqlite-service');
+      const { sqliteService } = await import('@/services/sqlite.svc');
 
       if (sqliteService.isReady()) {
         const settings = await sqliteService.getSetting('currency_format_settings');
@@ -113,7 +113,7 @@ export const getCurrencySettings = async (): Promise<CurrencySettings> => {
 export const saveCurrencySettings = async (settings: CurrencySettings): Promise<void> => {
   try {
     // Use dynamic import to avoid circular dependencies
-    const { sqliteService } = await import('@/lib/sqlite-service');
+    const { sqliteService } = await import('@/services/sqlite.svc');
 
     if (sqliteService.isReady()) {
       await sqliteService.setSetting('currency_format_settings', settings, 'general');

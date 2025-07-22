@@ -29,7 +29,7 @@ import {
   getCurrencyFormatPreview,
   type CurrencySettings
 } from '@/utils/currencyFormatting';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });

@@ -30,7 +30,7 @@ export const initializeDatabase = () => {
   db.pragma('foreign_keys = ON');
   db.pragma('journal_mode = WAL');
 
-  console.log('SQLite database initialized at:', dbPath);
+  // Database initialized silently
 
   return db;
 };

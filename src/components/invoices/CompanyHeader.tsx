@@ -22,7 +22,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
     const loadSettings = async () => {
       try {
         // Use dynamic import to avoid circular dependencies
-        const { sqliteService } = await import('@/lib/sqlite-service');
+        const { sqliteService } = await import('@/services/sqlite.svc');
 
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();

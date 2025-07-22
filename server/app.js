@@ -156,19 +156,13 @@ export const startServer = async () => {
     
     const server = app.listen(serverConfig.port, serverConfig.host, () => {
       console.log(`🚀 Slimbooks server running on http://${serverConfig.host}:${serverConfig.port}`);
-      console.log(`📊 Environment: ${serverConfig.nodeEnv}`);
-      console.log(`🌐 CORS origin: ${serverConfig.corsOrigin}`);
-      console.log(`🔒 CORS credentials: ${serverConfig.corsCredentials}`);
-      console.log(`💾 Database path: ${getDatabasePath()}`);
-      console.log(`📁 Upload path: ${serverConfig.uploadPath}`);
-      console.log(`⚡ Rate limiting: ${serverConfig.rateLimiting.maxRequests} requests per ${serverConfig.rateLimiting.windowMs / 1000}s`);
+      console.log(`📊 Environment: ${serverConfig.nodeEnv} | CORS: ${serverConfig.corsOrigin} | Rate limit: ${serverConfig.rateLimiting.maxRequests}/${serverConfig.rateLimiting.windowMs / 1000}s`);
 
-      if (serverConfig.enableDebugEndpoints) {
-        console.log(`🔧 Debug endpoints enabled`);
-      }
-
-      if (serverConfig.enableSampleData || serverConfig.isDevelopment) {
-        console.log(`📝 Sample data enabled`);
+      const features = [];
+      if (serverConfig.enableDebugEndpoints) features.push('Debug');
+      if (serverConfig.enableSampleData || serverConfig.isDevelopment) features.push('Sample data');
+      if (features.length > 0) {
+        console.log(`🔧 Features: ${features.join(', ')}`);
       }
     });
 

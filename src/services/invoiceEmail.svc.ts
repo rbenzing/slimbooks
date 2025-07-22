@@ -1,8 +1,8 @@
 // Invoice email service for sending invoices to clients
 
-import { EmailService } from '@/lib/email-service';
+import { EmailService } from './email.svc';
 import { generateInvoiceToken } from '@/components/PublicInvoiceView';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from './sqlite.svc';
 
 interface InvoiceEmailData {
   id: number;
@@ -206,12 +206,12 @@ export class InvoiceEmailService {
    * Generates text content for invoice email
    */
   private generateInvoiceEmailText(
-    invoice: InvoiceEmailData, 
-    viewUrl: string, 
+    invoice: InvoiceEmailData,
+    viewUrl: string,
     company: CompanySettings
   ): string {
     const dueDate = new Date(invoice.due_date).toLocaleDateString();
-    
+
     return `
 ${company.companyName}
 New Invoice
@@ -240,43 +240,43 @@ This email was sent by ${company.companyName}. If you have any questions about t
    * Generates HTML content for reminder email
    */
   private generateReminderEmailHTML(
-    invoice: InvoiceEmailData, 
-    viewUrl: string, 
+    invoice: InvoiceEmailData,
+    viewUrl: string,
     company: CompanySettings
   ): string {
     const dueDate = new Date(invoice.due_date).toLocaleDateString();
     const isOverdue = new Date(invoice.due_date) < new Date();
-    
+
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #333; margin-bottom: 10px;">${company.companyName}</h1>
           <p style="color: #dc3545; margin: 0; font-weight: bold;">Payment Reminder</p>
         </div>
-        
+
         <div style="background-color: ${isOverdue ? '#fff5f5' : '#f8f9fa'}; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${isOverdue ? '#dc3545' : '#ffc107'};">
           <h2 style="color: #333; margin-top: 0;">Invoice ${invoice.invoice_number}</h2>
           <p style="color: #666; margin: 5px 0;"><strong>Amount:</strong> $${invoice.amount.toFixed(2)}</p>
           <p style="color: #666; margin: 5px 0;"><strong>Due Date:</strong> ${dueDate}</p>
           <p style="color: #666; margin: 5px 0;"><strong>Status:</strong> ${isOverdue ? 'Overdue' : 'Due Soon'}</p>
         </div>
-        
+
         <p style="color: #333; line-height: 1.6;">
           Hello ${invoice.client_name},
         </p>
-        
+
         <p style="color: #333; line-height: 1.6;">
-          This is a friendly reminder that invoice ${invoice.invoice_number} ${isOverdue ? 'is now overdue' : 'is due soon'}. 
+          This is a friendly reminder that invoice ${invoice.invoice_number} ${isOverdue ? 'is now overdue' : 'is due soon'}.
           Please review the invoice and submit your payment at your earliest convenience.
         </p>
-        
+
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${viewUrl}" 
+          <a href="${viewUrl}"
              style="background-color: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
             View & Pay Invoice
           </a>
         </div>
-        
+
         <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
           <p style="color: #666; font-size: 14px; margin: 5px 0;">
             <strong>${company.companyName}</strong>
@@ -292,13 +292,13 @@ This email was sent by ${company.companyName}. If you have any questions about t
    * Generates text content for reminder email
    */
   private generateReminderEmailText(
-    invoice: InvoiceEmailData, 
-    viewUrl: string, 
+    invoice: InvoiceEmailData,
+    viewUrl: string,
     company: CompanySettings
   ): string {
     const dueDate = new Date(invoice.due_date).toLocaleDateString();
     const isOverdue = new Date(invoice.due_date) < new Date();
-    
+
     return `
 ${company.companyName}
 Payment Reminder
@@ -310,7 +310,7 @@ Status: ${isOverdue ? 'Overdue' : 'Due Soon'}
 
 Hello ${invoice.client_name},
 
-This is a friendly reminder that invoice ${invoice.invoice_number} ${isOverdue ? 'is now overdue' : 'is due soon'}. 
+This is a friendly reminder that invoice ${invoice.invoice_number} ${isOverdue ? 'is now overdue' : 'is due soon'}.
 Please review the invoice and submit your payment at your earliest convenience.
 
 View & Pay Invoice: ${viewUrl}

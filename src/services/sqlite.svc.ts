@@ -110,12 +110,6 @@ class SQLiteService {
     }
   }
 
-
-
-
-
-
-
   // DEPRECATED: Generic query methods - use specific endpoints instead
   async get(_sql: string, _params: any[] = []): Promise<any> {
     throw new Error('Direct SQL queries are deprecated. Use specific API endpoints instead.');
@@ -190,8 +184,6 @@ class SQLiteService {
   async verifyUserEmail(id: number): Promise<void> {
     await this.apiCall(`/users/${id}/verify-email`, 'PUT');
   }
-
-
 
   // ===== CLIENT API METHODS =====
   async getClients(): Promise<any[]> {

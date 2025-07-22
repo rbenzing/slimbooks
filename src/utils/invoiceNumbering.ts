@@ -1,7 +1,7 @@
 // Invoice numbering utilities that respect user settings
 
 import { invoiceOperations } from '@/lib/database';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 
 export interface InvoiceNumberSettings {
   prefix: string;

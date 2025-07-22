@@ -277,14 +277,11 @@ export const healthLogger = () => {
   const logHealth = () => {
     const memUsage = process.memoryUsage();
     const uptime = process.uptime();
-    
+
     console.log(`💚 Health check: Uptime ${Math.floor(uptime)}s, ` +
                `Memory ${formatBytes(memUsage.heapUsed)}/${formatBytes(memUsage.heapTotal)}`);
   };
-  
-  // Log health every 10 minutes
+
+  // Log health every 10 minutes (no initial log)
   setInterval(logHealth, 10 * 60 * 1000);
-  
-  // Log initial health
-  logHealth();
 };

@@ -254,12 +254,13 @@ export const validateConfig = () => {
   //   warnings.forEach(warning => console.warn(`   - ${warning}`));
   // }
 
-  // Log configuration status
-  console.log('✅ Configuration validation passed');
-  console.log(`📧 Email configured: ${emailConfig.isConfigured ? 'Yes' : 'No'}`);
-  console.log(`💳 Stripe configured: ${stripeConfig.isConfigured ? 'Yes' : 'No'}`);
-  console.log(`🔐 Google OAuth configured: ${googleConfig.isConfigured ? 'Yes' : 'No'}`);
-  console.log(`📧 Email verification required: ${authConfig.requireEmailVerification ? 'Yes' : 'No'}`);
+  // Log configuration status in a concise format
+  const services = [];
+  if (emailConfig.isConfigured) services.push('Email');
+  if (stripeConfig.isConfigured) services.push('Stripe');
+  if (googleConfig.isConfigured) services.push('OAuth');
+
+  console.log(`✅ Config validated | Services: ${services.length > 0 ? services.join(', ') : 'None'} | Email verification: ${authConfig.requireEmailVerification ? 'On' : 'Off'}`);
 };
 
 // Export default configuration

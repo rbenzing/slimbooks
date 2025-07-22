@@ -12,7 +12,7 @@ import { db } from '../models/index.js';
 export const requireAuth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -24,10 +24,10 @@ export const requireAuth = async (req, res, next) => {
     // For now, we'll use a simple token validation
     try {
       const decoded = jwt.verify(token, authConfig.jwtSecret);
-      
+
       // Get user from database
       const user = db.prepare('SELECT id, name, email, username, role, email_verified FROM users WHERE id = ?').get(decoded.userId);
-      
+
       if (!user) {
         return res.status(401).json({
           success: false,

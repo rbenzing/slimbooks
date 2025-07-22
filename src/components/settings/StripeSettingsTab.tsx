@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, TestTube, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 import { toast } from 'sonner';
 
 interface StripeSettings {

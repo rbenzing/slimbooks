@@ -14,26 +14,22 @@ export const db = initializeDatabase();
  */
 export const initializeCompleteDatabase = async (includeSampleData = false) => {
   try {
-    console.log('🚀 Initializing database...');
-    
     // Create tables
     createTables(db);
 
-    // Database schema is now optimized - no migrations needed
-    
     // Initialize counters
     initializeCounters(db);
-    
+
     // Initialize admin user
     await initializeAdminUser(db);
-    
+
     // Add sample data if requested (typically for development)
     if (includeSampleData && process.env.NODE_ENV !== 'production') {
       initializeSampleData(db);
       addSampleInvoices(db);
     }
-    
-    console.log('✅ Database initialization completed successfully');
+
+    console.log('✅ Database ready');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     throw error;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { sqliteService } from '@/lib/sqlite-service';
+import { sqliteService } from '@/services/sqlite.svc';
 
 interface ProjectSettings {
   google_oauth: {

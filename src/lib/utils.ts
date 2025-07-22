@@ -89,6 +89,7 @@ export const themeClasses = {
 
   // Table styles
   table: "bg-card border border-border rounded-lg overflow-hidden",
+  tableBody: "",
   tableHeader: "bg-muted/50 border-b border-border",
   tableRow: "border-b border-border hover:bg-muted/50 transition-colors",
   tableCell: "text-foreground p-4",
