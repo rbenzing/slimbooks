@@ -34,9 +34,3 @@ dist-ssr
 *.sw?
 
 package-lock.json
-
-# Development and test files
-check-schema.js
-reset-sample-data.js
-test-dashboard-*.js
-dashboard-issues-analysis.md
