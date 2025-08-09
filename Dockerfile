@@ -35,7 +35,7 @@ RUN apk update && apk upgrade && apk add --no-cache \
     dumb-init python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev
 
 # Install production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm i vite -g && npm cache clean --force
 
 # Copy the rest of app (frontend assets + server + env)
 COPY --from=frontend-builder /app/dist ./dist
