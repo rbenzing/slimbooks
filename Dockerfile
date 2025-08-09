@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev deps needed for build)
-RUN npm i && npm cache clean --force
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -32,10 +32,9 @@ COPY package*.json ./
 
 # Install build deps first
 RUN apk update && apk upgrade && apk add --no-cache \
-    dumb-init python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev
-
-# Install production dependencies
-RUN npm i vite -g && npm cache clean --force
+    dumb-init python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
+    npm ci --only=production && npm cache clean --force && \
+    apk del python3 make gcc g++ freetype-dev
 
 # Copy the rest of app (frontend assets + server + env)
 COPY --from=frontend-builder /app/dist ./dist
