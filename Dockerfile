@@ -8,7 +8,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
 # Copy package files (package.json and package-lock.json)
-COPY package*.json ./
+COPY package.json ./
 
 # Install all dependencies (including dev deps needed for build)
 RUN npm install
@@ -32,7 +32,7 @@ COPY package*.json ./
 
 # Install build deps first
 RUN apk update && apk upgrade && apk add --no-cache \
-    dumb-init python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
+    python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
     npm ci --only=production && npm cache clean --force && \
     apk del python3 make gcc g++ freetype-dev
 
@@ -55,7 +55,5 @@ EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3002/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
-
-ENTRYPOINT ["dumb-init", "--"]
 
 CMD ["npm", "run", "start"]
