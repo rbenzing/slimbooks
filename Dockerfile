@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev deps needed for build)
-RUN npm ci && npm cache clean --force
+RUN npm i && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -51,9 +51,6 @@ WORKDIR /app
 
 # Copy package files again for production install
 COPY package*.json ./
-
-# Install production dependencies (build tools needed for better-sqlite3)
-RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built frontend from the builder stage
 COPY --from=frontend-builder /app/dist ./dist
