@@ -12,7 +12,6 @@ import { serverConfig, validateConfig } from './config/index.js';
 
 // Import database
 import { initializeCompleteDatabase } from './models/index.js';
-import { getDatabasePath } from './config/database.js';
 
 // Import middleware
 import {
