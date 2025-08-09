@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy package files (package.json and package-lock.json)
 COPY package*.json ./
 
-# Install dependencies (production only)
-RUN npm i --omit=dev && npm cache clean --force
+# Install all dependencies (including dev deps needed for build)
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -26,9 +26,24 @@ FROM node:20-alpine
 RUN addgroup -g 1001 -S slimbooks && \
     adduser -S -u 1001 -G slimbooks slimbooks
 
-# Install dumb-init for proper signal handling and any security updates
+# Install system dependencies for better-sqlite3, puppeteer, and security
 RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init && \
+    apk add --no-cache \
+        dumb-init \
+        python3 \
+        make \
+        gcc \
+        g++ \
+        sqlite-dev \
+        chromium \
+        nss \
+        freetype \
+        freetype-dev \
+        harfbuzz \
+        ca-certificates \
+        fontconfig \
+        ttf-freefont \
+        udev && \
     rm -rf /var/cache/apk/*
 
 # Set working directory
@@ -37,8 +52,8 @@ WORKDIR /app
 # Copy package files again for production install
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm i --omit=dev && npm cache clean --force
+# Install production dependencies (build tools needed for better-sqlite3)
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built frontend from the builder stage
 COPY --from=frontend-builder /app/dist ./dist
@@ -48,6 +63,10 @@ COPY server ./server
 
 # Copy environment config (use .env.production as default)
 COPY .env.production ./.env
+
+# Set Puppeteer to use system Chromium and configure for containerized environment
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Create data, uploads, and logs directories with proper ownership
 RUN mkdir -p /app/data /app/uploads /app/logs && \

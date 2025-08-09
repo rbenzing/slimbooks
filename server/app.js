@@ -135,8 +135,21 @@ export const createApp = async () => {
     });
   }
 
+  // Serve static files from dist directory (built frontend)
+  const distPath = join(__dirname, '..', 'dist');
+  app.use(express.static(distPath));
+
   // API routes
   app.use('/', routes);
+
+  // Serve index.html for client-side routing (must be after API routes)
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    res.sendFile(join(distPath, 'index.html'));
+  });
 
   // 404 handler for unmatched routes
   app.use(notFoundHandler);
