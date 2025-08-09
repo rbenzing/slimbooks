@@ -38,7 +38,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm i --omit=dev && npm cache clean --force
 
 # Copy built frontend from the builder stage
 COPY --from=frontend-builder /app/dist ./dist
