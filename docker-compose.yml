@@ -11,6 +11,8 @@ services:
     # Security settings
     user: "1001:1001"
     read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -22,28 +24,17 @@ services:
     
     # Port mapping - only expose on localhost for security
     ports:
-      - "8080:3002"
-    
+      - "127.0.0.1:8080:3002"
+
     # Environment variables
     environment:
       - NODE_ENV=production
-      - PORT=3002
-      - HOST=0.0.0.0
-      - JWT_SECRET=${JWT_SECRET:-CHANGE_THIS_JWT_SECRET_IN_PRODUCTION}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-CHANGE_THIS_REFRESH_SECRET_IN_PRODUCTION}
-      - SESSION_SECRET=${SESSION_SECRET:-CHANGE_THIS_SESSION_SECRET_IN_PRODUCTION}
-      - CORS_ORIGIN=http://localhost:8080
-      - ENABLE_DEBUG_ENDPOINTS=false
-      - ENABLE_SAMPLE_DATA=false
-      - LOG_LEVEL=warn
     
     # Volume mounts for persistent data
     volumes:
       - slimbooks_data:/app/data
       - slimbooks_uploads:/app/uploads
       - slimbooks_logs:/app/logs
-      # Temporary directories for read-only filesystem
-      - /tmp
     
     # Resource limits
     deploy:
@@ -57,7 +48,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3002/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
