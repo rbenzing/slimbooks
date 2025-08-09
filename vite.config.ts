@@ -11,9 +11,16 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  build: {
+    outDir: 'dist',    // output directory
+    sourcemap: true,   // generate source maps
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
   },
 });
