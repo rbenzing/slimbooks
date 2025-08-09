@@ -2,7 +2,7 @@
 # Optimized for security, smaller image size, and Raspberry Pi OS Lite compatibility
 
 # Build stage for frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Create non-root user and group for security
 RUN addgroup -g 1001 -S slimbooks && \
