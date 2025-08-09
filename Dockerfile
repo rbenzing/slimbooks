@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Slimbooks
-# Optimized for security and small image size
+# Optimized for security, smaller image size, and Raspberry Pi OS Lite compatibility
 
 # Build stage for frontend
 FROM node:18-alpine AS frontend-builder
@@ -7,64 +7,64 @@ FROM node:18-alpine AS frontend-builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files (package.json and package-lock.json)
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (production only)
 RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
 COPY . .
 
-# Build frontend
+# Build frontend assets
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:18-alpine
 
-# Create non-root user for security
+# Create non-root user and group for security
 RUN addgroup -g 1001 -S slimbooks && \
-    adduser -S slimbooks -u 1001 -G slimbooks
+    adduser -S -u 1001 -G slimbooks slimbooks
+
+# Install dumb-init for proper signal handling and any security updates
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
 
-# Install security updates
-RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init && \
-    rm -rf /var/cache/apk/*
-
-# Copy package files
+# Copy package files again for production install
 COPY package*.json ./
 
 # Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built frontend from builder stage
+# Copy built frontend from the builder stage
 COPY --from=frontend-builder /app/dist ./dist
 
 # Copy server code
 COPY server ./server
 
-# Copy environment configuration
+# Copy environment config (use .env.production as default)
 COPY .env.production ./.env
 
-# Create necessary directories with proper permissions
+# Create data, uploads, and logs directories with proper ownership
 RUN mkdir -p /app/data /app/uploads /app/logs && \
     chown -R slimbooks:slimbooks /app
 
-# Switch to non-root user
+# Switch to the non-root user for better security
 USER slimbooks
 
-# Expose port
+# Expose application port
 EXPOSE 3002
 
-# Health check
+# Define healthcheck to confirm app readiness
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3002/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:3002/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
-# Use dumb-init to handle signals properly
+# Use dumb-init as entrypoint to handle signals properly (zombie reaping)
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
+# Start the node application
 CMD ["node", "server/index.js"]
