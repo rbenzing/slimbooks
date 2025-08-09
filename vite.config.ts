@@ -4,8 +4,15 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: "/",
+  preview: {
+    port: 8080,
+    strictPort: true,
+  },
   server: {
-    host: "::",
+    origin: "http://0.0.0.0:8080",
+    strictPort: true,
+    host: true,
     port: 8080,
   },
   plugins: [

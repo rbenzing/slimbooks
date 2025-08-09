@@ -108,16 +108,6 @@ reset-sample-data.js
 test-dashboard-*.js
 dashboard-issues-analysis.md
 
-# Development files
-src/
-public/
-index.html
-vite.config.ts
-tsconfig*.json
-eslint.config.js
-tailwind.config.ts
-postcss.config.js
-
 # Build tools
 webpack.config.js
 rollup.config.js
