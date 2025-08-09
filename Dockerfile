@@ -27,8 +27,8 @@ RUN addgroup -g 1001 -S slimbooks && \
     adduser -S -u 1001 -G slimbooks slimbooks
 
 # Install dumb-init for proper signal handling and any security updates
-RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init && \
+RUN sudo apk-get update && apk-get upgrade && \
+    apk-get add --no-cache dumb-init && \
     rm -rf /var/cache/apk/*
 
 # Set working directory
