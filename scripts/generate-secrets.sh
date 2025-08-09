@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Generate secure secrets for Slimbooks production deployment
 # This script creates cryptographically secure secrets for JWT tokens
@@ -34,7 +34,7 @@ generate_secret() {
 }
 
 # Check if openssl is available
-if ! command -v openssl &> /dev/null; then
+if ! command -v openssl >/dev/null 2>&1; then
     print_error "OpenSSL is required but not installed. Please install OpenSSL first."
     exit 1
 fi
@@ -73,6 +73,7 @@ HOST=0.0.0.0
 # Frontend Configuration
 VITE_API_URL=http://localhost:3002
 VITE_APP_NAME=Slimbooks
+CLIENT_URL=http://localhost:8080
 
 # Security Configuration - SECURE SECRETS
 JWT_SECRET=$JWT_SECRET
@@ -103,37 +104,36 @@ LOGIN_RATE_LIMIT_MAX_ATTEMPTS=5
 MAX_FILE_SIZE=10485760
 UPLOAD_PATH=./uploads
 
+# Email Configuration (if using email features)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=noreply@slimbooks.app
+
+# Google OAuth (if using)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Stripe Configuration (if using)
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
 # Security Settings
 BCRYPT_ROUNDS=12
 MAX_FAILED_LOGIN_ATTEMPTS=5
 ACCOUNT_LOCKOUT_DURATION=1800000
-REQUIRE_EMAIL_VERIFICATION=false
-ENABLE_2FA=true
+REQUIRE_EMAIL_VERIFICATION=true
 
 # Logging
-LOG_LEVEL=warn
+LOG_LEVEL=info
 LOG_FILE=./logs/app.log
 
-# Production Security - Secure defaults
+# Development Settings (only for development)
 ENABLE_DEBUG_ENDPOINTS=false
 ENABLE_SAMPLE_DATA=false
-
-# Email Configuration (optional - configure if using email features)
-# SMTP_HOST=
-# SMTP_PORT=587
-# SMTP_SECURE=false
-# SMTP_USER=
-# SMTP_PASS=
-# EMAIL_FROM=noreply@slimbooks.app
-
-# Google OAuth (optional - configure if using)
-# GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_SECRET=
-
-# Stripe Configuration (optional - configure if using)
-# STRIPE_PUBLISHABLE_KEY=
-# STRIPE_SECRET_KEY=
-# STRIPE_WEBHOOK_SECRET=
 EOF
 
 print_status ".env file created with secure secrets"

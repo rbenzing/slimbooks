@@ -1,16 +1,16 @@
-#!/bin/bash
+#!/bin/sh
 
-# Slimbooks Production Deployment Script for Raspberry Pi
+# Slimbooks Production Deployment Script for Raspberry Pi (POSIX compliant)
 # This script builds and deploys the application using Docker
 
 set -e  # Exit on any error
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Colors for output (portable ANSI sequences)
+RED="$(printf '\033[0;31m')"
+GREEN="$(printf '\033[0;32m')"
+YELLOW="$(printf '\033[1;33m')"
+BLUE="$(printf '\033[0;34m')"
+NC="$(printf '\033[0m')" # No Color
 
 # Configuration
 APP_NAME="slimbooks"
@@ -21,28 +21,28 @@ DATA_DIR="./data"
 UPLOADS_DIR="./uploads"
 LOGS_DIR="./logs"
 
-echo -e "${BLUE}🚀 Starting Slimbooks deployment...${NC}"
+printf "%s🚀 Starting Slimbooks deployment...%s\n" "$BLUE" "$NC"
 
 # Function to print colored output
 print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
+    printf "%s✅ %s%s\n" "$GREEN" "$1" "$NC"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+    printf "%s⚠️  %s%s\n" "$YELLOW" "$1" "$NC"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    printf "%s❌ %s%s\n" "$RED" "$1" "$NC"
 }
 
 # Check if Docker is installed and running
-if ! command -v docker &> /dev/null; then
+if ! command -v docker >/dev/null 2>&1; then
     print_error "Docker is not installed. Please install Docker first."
     exit 1
 fi
 
-if ! docker info &> /dev/null; then
+if ! docker info >/dev/null 2>&1; then
     print_error "Docker is not running. Please start Docker first."
     exit 1
 fi
@@ -50,7 +50,7 @@ fi
 print_status "Docker is available and running"
 
 # Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker-compose >/dev/null 2>&1; then
     print_warning "docker-compose not found, using 'docker compose' instead"
     DOCKER_COMPOSE="docker compose"
 else
@@ -58,7 +58,7 @@ else
 fi
 
 # Create necessary directories
-echo -e "${BLUE}📁 Creating necessary directories...${NC}"
+printf "%s📁 Creating necessary directories...%s\n" "$BLUE" "$NC"
 mkdir -p "$DATA_DIR" "$UPLOADS_DIR" "$LOGS_DIR"
 print_status "Directories created"
 
@@ -68,8 +68,8 @@ if [ ! -f ".env" ]; then
     if [ -f ".env.production" ]; then
         cp .env.production .env
         print_warning "Please edit .env file and update the JWT secrets before continuing!"
-        echo -e "${YELLOW}Press any key to continue after updating .env file...${NC}"
-        read -n 1 -s
+        printf "%sPress ENTER to continue after updating .env file...%s" "$YELLOW" "$NC"
+        read dummy
     else
         print_error ".env.production template not found. Please create .env file manually."
         exit 1
@@ -77,15 +77,15 @@ if [ ! -f ".env" ]; then
 fi
 
 # Validate critical environment variables
-echo -e "${BLUE}🔍 Validating environment configuration...${NC}"
-source .env
+printf "%s🔍 Validating environment configuration...%s\n" "$BLUE" "$NC"
+. .env
 
-if [[ "$JWT_SECRET" == *"CHANGE_THIS"* ]] || [[ "$JWT_SECRET" == *"default"* ]]; then
+if echo "$JWT_SECRET" | grep -q "CHANGE_THIS" || echo "$JWT_SECRET" | grep -q "default"; then
     print_error "JWT_SECRET is not properly configured in .env file!"
     exit 1
 fi
 
-if [[ "$JWT_REFRESH_SECRET" == *"CHANGE_THIS"* ]] || [[ "$JWT_REFRESH_SECRET" == *"default"* ]]; then
+if echo "$JWT_REFRESH_SECRET" | grep -q "CHANGE_THIS" || echo "$JWT_REFRESH_SECRET" | grep -q "default"; then
     print_error "JWT_REFRESH_SECRET is not properly configured in .env file!"
     exit 1
 fi
@@ -93,60 +93,62 @@ fi
 print_status "Environment configuration validated"
 
 # Stop existing container if running
-echo -e "${BLUE}🛑 Stopping existing containers...${NC}"
+printf "%s🛑 Stopping existing containers...%s\n" "$BLUE" "$NC"
 $DOCKER_COMPOSE down --remove-orphans || true
 print_status "Existing containers stopped"
 
 # Build the application
-echo -e "${BLUE}🔨 Building application...${NC}"
+printf "%s🔨 Building application...%s\n" "$BLUE" "$NC"
 npm ci --only=production
 npm run build
 print_status "Application built successfully"
 
 # Build Docker image
-echo -e "${BLUE}🐳 Building Docker image...${NC}"
+printf "%s🐳 Building Docker image...%s\n" "$BLUE" "$NC"
 docker build -t "$IMAGE_NAME" .
 print_status "Docker image built successfully"
 
 # Start the application
-echo -e "${BLUE}🚀 Starting application...${NC}"
+printf "%s🚀 Starting application...%s\n" "$BLUE" "$NC"
 $DOCKER_COMPOSE up -d
 print_status "Application started successfully"
 
 # Wait for application to be ready
-echo -e "${BLUE}⏳ Waiting for application to be ready...${NC}"
+printf "%s⏳ Waiting for application to be ready...%s\n" "$BLUE" "$NC"
 sleep 10
 
-# Health check
-echo -e "${BLUE}🏥 Performing health check...${NC}"
-for i in {1..30}; do
-    if curl -f http://localhost:$PORT/api/health &> /dev/null; then
+# Health check loop (POSIX compliant)
+printf "%s🏥 Performing health check...%s\n" "$BLUE" "$NC"
+i=1
+while [ "$i" -le 30 ]; do
+    if curl -f "http://localhost:$PORT/api/health" >/dev/null 2>&1; then
         print_status "Application is healthy and ready!"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
         print_error "Health check failed after 30 attempts"
-        echo -e "${YELLOW}Checking logs...${NC}"
+        printf "%sChecking logs...%s\n" "$YELLOW" "$NC"
         $DOCKER_COMPOSE logs --tail=20
         exit 1
     fi
-    echo -n "."
+    printf "."
     sleep 2
+    i=$((i+1))
 done
 
-# Display deployment information
-echo -e "\n${GREEN}🎉 Deployment completed successfully!${NC}"
-echo -e "${BLUE}📊 Deployment Information:${NC}"
-echo -e "  🌐 Application URL: http://localhost:$PORT"
-echo -e "  🐳 Container Name: $CONTAINER_NAME"
-echo -e "  📁 Data Directory: $DATA_DIR"
-echo -e "  📤 Uploads Directory: $UPLOADS_DIR"
-echo -e "  📝 Logs Directory: $LOGS_DIR"
+# Deployment info
+printf "\n%s🎉 Deployment completed successfully!%s\n" "$GREEN" "$NC"
+printf "%s📊 Deployment Information:%s\n" "$BLUE" "$NC"
+printf "  🌐 Application URL: http://localhost:%s\n" "$PORT"
+printf "  🐳 Container Name: %s\n" "$CONTAINER_NAME"
+printf "  📁 Data Directory: %s\n" "$DATA_DIR"
+printf "  📤 Uploads Directory: %s\n" "$UPLOADS_DIR"
+printf "  📝 Logs Directory: %s\n" "$LOGS_DIR"
 
-echo -e "\n${BLUE}🔧 Useful Commands:${NC}"
-echo -e "  View logs: $DOCKER_COMPOSE logs -f"
-echo -e "  Stop app: $DOCKER_COMPOSE down"
-echo -e "  Restart: $DOCKER_COMPOSE restart"
-echo -e "  Update: ./scripts/deploy.sh"
+printf "\n%s🔧 Useful Commands:%s\n" "$BLUE" "$NC"
+printf "  View logs: %s logs -f\n" "$DOCKER_COMPOSE"
+printf "  Stop app: %s down\n" "$DOCKER_COMPOSE"
+printf "  Restart: %s restart\n" "$DOCKER_COMPOSE"
+printf "  Update: ./scripts/deploy.sh\n"
 
-echo -e "\n${GREEN}✅ Slimbooks is now running on your Raspberry Pi!${NC}"
+printf "\n%s✅ Slimbooks is now running on your Raspberry Pi!%s\n" "$GREEN" "$NC"
