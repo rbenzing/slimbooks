@@ -56,7 +56,7 @@ Access your app at `http://localhost:8080`
 
 ```bash
 # Prepare your Raspberry Pi
-curl -fsSL https://raw.githubusercontent.com/yourusername/slimbooks/main/scripts/setup-raspberry-pi.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rbenzing/slimbooks/main/scripts/setup-raspberry-pi.sh | bash
 
 # Deploy the application
 ./scripts/deploy.sh
@@ -123,17 +123,14 @@ Use `./scripts/generate-secrets.sh` to create secure secrets automatically.
 ## 🔧 Management Commands
 
 ```bash
-# View application logs
-docker-compose logs -f
-
-# Backup database
-/usr/local/bin/slimbooks-backup
-
 # Update deployment
 ./scripts/deploy.sh
 
 # Generate new secrets
 ./scripts/generate-secrets.sh
+
+# Generate new certs for ssl
+./scripts/generate-ssl-certs.sh
 ```
 
 ## 📄 License

@@ -38,7 +38,7 @@ This directory contains utility scripts for setting up and managing your Slimboo
 #### Option 2: Batch File Wrapper
 ```cmd
 # Run from project root directory
-scripts\generate-secrets.bat
+.\scripts\generate-secrets.bat
 ```
 
 This is a simple wrapper that calls the PowerShell script and handles execution policy issues.
@@ -103,7 +103,6 @@ If scripts don't work, you can manually:
 
 ```
 scripts/
-├── README.md                 # This file
 ├── Generate-Secrets.ps1      # PowerShell script (cross-platform)
 ├── generate-secrets.bat      # Windows batch wrapper
 └── generate-secrets.sh       # Original bash script (Unix/Linux)

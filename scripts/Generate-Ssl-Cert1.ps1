@@ -52,7 +52,7 @@ IP.2 = $LocalIP
 "@
 
 # Save the config to a temporary file
-$ConfigFile = Join-Path $CertPath "cert.conf"
+$ConfigFile = "cert.conf"
 $Extensions | Out-File -FilePath $ConfigFile -Encoding UTF8
 
 # Full paths

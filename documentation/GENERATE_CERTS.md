@@ -8,22 +8,22 @@ This directory contains the SSL certificates needed to enable HTTPS for your Sli
 
 Make the script executable and run it:
 ```bash
-chmod +x ../scripts/generate-ssl-certs.sh
-../scripts/generate-ssl-certs.sh
+chmod +x ./scripts/generate-ssl-certs.sh
+./scripts/generate-ssl-certs.sh
 ```
 
 ### Option 2: Using Batch Script (Windows with OpenSSL)
 
 Run the Windows batch script:
 ```bat
-../scripts/generate-ssl-certs.bat
+./scripts/generate-ssl-certs.bat
 ```
 
 ### Option 3: Using PowerShell (Windows)
 
 Run the PowerShell script:
 ```powershell
-powershell -ExecutionPolicy Bypass -File ../scripts/generate-ssl-cert.ps1
+powershell -ExecutionPolicy Bypass -File ./scripts/generate-ssl-cert.ps1
 ```
 
 ### Option 4: Manual OpenSSL Commands
@@ -31,10 +31,10 @@ powershell -ExecutionPolicy Bypass -File ../scripts/generate-ssl-cert.ps1
 If you have OpenSSL installed, run:
 ```bash
 # Generate private key
-openssl genrsa -out server.key 2048
+openssl genrsa -out ./certs/server.key 2048
 
 # Generate certificate
-openssl req -new -x509 -key server.key -out server.crt -days 365 -config cert.conf
+openssl req -new -x509 -key ./certs/server.key -out ./certs/server.crt -days 365 -config cert.conf
 ```
 
 ## Manual Configuration
