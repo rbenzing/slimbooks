@@ -28,14 +28,16 @@ RUN addgroup -g 1001 -S slimbooks && \
 
 WORKDIR /app
 
-# Copy package files first for install
-COPY package*.json ./
-
-# Install build deps first
+# Install system dependencies for runtime (better-sqlite3, puppeteer)
 RUN apk update && apk upgrade && apk add --no-cache \
- python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
- npm ci --only=production && npm cache clean --force && \
- apk del python3 make gcc g++ freetype-dev
+ python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Clean up build dependencies to reduce image size
+RUN apk del python3 make gcc g++ freetype-dev
 
 # Copy the rest of app (frontend assets + server + env)
 COPY --from=frontend-builder /app/dist ./dist
