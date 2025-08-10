@@ -96,44 +96,6 @@ export const createApp = async () => {
     });
   });
 
-  // Debug endpoint (development only)
-  if (serverConfig.enableDebugEndpoints && serverConfig.isDevelopment) {
-    app.get('/api/debug/data', async (req, res) => {
-      try {
-        const { db } = await import('./models/index.js');
-        
-        const clients = db.prepare('SELECT * FROM clients ORDER BY created_at DESC LIMIT 5').all();
-        const invoices = db.prepare('SELECT * FROM invoices ORDER BY created_at DESC LIMIT 5').all();
-        const expenses = db.prepare('SELECT * FROM expenses ORDER BY created_at DESC LIMIT 5').all();
-        const templates = db.prepare('SELECT * FROM templates ORDER BY created_at DESC LIMIT 5').all();
-
-        res.json({
-          success: true,
-          data: {
-            clients: {
-              count: db.prepare('SELECT COUNT(*) as count FROM clients').get().count,
-              sample: clients
-            },
-            invoices: {
-              count: db.prepare('SELECT COUNT(*) as count FROM invoices').get().count,
-              sample: invoices
-            },
-            expenses: {
-              count: db.prepare('SELECT COUNT(*) as count FROM expenses').get().count,
-              sample: expenses
-            },
-            templates: {
-              count: db.prepare('SELECT COUNT(*) as count FROM templates').get().count,
-              sample: templates
-            }
-          }
-        });
-      } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-  }
-
   // Serve static files from dist directory (built frontend)
   const distPath = join(__dirname, '..', 'dist');
   app.use(express.static(distPath));
