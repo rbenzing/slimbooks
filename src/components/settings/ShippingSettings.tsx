@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/services/sqlite.svc';
+// Use dynamic import to avoid circular dependencies
 
 interface ShippingRate {
   id: string;
@@ -19,6 +19,9 @@ export const ShippingSettings = () => {
   useEffect(() => {
     const loadShippingRates = async () => {
       try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
+        
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
         }
@@ -58,6 +61,8 @@ export const ShippingSettings = () => {
   const saveShippingRates = async (rates: ShippingRate[]) => {
     setShippingRates(rates);
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
       await sqliteService.setSetting('shipping_rates', rates, 'shipping');
     } catch (error) {
       console.error('Error saving shipping rates:', error);

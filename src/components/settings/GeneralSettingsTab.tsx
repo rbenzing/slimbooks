@@ -29,7 +29,6 @@ import {
   getCurrencyFormatPreview,
   type CurrencySettings
 } from '@/utils/currencyFormatting';
-import { sqliteService } from '@/services/sqlite.svc';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });
@@ -49,6 +48,9 @@ export const GeneralSettingsTab = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
+        
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
         }
@@ -103,6 +105,8 @@ export const GeneralSettingsTab = () => {
           'default_timezone': { value: timeZone, category: 'general' }
         };
 
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
         await sqliteService.setMultipleSettings(settingsToSave);
       } catch (error) {
         console.error('Error saving general settings:', error);
@@ -112,7 +116,8 @@ export const GeneralSettingsTab = () => {
           await saveDateTimeSettings(dateTimeSettings);
           await saveInvoiceNumberSettings(invoiceSettings);
           await saveCurrencySettings(currencySettings);
-          await sqliteService.setSetting('default_timezone', timeZone, 'general');
+          const { sqliteService: sqliteServiceFallback } = await import('@/services/sqlite.svc');
+          await sqliteServiceFallback.setSetting('default_timezone', timeZone, 'general');
         } catch (fallbackError) {
           console.error('Error with fallback save:', fallbackError);
         }

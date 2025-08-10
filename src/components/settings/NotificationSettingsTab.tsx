@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
-import { sqliteService } from '@/services/sqlite.svc';
+// Use dynamic import to avoid circular dependencies
 import { themeClasses } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -32,6 +32,9 @@ export const NotificationSettingsTab = () => {
 
   const loadSettings = async () => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }
@@ -64,6 +67,9 @@ export const NotificationSettingsTab = () => {
 
   const saveSettings = async (settingsToSave: NotificationSettings) => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }

@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/services/sqlite.svc';
 
 export const AppearanceSettingsTab = () => {
   const [theme, setTheme] = useState('system');
@@ -13,6 +12,9 @@ export const AppearanceSettingsTab = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
+        
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
         }
@@ -72,7 +74,9 @@ export const AppearanceSettingsTab = () => {
     applyTheme(theme);
 
     // Save to database
-    sqliteService.setSetting('theme', theme, 'appearance').catch(console.error);
+    import('@/services/sqlite.svc').then(({ sqliteService }) => {
+      sqliteService.setSetting('theme', theme, 'appearance').catch(console.error);
+    });
 
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -86,14 +90,18 @@ export const AppearanceSettingsTab = () => {
   useEffect(() => {
     if (!isLoaded) return;
 
-    sqliteService.setSetting('invoice_template', invoiceTemplate, 'appearance').catch(console.error);
+    import('@/services/sqlite.svc').then(({ sqliteService }) => {
+      sqliteService.setSetting('invoice_template', invoiceTemplate, 'appearance').catch(console.error);
+    });
   }, [invoiceTemplate, isLoaded]);
 
   // Save PDF format changes
   useEffect(() => {
     if (!isLoaded) return;
 
-    sqliteService.setSetting('pdf_format', { format: pdfFormat }, 'appearance').catch(console.error);
+    import('@/services/sqlite.svc').then(({ sqliteService }) => {
+      sqliteService.setSetting('pdf_format', { format: pdfFormat }, 'appearance').catch(console.error);
+    });
   }, [pdfFormat, isLoaded]);
 
   const handleThemeChange = (newTheme: string) => {

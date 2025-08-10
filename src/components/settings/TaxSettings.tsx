@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { sqliteService } from '@/services/sqlite.svc';
 import { themeClasses } from '@/lib/utils';
 
 interface TaxRate {
@@ -19,6 +18,9 @@ export const TaxSettings = () => {
   useEffect(() => {
     const loadTaxRates = async () => {
       try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
+        
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
         }
@@ -47,6 +49,8 @@ export const TaxSettings = () => {
   const saveTaxRates = async (rates: TaxRate[]) => {
     setTaxRates(rates);
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
       await sqliteService.setSetting('tax_rates', rates, 'tax');
     } catch (error) {
       console.error('Error saving tax rates:', error);

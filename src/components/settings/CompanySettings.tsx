@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
-import { sqliteService } from '@/services/sqlite.svc';
 
 export interface CompanySettings {
   companyName: string;
@@ -35,6 +34,9 @@ export const CompanySettings = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService } = await import('@/services/sqlite.svc');
+        
         if (!sqliteService.isReady()) {
           await sqliteService.initialize();
         }
@@ -72,6 +74,8 @@ export const CompanySettings = () => {
 
   const saveSettings = async (newSettings: CompanySettings) => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
       await sqliteService.setSetting('company_settings', newSettings, 'company');
     } catch (error) {
       console.error('Error saving company settings:', error);

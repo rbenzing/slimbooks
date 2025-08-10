@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, TestTube, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
-import { sqliteService } from '@/services/sqlite.svc';
+// Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
 
 interface StripeSettings {
@@ -41,6 +41,9 @@ export const StripeSettingsTab = () => {
 
   const loadSettings = async () => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }
@@ -84,6 +87,9 @@ export const StripeSettingsTab = () => {
 
   const saveSettings = async () => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }
@@ -125,7 +131,9 @@ export const StripeSettingsTab = () => {
           connectedAt: new Date().toISOString()
         };
         setSettings(updatedSettings);
-        await sqliteService.setSetting('stripe_settings', updatedSettings);
+        // Use dynamic import to avoid circular dependencies
+        const { sqliteService: sqliteServiceForUpdate } = await import('@/services/sqlite.svc');
+        await sqliteServiceForUpdate.setSetting('stripe_settings', updatedSettings);
         toast.success('Stripe connection successful!');
       } else {
         setConnectionStatus('error');

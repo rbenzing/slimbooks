@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Upload, Database, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
-import { sqliteService } from '@/services/sqlite.svc';
 import { toast } from 'sonner';
 
 interface DatabaseStats {
@@ -32,6 +31,9 @@ export const DatabaseBackupSection = () => {
 
   const loadDatabaseStats = async () => {
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }
@@ -95,6 +97,8 @@ export const DatabaseBackupSection = () => {
   const handleExportDatabase = async () => {
     setIsExporting(true);
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
       const blob = await sqliteService.exportToFile();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -128,6 +132,8 @@ export const DatabaseBackupSection = () => {
 
     setIsImporting(true);
     try {
+      // Use dynamic import to avoid circular dependencies
+      const { sqliteService } = await import('@/services/sqlite.svc');
       await sqliteService.importFromFile(file);
 
       // Reload database stats
