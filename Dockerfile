@@ -43,7 +43,7 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm i concurrently vite && npm cache clean --force
+RUN npm ci --only=production && && npm cache clean --force
 
 # Clean up build dependencies to reduce image size
 RUN apk del python3 make gcc g++ freetype-dev
