@@ -50,6 +50,7 @@ RUN apk del python3 make gcc g++ freetype-dev
 # Copy the rest of app (frontend assets + server + env)
 COPY --from=frontend-builder /app/dist ./dist
 COPY server ./server
+COPY certs ./certs
 COPY .env.production ./.env
 COPY vite.config.ts ./vite.config.ts
 
