@@ -12,7 +12,7 @@ COPY package*.json ./
 
 # Install all dependencies (including dev deps needed for build)
 RUN npm ci && \
-    npm cache clean --force
+ npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -24,7 +24,7 @@ RUN npm run build
 FROM node:20-alpine
 
 RUN addgroup -g 1001 -S slimbooks && \
-    adduser -S -u 1001 -G slimbooks slimbooks
+ adduser -S -u 1001 -G slimbooks slimbooks
 
 WORKDIR /app
 
@@ -33,9 +33,9 @@ COPY package*.json ./
 
 # Install build deps first
 RUN apk update && apk upgrade && apk add --no-cache \
-    python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
-    npm ci --only=production && npm cache clean --force && \
-    apk del python3 make gcc g++ freetype-dev
+ python3 make gcc g++ sqlite-dev chromium nss freetype freetype-dev harfbuzz ca-certificates fontconfig ttf-freefont udev && \
+ npm ci --only=production && npm cache clean --force && \
+ apk del python3 make gcc g++ freetype-dev
 
 # Copy the rest of app (frontend assets + server + env)
 COPY --from=frontend-builder /app/dist ./dist
@@ -48,7 +48,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Create necessary directories & fix ownership
 RUN mkdir -p /app/data /app/uploads /app/logs && \
-    chown -R slimbooks:slimbooks /app
+ chown -R slimbooks:slimbooks /app
 
 USER slimbooks
 
