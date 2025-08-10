@@ -22,19 +22,23 @@ services:
       - SETGID
       - SETUID
     
-    # Port mapping - only expose on localhost for security
+    # Port mapping - expose on all interfaces for network access
     ports:
-      - "127.0.0.1:8080:3002"
+      - "8080:3002"
 
     # Environment variables
     environment:
       - NODE_ENV=production
+      - ENABLE_HTTPS=true
+      - SSL_KEY_PATH=certs/server.key
+      - SSL_CERT_PATH=certs/server.crt
     
     # Volume mounts for persistent data
     volumes:
       - slimbooks_data:/app/data
       - slimbooks_uploads:/app/uploads
       - slimbooks_logs:/app/logs
+      - ./certs:/app/certs:ro
     
     # Resource limits
     deploy:
@@ -48,7 +52,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3002/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f -k https://localhost:3002/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

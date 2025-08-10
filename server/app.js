@@ -4,6 +4,8 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import https from 'https';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 
@@ -128,17 +130,53 @@ export const startServer = async () => {
   try {
     const app = await createApp();
     
-    const server = app.listen(serverConfig.port, serverConfig.host, () => {
-      console.log(`🚀 Slimbooks server running on http://${serverConfig.host}:${serverConfig.port}`);
-      console.log(`📊 Environment: ${serverConfig.nodeEnv} | CORS: ${serverConfig.corsOrigin} | Rate limit: ${serverConfig.rateLimiting.maxRequests}/${serverConfig.rateLimiting.windowMs / 1000}s`);
-
-      const features = [];
-      if (serverConfig.enableDebugEndpoints) features.push('Debug');
-      if (serverConfig.enableSampleData || serverConfig.isDevelopment) features.push('Sample data');
-      if (features.length > 0) {
-        console.log(`🔧 Features: ${features.join(', ')}`);
+    let server;
+    
+    if (serverConfig.enableHttps) {
+      // HTTPS Server
+      const projectRoot = join(__dirname, '..');
+      const keyPath = resolve(projectRoot, serverConfig.sslKeyPath);
+      const certPath = resolve(projectRoot, serverConfig.sslCertPath);
+      
+      // Check if SSL files exist
+      if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+        console.error('❌ SSL certificate files not found. Please generate them first.');
+        console.log('💡 Run: powershell -ExecutionPolicy Bypass -File ./scripts/generate-ssl-cert.ps1');
+        process.exit(1);
       }
-    });
+      
+      const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      };
+      
+      server = https.createServer(httpsOptions, app);
+      server.listen(serverConfig.port, serverConfig.host, () => {
+        console.log(`🚀 Slimbooks server running on https://${serverConfig.host}:${serverConfig.port}`);
+        console.log(`🔒 HTTPS enabled with self-signed certificate`);
+        console.log(`📊 Environment: ${serverConfig.nodeEnv} | CORS: ${serverConfig.corsOrigin} | Rate limit: ${serverConfig.rateLimiting.maxRequests}/${serverConfig.rateLimiting.windowMs / 1000}s`);
+
+        const features = [];
+        if (serverConfig.enableDebugEndpoints) features.push('Debug');
+        if (serverConfig.enableSampleData || serverConfig.isDevelopment) features.push('Sample data');
+        if (features.length > 0) {
+          console.log(`🔧 Features: ${features.join(', ')}`);
+        }
+      });
+    } else {
+      // HTTP Server (default)
+      server = app.listen(serverConfig.port, serverConfig.host, () => {
+        console.log(`🚀 Slimbooks server running on http://${serverConfig.host}:${serverConfig.port}`);
+        console.log(`📊 Environment: ${serverConfig.nodeEnv} | CORS: ${serverConfig.corsOrigin} | Rate limit: ${serverConfig.rateLimiting.maxRequests}/${serverConfig.rateLimiting.windowMs / 1000}s`);
+
+        const features = [];
+        if (serverConfig.enableDebugEndpoints) features.push('Debug');
+        if (serverConfig.enableSampleData || serverConfig.isDevelopment) features.push('Sample data');
+        if (features.length > 0) {
+          console.log(`🔧 Features: ${features.join(', ')}`);
+        }
+      });
+    }
 
     // Initialize health logging
     healthLogger();
