@@ -4,6 +4,9 @@
 # Build stage for frontend
 FROM node:20-alpine AS frontend-builder
 
+# Minimal memory settings
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
 # Set working directory
 WORKDIR /app
 
@@ -18,10 +21,12 @@ RUN npm ci && \
 COPY . .
 
 # Build frontend assets with increased heap memory
-RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine
+
+ENV NODE_ENV=production
 
 RUN addgroup -g 1001 -S slimbooks && \
  adduser -S -u 1001 -G slimbooks slimbooks
