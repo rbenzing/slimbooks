@@ -43,8 +43,8 @@ echo ""
 
 # Generate private key
 echo "Generating private key..."
-if openssl genrsa -out server.key 2048; then
-    echo "✓ Private key generated: server.key"
+if openssl genrsa -out ../certs/server.key 2048; then
+    echo "✓ Private key generated: ../certs/server.key"
 else
     echo "ERROR: Failed to generate private key"
     exit 1
@@ -53,7 +53,7 @@ fi
 # Generate certificate
 echo "Generating certificate..."
 if openssl req -new -x509 -key ../certs/server.key -out ../certs/server.crt -days 365 -config cert.conf; then
-    echo "✓ Certificate generated: server.crt"
+    echo "✓ Certificate generated: ../certs/server.crt"
 else
     echo "ERROR: Failed to generate certificate"
     exit 1
