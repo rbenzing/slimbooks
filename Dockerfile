@@ -12,7 +12,6 @@ COPY package*.json ./
 
 # Install all dependencies (including dev deps needed for build)
 RUN npm ci && \
-    npm install --save-optional @swc/core-linux-x64-musl && \
     npm cache clean --force
 
 # Copy source code
