@@ -17,14 +17,13 @@ WORKDIR /app
 # Copy package files (package.json and package-lock.json)
 COPY package*.json ./
 
-# Install all dependencies (including dev deps needed for build)
-RUN npm ci && \
- npm cache clean --force
+# Install all dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build frontend assets with increased heap memory
+# Build frontend assets
 RUN npm run build
 
 # Production stage
@@ -43,7 +42,7 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --no-audit && npm cache clean --force
 
 # Clean up build dependencies to reduce image size
 RUN apk del python3 make gcc g++ freetype-dev
