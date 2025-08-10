@@ -20,7 +20,17 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',    // output directory
-    sourcemap: true,   // generate source maps
+    sourcemap: false,   // disable source maps for production to save memory
+    minify: 'esbuild',  // use esbuild for faster, less memory-intensive minification
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor chunks to reduce memory usage during build
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

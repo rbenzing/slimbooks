@@ -17,8 +17,8 @@ RUN npm ci && \
 # Copy source code
 COPY . .
 
-# Build frontend assets
-RUN npm run build
+# Build frontend assets with increased heap memory
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Production stage
 FROM node:20-alpine
