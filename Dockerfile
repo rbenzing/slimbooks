@@ -51,6 +51,7 @@ RUN apk del python3 make gcc g++ freetype-dev
 COPY --from=frontend-builder /app/dist ./dist
 COPY server ./server
 COPY .env.production ./.env
+COPY vite.config.ts ./vite.config.ts
 
 # Create necessary directories & fix ownership
 RUN mkdir -p /app/data /app/uploads /app/logs && \
