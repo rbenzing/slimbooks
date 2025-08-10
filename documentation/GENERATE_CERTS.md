@@ -23,7 +23,7 @@ Run the Windows batch script:
 
 Run the PowerShell script:
 ```powershell
-powershell -ExecutionPolicy Bypass -File ./scripts/generate-ssl-cert.ps1
+powershell -ExecutionPolicy Bypass -File ./scripts/Generate-Ssl-Cert.ps1
 ```
 
 ### Option 4: Manual OpenSSL Commands
@@ -68,9 +68,3 @@ If you need to manually edit the certificate configuration, modify `cert.conf` a
 - Browsers will show security warnings that you'll need to accept
 - For production, use certificates from a trusted CA
 - The private key should be kept secure and not shared publicly
-
-## Troubleshooting
-
-- Ensure both `server.key` and `server.crt` exist before starting Docker
-- Check that the IP address in `cert.conf` matches your network IP
-- Use `docker-compose logs slimbooks` to check for SSL-related errors
