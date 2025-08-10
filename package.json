@@ -10,7 +10,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "start": "concurrently \"npm run server\" \"vite preview\"",
+    "start": "concurrently \"npm run server\" \"vite preview --host\"",
     "server-only": "node server/index.js",
     "ui-only": "vite"
   },
