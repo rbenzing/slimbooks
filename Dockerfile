@@ -7,6 +7,10 @@ FROM node:20-alpine AS frontend-builder
 # Minimal memory settings
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
+# Set Puppeteer environment variables
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # Set working directory
 WORKDIR /app
 
@@ -48,10 +52,6 @@ RUN apk del python3 make gcc g++ freetype-dev
 COPY --from=frontend-builder /app/dist ./dist
 COPY server ./server
 COPY .env.production ./.env
-
-# Set Puppeteer environment variables
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Create necessary directories & fix ownership
 RUN mkdir -p /app/data /app/uploads /app/logs && \
