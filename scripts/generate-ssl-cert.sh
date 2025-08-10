@@ -52,7 +52,7 @@ fi
 
 # Generate certificate
 echo "Generating certificate..."
-if openssl req -new -x509 -key server.key -out server.crt -days 365 -config cert.conf; then
+if openssl req -new -x509 -key ../certs/server.key -out ../certs/server.crt -days 365 -config cert.conf; then
     echo "✓ Certificate generated: server.crt"
 else
     echo "ERROR: Failed to generate certificate"

@@ -5,7 +5,7 @@ REM This creates a certificate that can be used for HTTPS access from other mach
 echo Generating self-signed SSL certificate for Slimbooks...
 
 REM Create certs directory if it doesn't exist
-if not exist "certs" mkdir certs
+if not exist "../certs" mkdir certs
 
 REM Check if OpenSSL is available
 where openssl >nul 2>nul
@@ -13,7 +13,7 @@ if %ERRORLEVEL% EQU 0 (
     echo Using OpenSSL to generate certificate...
     
     REM Generate private key
-    openssl genrsa -out certs\server.key 2048
+    openssl genrsa -out ..\certs\server.key 2048
     if %ERRORLEVEL% NEQ 0 (
         echo Failed to generate private key
         exit /b 1
@@ -27,8 +27,8 @@ if %ERRORLEVEL% EQU 0 (
     )
     
     echo SSL certificate generated successfully!
-    echo Private Key: certs\server.key
-    echo Certificate: certs\server.crt
+    echo Private Key: ..\certs\server.key
+    echo Certificate: ..\certs\server.crt
     
 ) else (
     echo OpenSSL not found in PATH. Please install OpenSSL or use PowerShell script instead.
