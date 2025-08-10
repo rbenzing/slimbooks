@@ -8,10 +8,10 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
 # Copy package files (package.json and package-lock.json)
-COPY package.json ./
+COPY package*.json ./
 
 # Install all dependencies (including dev deps needed for build)
-RUN npm install --no-audit && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
