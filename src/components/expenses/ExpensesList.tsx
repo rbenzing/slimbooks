@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Edit, Receipt, Eye, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Edit, Receipt, Eye, Trash2, Delete, Tag, Building } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
@@ -22,11 +22,48 @@ interface ExpensesListProps {
   onEditExpense: (expense: Expense) => void;
   onDeleteExpense: (id: number) => void;
   onViewExpense: (expense: Expense) => void;
+  onBulkDelete?: (ids: number[]) => void;
+  onBulkCategorize?: (ids: number[], category: string) => void;
+  onBulkChangeMerchant?: (ids: number[], merchant: string) => void;
+  categories?: string[];
 }
 
-export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpense, onDeleteExpense, onViewExpense }) => {
+export const ExpensesList: React.FC<ExpensesListProps> = ({ 
+  expenses, 
+  onEditExpense, 
+  onDeleteExpense, 
+  onViewExpense,
+  onBulkDelete,
+  onBulkCategorize,
+  onBulkChangeMerchant,
+  categories = []
+}) => {
+  const [selectedExpenses, setSelectedExpenses] = useState<number[]>([]);
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkMerchant, setBulkMerchant] = useState('');
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
-  // Using imported formatDate function
+  // Reset selection when expenses change
+  useEffect(() => {
+    setSelectedExpenses([]);
+    setShowBulkActions(false);
+  }, [expenses]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedExpenses(expenses.map(expense => expense.id));
+    } else {
+      setSelectedExpenses([]);
+    }
+  };
+
+  const handleSelectExpense = (expenseId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedExpenses(prev => [...prev, expenseId]);
+    } else {
+      setSelectedExpenses(prev => prev.filter(id => id !== expenseId));
+    }
+  };
 
   const handleDelete = (id: number, merchant: string) => {
     if (window.confirm(`Are you sure you want to delete the expense from ${merchant}?`)) {
@@ -34,12 +71,122 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
     }
   };
 
+  const handleBulkDelete = () => {
+    if (selectedExpenses.length === 0) return;
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedExpenses.length} selected expense(s)?`)) {
+      onBulkDelete?.(selectedExpenses);
+      setSelectedExpenses([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  const handleBulkCategorize = () => {
+    if (selectedExpenses.length === 0 || !bulkCategory) return;
+    
+    onBulkCategorize?.(selectedExpenses, bulkCategory);
+    setSelectedExpenses([]);
+    setBulkCategory('');
+    setShowBulkActions(false);
+  };
+
+  const handleBulkChangeMerchant = () => {
+    if (selectedExpenses.length === 0 || !bulkMerchant) return;
+    
+    onBulkChangeMerchant?.(selectedExpenses, bulkMerchant);
+    setSelectedExpenses([]);
+    setBulkMerchant('');
+    setShowBulkActions(false);
+  };
+
+  const isAllSelected = expenses.length > 0 && selectedExpenses.length === expenses.length;
+  const isPartialSelected = selectedExpenses.length > 0 && selectedExpenses.length < expenses.length;
+
   return (
     <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+      {/* Bulk Actions Bar */}
+      {selectedExpenses.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-border p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {selectedExpenses.length} expense(s) selected
+            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Bulk Delete */}
+              {onBulkDelete && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  <Delete className="h-4 w-4" />
+                  Delete
+                </button>
+              )}
+              
+              {/* Bulk Categorize */}
+              {onBulkCategorize && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={bulkCategory}
+                    onChange={(e) => setBulkCategory(e.target.value)}
+                    className="text-sm border border-border rounded-md px-2 py-1.5 bg-background"
+                  >
+                    <option value="">Select category...</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleBulkCategorize}
+                    disabled={!bulkCategory}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Tag className="h-4 w-4" />
+                    Categorize
+                  </button>
+                </div>
+              )}
+              
+              {/* Bulk Change Merchant */}
+              {onBulkChangeMerchant && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter merchant name..."
+                    value={bulkMerchant}
+                    onChange={(e) => setBulkMerchant(e.target.value)}
+                    className="text-sm border border-border rounded-md px-2 py-1.5 bg-background w-48"
+                  />
+                  <button
+                    onClick={handleBulkChangeMerchant}
+                    disabled={!bulkMerchant.trim()}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Building className="h-4 w-4" />
+                    Change Merchant
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
+              <th className="text-left py-3 px-6 w-8">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={input => {
+                    if (input) input.indeterminate = isPartialSelected;
+                  }}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-border"
+                />
+              </th>
               <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Date
               </th>
@@ -65,7 +212,15 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ expenses, onEditExpe
           </thead>
           <tbody className="divide-y divide-border">
             {expenses.map((expense) => (
-              <tr key={expense.id} className="hover:bg-muted/50">
+              <tr key={expense.id} className={`hover:bg-muted/50 ${selectedExpenses.includes(expense.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                <td className="py-4 px-6">
+                  <input
+                    type="checkbox"
+                    checked={selectedExpenses.includes(expense.id)}
+                    onChange={(e) => handleSelectExpense(expense.id, e.target.checked)}
+                    className="rounded border-border"
+                  />
+                </td>
                 <td className="py-4 px-6 text-sm text-foreground">
                   {formatDateSync(expense.date)}
                 </td>

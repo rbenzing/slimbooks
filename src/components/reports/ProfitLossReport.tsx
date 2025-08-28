@@ -18,6 +18,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
   const [loading, setLoading] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [accountingMethod, setAccountingMethod] = useState<'cash' | 'accrual'>('accrual');
+  const [breakdownPeriod, setBreakdownPeriod] = useState<'monthly' | 'quarterly'>('quarterly');
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
@@ -28,12 +29,12 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
 
   useEffect(() => {
     generateReportData();
-  }, [dateRange.start, dateRange.end, accountingMethod]);
+  }, [dateRange.start, dateRange.end, accountingMethod, breakdownPeriod]);
 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const data = await reportOperations.generateProfitLossData(dateRange.start, dateRange.end, accountingMethod);
+      const data = await reportOperations.generateProfitLossData(dateRange.start, dateRange.end, accountingMethod, dateRange.preset, breakdownPeriod);
       setReportData(data);
     } catch (error) {
       console.error('Error generating report data:', error);
@@ -176,7 +177,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
             <Calendar className={`${themeClasses.iconSmall} mr-2`} />
             Report Configuration
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
                 Quick Select
@@ -235,34 +236,30 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                   : 'Only counts paid invoices as revenue'}
               </p>
             </div>
+            <div>
+              <label className={`block text-sm font-medium ${themeClasses.bodyText} mb-2`}>
+                Breakdown View
+              </label>
+              <select
+                className={`w-full ${themeClasses.select}`}
+                value={breakdownPeriod}
+                onChange={(e) => setBreakdownPeriod(e.target.value as 'monthly' | 'quarterly')}
+                disabled={dateRange.preset !== 'this-year' && dateRange.preset !== 'last-year'}
+              >
+                <option value="quarterly">Quarterly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <p className={`text-xs ${themeClasses.mutedText} mt-1`}>
+                {dateRange.preset === 'this-year' || dateRange.preset === 'last-year'
+                  ? 'Show breakdown by period'
+                  : 'Only available for yearly reports'}
+              </p>
+            </div>
           </div>
         </div>
 
         {reportData && (
           <>
-            {/* Accounting Method Indicator */}
-            <div className={`${themeClasses.card} mb-4`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className={`text-sm font-medium ${themeClasses.bodyText}`}>
-                    Accounting Method: <span className="font-semibold capitalize">{accountingMethod}</span>
-                  </h4>
-                  <p className={`text-xs ${themeClasses.mutedText}`}>
-                    {accountingMethod === 'accrual'
-                      ? 'Revenue includes all invoices (draft, sent, paid, overdue)'
-                      : 'Revenue includes only paid invoices'}
-                  </p>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  accountingMethod === 'accrual'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                }`}>
-                  {accountingMethod === 'accrual' ? 'Accrual Basis' : 'Cash Basis'}
-                </div>
-              </div>
-            </div>
-
             {/* Summary Cards */}
             <div className={themeClasses.statsGridThree}>
               <div className={themeClasses.statCard}>
@@ -304,102 +301,192 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
               </div>
             </div>
 
-            {/* Detailed Report */}
+            {/* P&L Report - Clean Table Format */}
             <div className={themeClasses.card}>
               <div className={themeClasses.cardHeader}>
-                <h3 className={themeClasses.cardTitle}>Detailed Breakdown</h3>
+                <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  Profit and Loss
+                </h3>
+                <div className={`${themeClasses.mutedText} mt-1`}>
+                  <p>Income Statement</p>
+                  <p>For {getFormattedDateRange()}</p>
+                </div>
               </div>
-              <div className={themeClasses.cardContent}>
-                <div className="space-y-8">
-                  {/* Revenue Section */}
-                  <div>
-                    <h4 className={`text-lg font-semibold ${themeClasses.bodyText} mb-4`}>Revenue</h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center py-2">
-                        <span className={`${themeClasses.mutedText} flex-1`}>Invoice Revenue</span>
-                        <div className="flex items-center space-x-4 min-w-0">
-                          <span className={`font-medium ${themeClasses.bodyText}`}>
-                            <FormattedCurrency amount={reportData.revenue.invoices} />
-                          </span>
-                          <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
-                            {reportData.revenue.total > 0 ? ((reportData.revenue.invoices / reportData.revenue.total) * 100).toFixed(1) : 0}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2">
-                        <span className={`${themeClasses.mutedText} flex-1`}>Other Income</span>
-                        <div className="flex items-center space-x-4 min-w-0">
-                          <span className={`font-medium ${themeClasses.bodyText}`}>
-                            <FormattedCurrency amount={reportData.revenue.otherIncome} />
-                          </span>
-                          <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
-                            {reportData.revenue.total > 0 ? ((reportData.revenue.otherIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="border-t border-border pt-2">
-                        <div className="flex justify-between items-center py-2">
-                          <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Revenue</span>
-                          <div className="flex items-center space-x-4 min-w-0">
-                            <span className="font-bold text-green-600 dark:text-green-400">
-                              <FormattedCurrency amount={reportData.revenue.total} />
-                            </span>
-                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Expenses Section */}
-                  <div>
-                    <h4 className={`text-lg font-semibold ${themeClasses.bodyText} mb-4`}>Expenses</h4>
-                    <div className="space-y-3">
-                      {Object.entries(reportData.expenses).map(([category, amount]) => {
-                        if (category === 'total') return null;
-                        const percentage = reportData.expenses.total > 0 ? ((amount as number) / reportData.expenses.total * 100) : 0;
-                        return (
-                          <div key={category} className="flex justify-between items-center py-2">
-                            <span className={`${themeClasses.mutedText} flex-1`}>{category}</span>
-                            <div className="flex items-center space-x-4 min-w-0">
-                              <span className={`font-medium ${themeClasses.bodyText}`}>
-                                <FormattedCurrency amount={amount as number} />
-                              </span>
-                              <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
-                                {percentage.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="border-t border-border pt-2">
-                        <div className="flex justify-between items-center py-2">
-                          <span className={`font-semibold ${themeClasses.bodyText} flex-1`}>Total Expenses</span>
-                          <div className="flex items-center space-x-4 min-w-0">
-                            <span className="font-bold text-red-600 dark:text-red-400">
-                              <FormattedCurrency amount={reportData.expenses.total} />
-                            </span>
-                            <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>100%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1000px] text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-blue-600">
+                      <th className="text-left py-3 px-2 min-w-[200px]"></th>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <th key={index} className="text-center py-3 px-2 font-medium text-blue-600 dark:text-blue-400 min-w-[80px]">
+                          {period.label}
+                        </th>
+                      ))}
+                      <th className="text-center py-3 px-2 font-bold text-blue-600 dark:text-blue-400 min-w-[100px]">
+                        Year Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {/* Income (Billed) */}
+                    <tr>
+                      <td className="py-2 px-2 font-bold text-gray-900 dark:text-gray-100">Income (Billed)*</td>
+                      <td colSpan={reportData.hasBreakdown ? reportData.periodColumns?.length + 1 : 1}></td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 px-2 pl-4 text-gray-700 dark:text-gray-300">Sales</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className="py-1 px-2 text-right text-gray-900 dark:text-gray-100">
+                          {formatAmountSync(period.revenue)}
+                        </td>
+                      ))}
+                      <td className="py-1 px-2 text-right text-gray-900 dark:text-gray-100">
+                        {formatAmountSync(reportData.revenue.total)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 px-2 pl-8 text-gray-600 dark:text-gray-400">Invoice</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className="py-1 px-2 text-right text-gray-700 dark:text-gray-300">
+                          {formatAmountSync(period.revenue)}
+                        </td>
+                      ))}
+                      <td className="py-1 px-2 text-right text-gray-700 dark:text-gray-300">
+                        {formatAmountSync(reportData.revenue.invoices)}
+                      </td>
+                    </tr>
 
-                  {/* Net Income */}
-                  <div className="border-t-2 border-border pt-4">
-                    <div className="flex justify-between items-center py-2">
-                      <span className={`text-xl font-bold ${themeClasses.bodyText} flex-1`}>Net Income</span>
-                      <div className="flex items-center space-x-4 min-w-0">
-                        <span className={`text-xl font-bold ${reportData.netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          <FormattedCurrency amount={reportData.netIncome} />
-                        </span>
-                        <span className={`${themeClasses.mutedText} text-sm min-w-[3rem] text-right`}>
-                          {reportData.revenue.total > 0 ? ((reportData.netIncome / reportData.revenue.total) * 100).toFixed(1) : 0}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                    {/* Cost of Goods Sold - placeholder row */}
+                    <tr>
+                      <td className="py-1 px-2 pl-4 text-gray-600 dark:text-gray-400">🧾 Cost of Goods Sold</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className="py-1 px-2 text-right text-gray-700 dark:text-gray-300">
+                          {formatAmountSync(0)}
+                        </td>
+                      ))}
+                      <td className="py-1 px-2 text-right text-gray-700 dark:text-gray-300">
+                        {formatAmountSync(0)}
+                      </td>
+                    </tr>
+
+                    {/* Gross Profit */}
+                    <tr className="font-semibold">
+                      <td className="py-2 px-2 font-bold text-gray-900 dark:text-gray-100">Gross Profit</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className={`py-2 px-2 text-right font-semibold ${
+                          period.revenue >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          {formatAmountSync(period.revenue)}
+                        </td>
+                      ))}
+                      <td className={`py-2 px-2 text-right font-semibold ${
+                        reportData.revenue.total >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {formatAmountSync(reportData.revenue.total)}
+                      </td>
+                    </tr>
+
+                    {/* Gross Margin */}
+                    <tr>
+                      <td className="py-1 px-2 text-green-600 dark:text-green-400">Gross Margin</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className="py-1 px-2 text-right text-green-600 dark:text-green-400">
+                          {period.revenue > 0 ? '100.00%' : '0.00%'}
+                        </td>
+                      ))}
+                      <td className="py-1 px-2 text-right text-green-600 dark:text-green-400">
+                        {reportData.revenue.total > 0 ? '100.00%' : '0.00%'}
+                      </td>
+                    </tr>
+
+                    {/* Less Expenses */}
+                    <tr>
+                      <td className="py-3 px-2 font-bold text-gray-900 dark:text-gray-100" colSpan={reportData.hasBreakdown ? reportData.periodColumns?.length + 2 : 2}>
+                        Less Expenses
+                      </td>
+                    </tr>
+
+                    {/* Expense Categories with Icons */}
+                    {Object.entries(reportData.expenses).map(([category, amount]) => {
+                      if (category === 'total') return null;
+                      
+                      // Map category icons similar to PDF
+                      const categoryIcons: { [key: string]: string } = {
+                        'Car & Truck': '🚛',
+                        'Employee Benefits': '💼', 
+                        'Office Expenses': '📄',
+                        'Other Expenses': '📋',
+                        'Utilities': '💡',
+                        'Software': '💻',
+                        'Travel': '✈️',
+                        'Meals': '🍽️',
+                        'Marketing': '📢',
+                        'Equipment': '🔧',
+                        'Professional Services': '👔'
+                      };
+
+                      const icon = categoryIcons[category] || '📋';
+
+                      return (
+                        <tr key={category}>
+                          <td className="py-1 px-2 pl-4 text-gray-700 dark:text-gray-300">
+                            <span className="inline-flex items-center">
+                              <span className="mr-2">{icon}</span>
+                              {category}
+                            </span>
+                          </td>
+                          {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                            <td key={index} className="py-1 px-2 text-right text-gray-900 dark:text-gray-100">
+                              {formatAmountSync(period.expensesByCategory[category] || 0)}
+                            </td>
+                          ))}
+                          <td className="py-1 px-2 text-right text-gray-900 dark:text-gray-100">
+                            {formatAmountSync(amount as number)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Total Expenses */}
+                    <tr className="font-semibold border-t border-gray-300">
+                      <td className="py-2 px-2 font-bold text-gray-900 dark:text-gray-100">Total Expenses</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className="py-2 px-2 text-right font-semibold text-gray-900 dark:text-gray-100">
+                          {formatAmountSync(period.expenses)}
+                        </td>
+                      ))}
+                      <td className="py-2 px-2 text-right font-semibold text-gray-900 dark:text-gray-100">
+                        {formatAmountSync(reportData.expenses.total)}
+                      </td>
+                    </tr>
+
+                    {/* Net Profit */}
+                    <tr className="border-t-2 border-gray-400 font-bold">
+                      <td className="py-3 px-2 font-bold text-gray-900 dark:text-gray-100">Net Profit</td>
+                      {reportData.hasBreakdown && reportData.periodColumns?.map((period: any, index: number) => (
+                        <td key={index} className={`py-3 px-2 text-right font-bold ${
+                          period.netIncome >= 0 
+                            ? 'text-green-700 dark:text-green-400' 
+                            : 'text-red-700 dark:text-red-400'
+                        }`}>
+                          {formatAmountSync(period.netIncome)}
+                        </td>
+                      ))}
+                      <td className={`py-3 px-2 text-right font-bold ${
+                        reportData.netIncome >= 0 
+                          ? 'text-green-700 dark:text-green-400' 
+                          : 'text-red-700 dark:text-red-400'
+                      }`}>
+                        {formatAmountSync(reportData.netIncome)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Currency Note */}
+                <div className="mt-4 text-right pr-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">USD</p>
                 </div>
               </div>
             </div>

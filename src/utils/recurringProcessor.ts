@@ -6,12 +6,31 @@ import { formatDateSync } from '@/utils/dateFormatting';
 export const processRecurringInvoices = async () => {
   try {
     const templates = await templateOperations.getAll();
+    
+    // Exit early if no templates
+    if (!templates || templates.length === 0) {
+      console.log('No recurring invoice templates found');
+      return;
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     for (const template of templates) {
+      // Skip templates with missing required data
+      if (!template.client_id || !template.amount || !template.next_invoice_date) {
+        console.warn(`Skipping template ${template.name} - missing required data`);
+        continue;
+      }
+
       const nextInvoiceDate = new Date(template.next_invoice_date);
       nextInvoiceDate.setHours(0, 0, 0, 0);
+
+      // Skip if next_invoice_date is invalid
+      if (isNaN(nextInvoiceDate.getTime())) {
+        console.warn(`Skipping template ${template.name} - invalid next_invoice_date`);
+        continue;
+      }
 
       // If the next invoice date is today or in the past, create an invoice
       if (nextInvoiceDate <= today) {
@@ -24,15 +43,25 @@ export const processRecurringInvoices = async () => {
           continue;
         }
       
+      // Generate invoice number
+      const invoiceNumber = await generateInvoiceNumber();
+      
+      // Validate generated invoice number
+      if (!invoiceNumber || invoiceNumber.length === 0) {
+        console.error(`Failed to generate invoice number for template ${template.name}`);
+        continue;
+      }
+
       // Create the invoice
       const invoiceData = {
         client_id: template.client_id,
         template_id: template.id,
-        amount: template.amount,
+        amount: Number(template.amount),
         status: 'draft' as const,
-        invoice_number: await generateInvoiceNumber(),
+        invoice_number: invoiceNumber,
         due_date: calculateDueDate(template.payment_terms || 'net_30'),
-        description: template.description,
+        issue_date: today.toISOString().split('T')[0],
+        description: template.description || '',
         type: 'invoice' as const,
         client_name: client.name,
         client_email: client.email,
@@ -45,6 +74,17 @@ export const processRecurringInvoices = async () => {
         shipping_rate_id: template.shipping_rate_id || null,
         notes: template.notes || ''
       };
+
+      // Additional validation before creating invoice
+      if (!invoiceData.client_id || invoiceData.client_id <= 0) {
+        console.error(`Invalid client_id for template ${template.name}`);
+        continue;
+      }
+      
+      if (!invoiceData.amount || invoiceData.amount <= 0) {
+        console.error(`Invalid amount for template ${template.name}`);
+        continue;
+      }
 
         await invoiceOperations.create(invoiceData);
 

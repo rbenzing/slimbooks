@@ -207,6 +207,57 @@ export const validationSets = {
     body('status').optional().isIn(['pending', 'approved', 'rejected'])
   ],
   
+  // Payment validation sets
+  getPayments: [
+    query('status').optional().isIn(['received', 'pending', 'failed', 'refunded']),
+    query('method').optional().trim().isLength({ max: 50 }),
+    query('date_from').optional().isISO8601(),
+    query('date_to').optional().isISO8601(),
+    query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('offset').optional().isInt({ min: 0 })
+  ],
+  
+  getPaymentById: [
+    validationRules.id
+  ],
+  
+  createPayment: [
+    body('paymentData.date').isISO8601().withMessage('Date must be in ISO 8601 format'),
+    body('paymentData.client_name').trim().isLength({ min: 1, max: 100 }).withMessage('Client name is required and must be less than 100 characters').escape(),
+    body('paymentData.amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+    body('paymentData.method').isIn(['cash', 'check', 'bank_transfer', 'credit_card', 'paypal', 'other']).withMessage('Invalid payment method'),
+    body('paymentData.invoice_id').optional().isInt({ min: 1 }).withMessage('Invoice ID must be a positive integer'),
+    body('paymentData.reference').optional().trim().isLength({ max: 100 }).escape(),
+    body('paymentData.description').optional().trim().isLength({ max: 500 }).escape(),
+    body('paymentData.status').optional().isIn(['received', 'pending', 'failed', 'refunded'])
+  ],
+  
+  updatePayment: [
+    validationRules.id,
+    body('paymentData.date').optional().isISO8601(),
+    body('paymentData.client_name').optional().trim().isLength({ min: 1, max: 100 }).escape(),
+    body('paymentData.amount').optional().isFloat({ min: 0.01 }),
+    body('paymentData.method').optional().isIn(['cash', 'check', 'bank_transfer', 'credit_card', 'paypal', 'other']),
+    body('paymentData.invoice_id').optional().isInt({ min: 1 }),
+    body('paymentData.reference').optional().trim().isLength({ max: 100 }).escape(),
+    body('paymentData.description').optional().trim().isLength({ max: 500 }).escape(),
+    body('paymentData.status').optional().isIn(['received', 'pending', 'failed', 'refunded'])
+  ],
+  
+  deletePayment: [
+    validationRules.id
+  ],
+  
+  getPaymentStats: [
+    query('date_from').optional().isISO8601(),
+    query('date_to').optional().isISO8601()
+  ],
+  
+  bulkDeletePayments: [
+    body('payment_ids').isArray({ min: 1 }).withMessage('Payment IDs array is required'),
+    body('payment_ids.*').isInt({ min: 1 }).withMessage('All payment IDs must be positive integers')
+  ],
+  
   // Authentication validation sets
   login: [
     validationRules.email,

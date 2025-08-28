@@ -12,6 +12,7 @@ import { CreateInvoicePage } from './components/invoices/CreateInvoicePage';
 import { EditInvoicePage } from './components/invoices/EditInvoicePage';
 import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurringInvoicePage';
 import { ExpenseManagement } from './components/ExpenseManagement';
+import { PaymentManagement } from './components/PaymentManagement';
 import { ReportsManagement } from './components/ReportsManagement';
 import { Settings } from './components/Settings';
 import { LoginPage } from './pages/LoginPage';
@@ -22,7 +23,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import NotFound from './pages/NotFound';
 import PublicInvoiceView from './components/PublicInvoiceView';
 import { Toaster } from './components/ui/sonner';
-import { processRecurringInvoices } from './utils/recurringProcessor';
 import { useConnectionMonitor } from './hooks/useConnectionMonitor';
 import { ConnectionLostDialog } from './components/ConnectionLostDialog';
 import './App.css';
@@ -69,29 +69,7 @@ const App = () => {
     }
   }, [isAuthenticated, startConnectionMonitoring, stopConnectionMonitoring]);
 
-  // Process recurring invoices on app load and periodically
-  useEffect(() => {
-    if (isAuthenticated) {
-      const initializeApp = async () => {
-        try {
-          // Process recurring invoices (migrations are handled server-side)
-          await processRecurringInvoices();
-        } catch (error) {
-          console.error('Error during app initialization:', error);
-        }
-      };
-
-      // Initialize immediately on load
-      initializeApp();
-
-      // Set up interval to check every hour
-      const interval = setInterval(() => {
-        processRecurringInvoices().catch(console.error);
-      }, 60 * 60 * 1000); // 1 hour in milliseconds
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated]);
+  // Removed global recurring invoice processing - now handled only on invoice-related pages
 
   // Show loading screen while auth is initializing
   if (loading) {
@@ -249,6 +227,19 @@ const App = () => {
                 </div>
                 <main className="w-[86%] h-full overflow-y-auto bg-background">
                   <ExpenseManagement />
+                </main>
+              </div>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/payments" element={
+            <ProtectedRoute>
+              <div className="h-screen w-full flex bg-background overflow-hidden">
+                <div className="w-[14%] min-w-[200px]">
+                  <Sidebar />
+                </div>
+                <main className="w-[86%] h-full overflow-y-auto bg-background">
+                  <PaymentManagement />
                 </main>
               </div>
             </ProtectedRoute>

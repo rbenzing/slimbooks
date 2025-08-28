@@ -7,6 +7,8 @@ import { InvoiceViewModal } from './InvoiceViewModal';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
+import { createPaymentForInvoice } from '@/utils/paymentHelpers';
+import { toast } from 'sonner';
 
 export const InvoicesTab = () => {
   const navigate = useNavigate();
@@ -95,6 +97,25 @@ export const InvoicesTab = () => {
 
   const handleCreateNew = () => {
     window.location.href = '/invoices/create';
+  };
+
+  const handleMarkAsPaid = async (invoice: any) => {
+    try {
+      // Create payment and mark invoice as paid
+      const success = await createPaymentForInvoice(invoice);
+      
+      if (success) {
+        // Reload invoices to show updated status
+        await loadInvoices();
+        
+        // Close the modal
+        setIsViewModalOpen(false);
+        setViewingInvoice(null);
+      }
+    } catch (error) {
+      console.error('Error marking invoice as paid:', error);
+      toast.error('Failed to mark invoice as paid');
+    }
   };
 
   const renderPanelView = () => (
@@ -383,6 +404,7 @@ export const InvoicesTab = () => {
           setIsViewModalOpen(false);
           setViewingInvoice(null);
         }}
+        onMarkAsPaid={handleMarkAsPaid}
       />
     </div>
   );

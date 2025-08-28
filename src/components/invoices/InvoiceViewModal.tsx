@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Download } from 'lucide-react';
+import { X, Upload, Download, DollarSign } from 'lucide-react';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
@@ -10,9 +10,10 @@ interface InvoiceViewModalProps {
   invoice: any;
   isOpen: boolean;
   onClose: () => void;
+  onMarkAsPaid?: (invoice: any) => void;
 }
 
-export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose }) => {
+export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose, onMarkAsPaid }) => {
   const [companySettings, setCompanySettings] = useState<any>({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -238,6 +239,15 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
         <div className={`flex justify-between items-center p-4 ${styles.modalHeader} rounded-t-lg`}>
           <h2 className="text-lg font-semibold text-foreground">Invoice Preview</h2>
           <div className="flex items-center space-x-2">
+            {onMarkAsPaid && invoice.status !== 'paid' && (
+              <button
+                onClick={() => onMarkAsPaid(invoice)}
+                className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Mark as Paid
+              </button>
+            )}
             <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}

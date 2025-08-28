@@ -85,6 +85,20 @@ interface Expense {
   updated_at: string;
 }
 
+interface Payment {
+  id: number;
+  date: string;
+  client_name: string;
+  invoice_id?: number;
+  amount: number;
+  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+  reference?: string;
+  description?: string;
+  status: 'received' | 'pending' | 'failed' | 'refunded';
+  created_at: string;
+  updated_at: string;
+}
+
 interface Report {
   id: number;
   name: string;
@@ -241,6 +255,22 @@ export const expenseOperations = {
     await ensureInitialized();
     return await sqliteService.createExpense(expenseData);
   },
+  bulkImport: async (expenses: any[]): Promise<{ imported: number; failed: number; errors: any[] }> => {
+    await ensureInitialized();
+    return await sqliteService.bulkImportExpenses(expenses);
+  },
+  bulkDelete: async (expenseIds: number[]): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    return await sqliteService.bulkDeleteExpenses(expenseIds);
+  },
+  bulkUpdateCategory: async (expenseIds: number[], category: string): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    return await sqliteService.bulkUpdateExpenseCategory(expenseIds, category);
+  },
+  bulkUpdateMerchant: async (expenseIds: number[], merchant: string): Promise<{ changes: number }> => {
+    await ensureInitialized();
+    return await sqliteService.bulkUpdateExpenseMerchant(expenseIds, merchant);
+  },
 
   update: async (id: number, expenseData: Partial<Omit<Expense, 'id' | 'created_at' | 'updated_at'>>): Promise<{ changes: number }> => {
     await ensureInitialized();
@@ -277,7 +307,7 @@ export const reportOperations = {
   },
 
   // Generate Profit & Loss Report Data
-  generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual'): Promise<any> => {
+  generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual', preset?: string, breakdownPeriod: 'monthly' | 'quarterly' = 'quarterly'): Promise<any> => {
     await ensureInitialized();
 
     // Get all invoices and filter by date range
@@ -297,6 +327,71 @@ export const reportOperations = {
       if (value === null || value === undefined) return 0;
       const num = typeof value === 'string' ? parseFloat(value) : Number(value);
       return isNaN(num) ? 0 : num;
+    };
+
+    // Function to generate period columns for yearly reports
+    const generatePeriodColumns = () => {
+      if (preset !== 'this-year' && preset !== 'last-year') {
+        return { columns: [], hasBreakdown: false };
+      }
+
+      const year = new Date(startDate).getFullYear();
+      const columns: any[] = [];
+      const periodsCount = breakdownPeriod === 'quarterly' ? 4 : 12;
+
+      for (let i = 0; i < periodsCount; i++) {
+        let periodStart: Date;
+        let periodEnd: Date;
+        let periodLabel: string;
+
+        if (breakdownPeriod === 'quarterly') {
+          periodStart = new Date(year, i * 3, 1);
+          periodEnd = new Date(year, (i + 1) * 3, 0);
+          periodLabel = `Q${i + 1}`;
+        } else {
+          periodStart = new Date(year, i, 1);
+          periodEnd = new Date(year, i + 1, 0);
+          periodLabel = periodStart.toLocaleDateString('en-US', { month: 'short' });
+        }
+
+        // Filter data for this period
+        const periodInvoices = invoices.filter((invoice: any) => {
+          const invoiceDate = new Date(invoice.created_at);
+          return invoiceDate >= periodStart && invoiceDate <= periodEnd;
+        });
+
+        const periodExpenses = expenses.filter((expense: any) => {
+          const expenseDate = new Date(expense.date);
+          return expenseDate >= periodStart && expenseDate <= periodEnd;
+        });
+
+        // Calculate revenue for this period
+        const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        const periodPaidRevenue = periodInvoices
+          .filter((invoice: any) => invoice.status === 'paid')
+          .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        
+        const periodRecognizedRevenue = accountingMethod === 'cash' ? periodPaidRevenue : periodInvoiceRevenue;
+
+        // Calculate expenses by category for this period
+        const periodExpensesByCategory = periodExpenses.reduce((acc: any, expense: any) => {
+          const category = expense.category || 'Uncategorized';
+          acc[category] = (acc[category] || 0) + toNumber(expense.amount);
+          return acc;
+        }, {});
+
+        const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
+
+        columns.push({
+          label: periodLabel,
+          revenue: periodRecognizedRevenue,
+          expenses: periodTotalExpenses,
+          expensesByCategory: periodExpensesByCategory,
+          netIncome: periodRecognizedRevenue - periodTotalExpenses
+        });
+      }
+
+      return { columns, hasBreakdown: true };
     };
 
     // Calculate revenue with proper type conversion
@@ -325,6 +420,8 @@ export const reportOperations = {
     const netProfit = recognizedRevenue - totalExpenses;
     const grossProfit = totalRevenue - totalExpenses;
 
+    const periodData = generatePeriodColumns();
+
     return {
       revenue: {
         total: totalRevenue,
@@ -344,7 +441,10 @@ export const reportOperations = {
       },
       netIncome: netProfit, // Add netIncome at root level for component compatibility
       accountingMethod: accountingMethod, // Track which method was used
-      invoices
+      invoices,
+      periodColumns: periodData.columns, // Add period column data
+      hasBreakdown: periodData.hasBreakdown, // Flag to indicate if breakdown is available
+      breakdownPeriod: breakdownPeriod // Track the breakdown period type
     };
   },
 
@@ -557,15 +657,5 @@ export const userOperations = {
   verifyEmail: async (id: number): Promise<void> => {
     await ensureInitialized();
     await sqliteService.verifyUserEmail(id);
-  },
-
-  enable2FA: async (id: number, secret: string, backupCodes: string[]): Promise<void> => {
-    await ensureInitialized();
-    await sqliteService.enableUser2FA(id, secret, backupCodes);
-  },
-
-  disable2FA: async (id: number): Promise<void> => {
-    await ensureInitialized();
-    await sqliteService.disableUser2FA(id);
   }
 };

@@ -302,6 +302,26 @@ class SQLiteService {
     return result.result;
   }
 
+  async bulkImportExpenses(expenses: any[]): Promise<any> {
+    const result = await this.apiCall('/expenses/bulk-import', 'POST', { expenses });
+    return result.data;
+  }
+
+  async bulkDeleteExpenses(expenseIds: number[]): Promise<any> {
+    const result = await this.apiCall('/expenses/bulk-delete', 'POST', { expense_ids: expenseIds });
+    return result.data;
+  }
+
+  async bulkUpdateExpenseCategory(expenseIds: number[], category: string): Promise<any> {
+    const result = await this.apiCall('/expenses/bulk-category', 'POST', { expense_ids: expenseIds, category });
+    return result.data;
+  }
+
+  async bulkUpdateExpenseMerchant(expenseIds: number[], merchant: string): Promise<any> {
+    const result = await this.apiCall('/expenses/bulk-merchant', 'POST', { expense_ids: expenseIds, merchant });
+    return result.data;
+  }
+
   async updateExpense(id: number, expenseData: any): Promise<any> {
     const result = await this.apiCall(`/expenses/${id}`, 'PUT', { expenseData });
     return result.result;
@@ -310,6 +330,33 @@ class SQLiteService {
   async deleteExpense(id: number): Promise<any> {
     const result = await this.apiCall(`/expenses/${id}`, 'DELETE');
     return result.result;
+  }
+
+  // ===== PAYMENT API METHODS =====
+  async getPayments(startDate?: string, endDate?: string): Promise<any[]> {
+    const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
+    const result = await this.apiCall('/payments', 'GET', params);
+    return result.data?.payments || [];
+  }
+
+  async createPayment(paymentData: any): Promise<any> {
+    const result = await this.apiCall('/payments', 'POST', { paymentData });
+    return result.result;
+  }
+
+  async updatePayment(id: number, paymentData: any): Promise<any> {
+    const result = await this.apiCall(`/payments/${id}`, 'PUT', { paymentData });
+    return result.result;
+  }
+
+  async deletePayment(id: number): Promise<any> {
+    const result = await this.apiCall(`/payments/${id}`, 'DELETE');
+    return result.result;
+  }
+
+  async bulkDeletePayments(paymentIds: number[]): Promise<any> {
+    const result = await this.apiCall('/payments/bulk-delete', 'POST', { payment_ids: paymentIds });
+    return result.data;
   }
 
   // ===== TEMPLATE API METHODS =====

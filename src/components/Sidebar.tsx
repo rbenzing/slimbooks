@@ -8,7 +8,8 @@ import {
   CreditCard,
   LogOut,
   Receipt,
-  BarChart
+  BarChart,
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,7 @@ const navigation = [
     path: '/invoices#invoices'
   },
   { id: 'expenses', name: 'Expenses', icon: Receipt, path: '/expenses' },
+  { id: 'payments', name: 'Payments', icon: Banknote, path: '/payments' },
   { id: 'reports', name: 'Reports', icon: BarChart, path: '/reports' },
   { 
     id: 'settings', 

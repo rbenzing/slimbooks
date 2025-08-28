@@ -390,3 +390,277 @@ export const getExpensesByDateRange = asyncHandler(async (req, res) => {
     }
   });
 });
+
+/**
+ * Bulk import expenses from CSV data
+ */
+export const bulkImportExpenses = asyncHandler(async (req, res) => {
+  const { expenses: expenseList } = req.body;
+
+  if (!expenseList || !Array.isArray(expenseList) || expenseList.length === 0) {
+    throw new ValidationError('expenses must be a non-empty array');
+  }
+
+  if (expenseList.length > 1000) {
+    throw new ValidationError('Maximum 1000 expenses can be imported at once');
+  }
+
+  const results = {
+    imported: 0,
+    failed: 0,
+    errors: []
+  };
+
+  // Helper function to convert date formats to ISO 8601
+  const convertToISODate = (dateStr) => {
+    if (!dateStr) return null;
+    
+    // If already in ISO format, return as is
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
+      return dateStr;
+    }
+    
+    // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS.sssZ
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return dateStr + 'T00:00:00.000Z';
+    }
+    
+    // Try to parse other date formats
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    return date.toISOString();
+  };
+
+  // Start transaction for bulk insert
+  const insertStmt = db.prepare(`
+    INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const getCounterStmt = db.prepare('SELECT value FROM counters WHERE name = ?');
+  const updateCounterStmt = db.prepare('UPDATE counters SET value = ? WHERE name = ?');
+
+  // Get starting counter value
+  const counterResult = getCounterStmt.get('expenses');
+  let nextId = (counterResult?.value || 0) + 1;
+
+  const transaction = db.transaction(() => {
+    for (const expense of expenseList) {
+      try {
+        // Validate required fields
+        if (!expense.date || !expense.merchant || !expense.category || !expense.amount) {
+          results.failed++;
+          results.errors.push({
+            expense,
+            error: 'Missing required fields: date, merchant, category, and amount are required'
+          });
+          continue;
+        }
+
+        // Convert and validate date
+        const isoDate = convertToISODate(expense.date);
+        if (!isoDate) {
+          results.failed++;
+          results.errors.push({
+            expense,
+            error: `Invalid date format: ${expense.date}`
+          });
+          continue;
+        }
+
+        // Validate amount is positive
+        const amount = parseFloat(expense.amount);
+        if (isNaN(amount) || amount <= 0) {
+          results.failed++;
+          results.errors.push({
+            expense,
+            error: `Invalid amount: must be a positive number, got ${expense.amount}`
+          });
+          continue;
+        }
+
+        // Set defaults
+        const merchant = expense.merchant || expense.description || 'Unknown Merchant';
+        let category = expense.category || 'Other';
+        const description = expense.description || '';
+        const status = expense.status || 'pending';
+
+        // Auto-create category if it doesn't exist (just use the provided category)
+        // The database will accept any category name up to 50 characters
+        if (category && category.length <= 50) {
+          // Category is valid, use as-is
+        } else {
+          category = 'Other'; // Fallback for invalid categories
+        }
+
+        const now = new Date().toISOString();
+
+        // Insert expense
+        insertStmt.run(
+          nextId,
+          isoDate,
+          merchant.slice(0, 100), // Ensure length constraint
+          category.slice(0, 50),   // Ensure length constraint
+          amount,
+          description.slice(0, 500), // Reasonable description limit
+          null, // receipt_url
+          status,
+          now,
+          now
+        );
+
+        results.imported++;
+        nextId++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          expense,
+          error: error.message
+        });
+      }
+    }
+
+    // Update the counter
+    updateCounterStmt.run(nextId - 1, 'expenses');
+  });
+
+  try {
+    transaction();
+  } catch (error) {
+    throw new AppError(`Bulk import failed: ${error.message}`, 500);
+  }
+
+  res.json({
+    success: true,
+    data: results,
+    message: `Bulk import completed: ${results.imported} imported, ${results.failed} failed`
+  });
+});
+
+/**
+ * Bulk delete expenses
+ */
+export const bulkDeleteExpenses = asyncHandler(async (req, res) => {
+  const { expense_ids } = req.body;
+
+  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
+    throw new ValidationError('expense_ids must be a non-empty array');
+  }
+
+  if (expense_ids.length > 500) {
+    throw new ValidationError('Maximum 500 expenses can be deleted at once');
+  }
+
+  // Validate all expense IDs exist
+  const placeholders = expense_ids.map(() => '?').join(',');
+  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
+  
+  if (existingExpenses.length !== expense_ids.length) {
+    throw new ValidationError('One or more expense IDs not found');
+  }
+
+  // Delete all expenses
+  const stmt = db.prepare(`DELETE FROM expenses WHERE id IN (${placeholders})`);
+  const result = stmt.run(...expense_ids);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
+    message: `${result.changes} expenses deleted successfully`
+  });
+});
+
+/**
+ * Bulk update expense category
+ */
+export const bulkUpdateExpenseCategory = asyncHandler(async (req, res) => {
+  const { expense_ids, category } = req.body;
+
+  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
+    throw new ValidationError('expense_ids must be a non-empty array');
+  }
+
+  if (!category || typeof category !== 'string' || category.trim().length === 0) {
+    throw new ValidationError('category must be a non-empty string');
+  }
+
+  if (category.length > 50) {
+    throw new ValidationError('category must be 50 characters or less');
+  }
+
+  if (expense_ids.length > 500) {
+    throw new ValidationError('Maximum 500 expenses can be updated at once');
+  }
+
+  // Validate all expense IDs exist
+  const placeholders = expense_ids.map(() => '?').join(',');
+  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
+  
+  if (existingExpenses.length !== expense_ids.length) {
+    throw new ValidationError('One or more expense IDs not found');
+  }
+
+  // Update all expenses
+  const stmt = db.prepare(`
+    UPDATE expenses 
+    SET category = ?, updated_at = datetime('now')
+    WHERE id IN (${placeholders})
+  `);
+  
+  const result = stmt.run(category.trim(), ...expense_ids);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
+    message: `${result.changes} expenses updated to category "${category}"`
+  });
+});
+
+/**
+ * Bulk update expense merchant
+ */
+export const bulkUpdateExpenseMerchant = asyncHandler(async (req, res) => {
+  const { expense_ids, merchant } = req.body;
+
+  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
+    throw new ValidationError('expense_ids must be a non-empty array');
+  }
+
+  if (!merchant || typeof merchant !== 'string' || merchant.trim().length === 0) {
+    throw new ValidationError('merchant must be a non-empty string');
+  }
+
+  if (merchant.length > 100) {
+    throw new ValidationError('merchant must be 100 characters or less');
+  }
+
+  if (expense_ids.length > 500) {
+    throw new ValidationError('Maximum 500 expenses can be updated at once');
+  }
+
+  // Validate all expense IDs exist
+  const placeholders = expense_ids.map(() => '?').join(',');
+  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
+  
+  if (existingExpenses.length !== expense_ids.length) {
+    throw new ValidationError('One or more expense IDs not found');
+  }
+
+  // Update all expenses
+  const stmt = db.prepare(`
+    UPDATE expenses 
+    SET merchant = ?, updated_at = datetime('now')
+    WHERE id IN (${placeholders})
+  `);
+  
+  const result = stmt.run(merchant.trim(), ...expense_ids);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
+    message: `${result.changes} expenses updated to merchant "${merchant}"`
+  });
+});

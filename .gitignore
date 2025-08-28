@@ -35,5 +35,6 @@ dist-ssr
 
 package-lock.json
 .claude/*
+CLAUDE.md
 certs/*
 .gitignore

@@ -12,7 +12,11 @@ import {
   getExpenseCategories,
   updateExpenseStatus,
   bulkUpdateExpenseStatus,
-  getExpensesByDateRange
+  getExpensesByDateRange,
+  bulkImportExpenses,
+  bulkDeleteExpenses,
+  bulkUpdateExpenseCategory,
+  bulkUpdateExpenseMerchant
 } from '../controllers/index.js';
 import {
   requireAuth,
@@ -49,6 +53,26 @@ router.post('/',
   validationSets.createExpense,
   validateRequest,
   createExpense
+);
+
+// Bulk import expenses
+router.post('/bulk-import', 
+  bulkImportExpenses
+);
+
+// Bulk delete expenses
+router.post('/bulk-delete', 
+  bulkDeleteExpenses
+);
+
+// Bulk update expense category
+router.post('/bulk-category', 
+  bulkUpdateExpenseCategory
+);
+
+// Bulk update expense merchant
+router.post('/bulk-merchant', 
+  bulkUpdateExpenseMerchant
 );
 
 // Bulk update expense status

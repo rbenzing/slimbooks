@@ -201,3 +201,77 @@ export const addSampleInvoices = (db) => {
     console.error('Error adding sample invoices:', error);
   }
 };
+
+/**
+ * Add sample payments for existing invoices
+ * @param {Database} db - SQLite database instance
+ */
+export const addSamplePayments = (db) => {
+  try {
+    const paymentCount = db.prepare('SELECT COUNT(*) as count FROM payments').get();
+
+    if (paymentCount.count === 0) {
+      console.log(`💰 Adding sample payments: ${paymentCount.count} existing...`);
+
+      // Get clients for client names
+      const clients = db.prepare('SELECT * FROM clients ORDER BY id LIMIT 4').all();
+
+      if (clients.length > 0) {
+        const paymentStmt = db.prepare(`
+          INSERT OR IGNORE INTO payments (id, date, client_name, invoice_id, amount, method, reference, description, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        const samplePayments = [
+          // 2025 payments (current year)
+          [1, '2025-08-15', clients[0]?.name || 'John Smith', 1, 5500.00, 'bank_transfer', 'TXN-2025-001', 'Payment for Website Development', 'received', '2025-08-15T10:30:00Z'],
+          [2, '2025-08-20', clients[1]?.name || 'Sarah Johnson', 2, 3300.00, 'credit_card', 'CC-2025-002', 'Payment for Logo Design Package', 'received', '2025-08-20T14:15:00Z'],
+          [3, '2025-08-25', clients[0]?.name || 'John Smith', 3, 2750.00, 'check', 'CHK-2025-003', 'Payment for Mobile App Consultation', 'received', '2025-08-25T11:45:00Z'],
+          [4, '2025-08-28', clients[2]?.name || 'Mike Chen', 4, 4400.00, 'paypal', 'PP-2025-004', 'Payment for Backend API Development', 'received', '2025-08-28T16:20:00Z'],
+          [5, '2025-08-10', clients[1]?.name || 'Sarah Johnson', 6, 1000.00, 'bank_transfer', 'TXN-2025-005', 'Partial payment for Brand Guidelines', 'received', '2025-08-10T09:30:00Z'],
+
+          // 2024 payments (last year)  
+          [6, '2024-12-20', clients[0]?.name || 'John Smith', 7, 4950.00, 'bank_transfer', 'TXN-2024-006', 'Payment for E-commerce Platform', 'received', '2024-12-20T10:00:00Z'],
+          [7, '2024-11-25', clients[1]?.name || 'Sarah Johnson', 8, 3080.00, 'credit_card', 'CC-2024-007', 'Payment for Brand Identity Package', 'received', '2024-11-25T14:30:00Z'],
+          [8, '2024-10-30', clients[2]?.name || 'Mike Chen', 9, 3520.00, 'check', 'CHK-2024-008', 'Payment for API Integration', 'received', '2024-10-30T11:20:00Z'],
+          [9, '2024-10-05', clients[3]?.name || 'Emily Davis', 10, 1980.00, 'paypal', 'PP-2024-009', 'Payment for Marketing Strategy', 'received', '2024-10-05T13:10:00Z'],
+          [10, '2024-08-20', clients[0]?.name || 'John Smith', 11, 2420.00, 'bank_transfer', 'TXN-2024-010', 'Payment for Database Optimization', 'received', '2024-08-20T15:30:00Z'],
+          [11, '2024-07-25', clients[1]?.name || 'Sarah Johnson', 12, 3850.00, 'credit_card', 'CC-2024-011', 'Payment for UI/UX Redesign', 'received', '2024-07-25T09:45:00Z'],
+
+          // 2023 payments (year before last)
+          [12, '2023-12-20', clients[0]?.name || 'John Smith', 13, 4400.00, 'bank_transfer', 'TXN-2023-012', 'Payment for Legacy System Migration', 'received', '2023-12-20T10:00:00Z'],
+          [13, '2023-11-25', clients[2]?.name || 'Mike Chen', 14, 2750.00, 'check', 'CHK-2023-013', 'Payment for Security Audit', 'received', '2023-11-25T14:30:00Z'],
+          [14, '2023-10-30', clients[1]?.name || 'Sarah Johnson', 15, 3300.00, 'credit_card', 'CC-2023-014', 'Payment for Content Management System', 'received', '2023-10-30T11:20:00Z'],
+          [15, '2023-10-05', clients[3]?.name || 'Emily Davis', 16, 1760.00, 'paypal', 'PP-2023-015', 'Payment for SEO Optimization', 'received', '2023-10-05T13:10:00Z'],
+
+          // Some pending and failed payments for variety
+          [16, '2025-08-26', clients[3]?.name || 'Emily Davis', null, 500.00, 'bank_transfer', 'TXN-2025-016', 'Consultation payment', 'pending', '2025-08-26T10:00:00Z'],
+          [17, '2025-08-27', clients[2]?.name || 'Mike Chen', null, 250.00, 'credit_card', 'CC-2025-017', 'Support payment', 'failed', '2025-08-27T14:30:00Z'],
+          [18, '2025-08-20', clients[1]?.name || 'Sarah Johnson', null, 750.00, 'cash', null, 'Cash payment for design work', 'received', '2025-08-20T11:00:00Z']
+        ];
+
+        samplePayments.forEach(payment => {
+          try {
+            paymentStmt.run(...payment);
+          } catch (err) {
+            // Payment might already exist (silent)
+          }
+        });
+
+        // Update payments counter
+        try {
+          const counterStmt = db.prepare('INSERT OR REPLACE INTO counters (name, value) VALUES (?, ?)');
+          counterStmt.run('payments', 18);
+        } catch (err) {
+          // Counter update error (silent)
+        }
+
+        console.log('✅ Sample payments added (18 payments, 2023-2025)');
+      }
+    } else {
+      console.log(`💰 Payments exist: ${paymentCount.count} total`);
+    }
+  } catch (error) {
+    console.error('Error adding sample payments:', error);
+  }
+};

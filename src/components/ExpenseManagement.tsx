@@ -122,6 +122,39 @@ export const ExpenseManagement: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async (expenseIds: number[]) => {
+    try {
+      const result = await expenseOperations.bulkDelete(expenseIds);
+      toast.success(`${result.changes} expenses deleted successfully`);
+      await loadExpenses();
+    } catch (error) {
+      toast.error('Failed to delete expenses');
+      console.error('Error deleting expenses:', error);
+    }
+  };
+
+  const handleBulkCategorize = async (expenseIds: number[], category: string) => {
+    try {
+      const result = await expenseOperations.bulkUpdateCategory(expenseIds, category);
+      toast.success(`${result.changes} expenses categorized as "${category}"`);
+      await loadExpenses();
+    } catch (error) {
+      toast.error('Failed to update expense categories');
+      console.error('Error updating categories:', error);
+    }
+  };
+
+  const handleBulkChangeMerchant = async (expenseIds: number[], merchant: string) => {
+    try {
+      const result = await expenseOperations.bulkUpdateMerchant(expenseIds, merchant);
+      toast.success(`${result.changes} expenses updated to merchant "${merchant}"`);
+      await loadExpenses();
+    } catch (error) {
+      toast.error('Failed to update expense merchants');
+      console.error('Error updating merchants:', error);
+    }
+  };
+
   const handleCloseForm = () => {
     setShowCreateForm(false);
     setEditingExpense(null);
@@ -353,6 +386,10 @@ export const ExpenseManagement: React.FC = () => {
             onEditExpense={handleEditExpense}
             onDeleteExpense={handleDeleteExpense}
             onViewExpense={handleViewExpense}
+            onBulkDelete={handleBulkDelete}
+            onBulkCategorize={handleBulkCategorize}
+            onBulkChangeMerchant={handleBulkChangeMerchant}
+            categories={Array.from(new Set(expenses.map(e => e.category).filter(Boolean)))}
           />
         )}
 

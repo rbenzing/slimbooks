@@ -11,7 +11,7 @@ A secure, self-hosted billing and invoice management application built with Reac
 - **👥 Client Management**: Complete client profiles with contact details and history
 - **🧾 Professional Invoices**: Customizable templates with line items, taxes, and shipping
 - **💰 Expense Tracking**: Categorized expense management with receipt uploads
-- **📈 Financial Reports**: Revenue and expense analytics with date filtering
+- **📈 Financial Reports**: Revenue and expense analytics with detailed monthly/quarterly columns for yearly reports
 
 ### 🔒 Security & Privacy
 - **🛡️ Enterprise Security**: Rate limiting, input validation, and security headers

@@ -18,10 +18,10 @@ interface FieldMapping {
 
 const EXPENSE_FIELDS = [
   { key: 'date', label: 'Date', required: true },
-  { key: 'merchant', label: 'Merchant', required: true },
-  { key: 'category', label: 'Category', required: true },
-  { key: 'amount', label: 'Amount', required: true },
   { key: 'description', label: 'Description', required: false },
+  { key: 'merchant', label: 'Merchant/Type', required: true },
+  { key: 'amount', label: 'Amount', required: true },
+  { key: 'category', label: 'Category', required: true },
   { key: 'status', label: 'Status', required: false }
 ];
 
@@ -31,6 +31,9 @@ const EXPENSE_CATEGORIES = [
   'Travel',
   'Software',
   'Marketing',
+  'Taxes',
+  'Utilities',
+  'Professional Services',
   'Other'
 ];
 
@@ -125,22 +128,31 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
         if (mapping.csvField) {
           let value = row[mapping.csvField] || '';
           
-          // Apply transformations
+          // Apply transformations (same as handleImport)
           if (mapping.dbField === 'amount') {
-            value = parseFloat(value) || 0;
-          } else if (mapping.dbField === 'category' && !EXPENSE_CATEGORIES.includes(value)) {
-            value = 'Other';
+            // Handle negative amounts and remove currency symbols
+            value = Math.abs(parseFloat(String(value).replace(/[$,]/g, '')) || 0);
+          } else if (mapping.dbField === 'category') {
+            // Allow any category, don't restrict to predefined list
+            value = value || 'Other';
           } else if (mapping.dbField === 'status' && !EXPENSE_STATUSES.includes(value)) {
             value = 'pending';
+          } else if (mapping.dbField === 'merchant' && !value && mappedRow.description) {
+            // Use description as merchant if merchant field is empty
+            value = row[fieldMappings.find(m => m.dbField === 'description')?.csvField || ''] || 'Unknown Merchant';
           }
           
           mappedRow[mapping.dbField] = value;
         }
       });
       
-      // Set defaults
+      // Set defaults and handle special mappings (same as handleImport)
       if (!mappedRow.status) mappedRow.status = 'pending';
       if (!mappedRow.category) mappedRow.category = 'Other';
+      if (!mappedRow.merchant && mappedRow.description) {
+        mappedRow.merchant = mappedRow.description;
+      }
+      if (!mappedRow.merchant) mappedRow.merchant = 'Unknown Merchant';
       
       return mappedRow;
     });
@@ -155,10 +167,8 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
     setIsProcessing(true);
     
     try {
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const row of csvData) {
+      // Map all CSV data to expense format
+      const mappedExpenses = csvData.map(row => {
         const mappedRow: any = {};
         fieldMappings.forEach(mapping => {
           if (mapping.csvField) {
@@ -166,35 +176,60 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
             
             // Apply transformations
             if (mapping.dbField === 'amount') {
-              value = parseFloat(value) || 0;
-            } else if (mapping.dbField === 'category' && !EXPENSE_CATEGORIES.includes(value)) {
-              value = 'Other';
+              // Handle negative amounts and remove currency symbols
+              value = Math.abs(parseFloat(String(value).replace(/[$,]/g, '')) || 0);
+            } else if (mapping.dbField === 'category') {
+              // Allow any category, don't restrict to predefined list
+              value = value || 'Other';
             } else if (mapping.dbField === 'status' && !EXPENSE_STATUSES.includes(value)) {
               value = 'pending';
+            } else if (mapping.dbField === 'merchant' && !value && mappedRow.description) {
+              // Use description as merchant if merchant field is empty
+              value = row[fieldMappings.find(m => m.dbField === 'description')?.csvField || ''] || 'Unknown Merchant';
             }
             
             mappedRow[mapping.dbField] = value;
           }
         });
         
-        // Set defaults
+        // Set defaults and handle special mappings for your CSV format
         if (!mappedRow.status) mappedRow.status = 'pending';
         if (!mappedRow.category) mappedRow.category = 'Other';
-
-        const validation = validateExpenseData(mappedRow);
-        if (validation.isValid) {
-          expenseOperations.create(mappedRow);
-          successCount++;
-        } else {
-          errorCount++;
+        if (!mappedRow.merchant && mappedRow.description) {
+          mappedRow.merchant = mappedRow.description;
         }
+        if (!mappedRow.merchant) mappedRow.merchant = 'Unknown Merchant';
+        
+        return mappedRow;
+      });
+
+      // Filter out invalid expenses before sending to bulk import
+      const validExpenses = mappedExpenses.filter(expense => {
+        const validation = validateExpenseData(expense);
+        return validation.isValid;
+      });
+
+      if (validExpenses.length === 0) {
+        toast.error('No valid expenses to import');
+        setIsProcessing(false);
+        return;
       }
 
-      toast.success(`Import completed: ${successCount} expenses imported, ${errorCount} errors`);
+      // Use bulk import endpoint
+      const result = await expenseOperations.bulkImport(validExpenses);
+      
+      toast.success(`Import completed: ${result.imported} expenses imported${result.failed > 0 ? `, ${result.failed} failed` : ''}`);
+      
+      // Show detailed errors if any
+      if (result.failed > 0 && result.errors.length > 0) {
+        console.warn('Import errors:', result.errors);
+        toast.warning(`${result.failed} expenses failed to import. Check console for details.`);
+      }
+
       onImportComplete();
       onClose();
     } catch (error) {
-      toast.error('Failed to import expenses');
+      toast.error(`Failed to import expenses: ${error.message || error}`);
       console.error('Import error:', error);
     }
     

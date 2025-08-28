@@ -55,8 +55,23 @@ export {
   getExpenseCategories,
   updateExpenseStatus,
   bulkUpdateExpenseStatus,
-  getExpensesByDateRange
+  getExpensesByDateRange,
+  bulkImportExpenses,
+  bulkDeleteExpenses,
+  bulkUpdateExpenseCategory,
+  bulkUpdateExpenseMerchant
 } from './expenseController.js';
+
+// Payment controller
+export {
+  getAllPayments,
+  getPaymentById,
+  createPayment,
+  updatePayment,
+  deletePayment,
+  getPaymentStats,
+  bulkDeletePayments
+} from './paymentController.js';
 
 // Authentication controller
 export {

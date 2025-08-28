@@ -3,7 +3,7 @@
 
 import { initializeDatabase } from '../config/database.js';
 import { createTables } from './schema.js';
-import { initializeCounters, initializeAdminUser, initializeSampleData, addSampleInvoices } from './seedData.js';
+import { initializeCounters, initializeAdminUser, initializeSampleData, addSampleInvoices, addSamplePayments } from './seedData.js';
 
 // Initialize database instance
 export const db = initializeDatabase();
@@ -27,6 +27,7 @@ export const initializeCompleteDatabase = async (includeSampleData = false) => {
     if (includeSampleData && process.env.NODE_ENV !== 'production') {
       initializeSampleData(db);
       addSampleInvoices(db);
+      addSamplePayments(db);
     }
 
     console.log('✅ Database ready');
@@ -42,5 +43,6 @@ export {
   initializeCounters,
   initializeAdminUser,
   initializeSampleData,
-  addSampleInvoices
+  addSampleInvoices,
+  addSamplePayments
 };

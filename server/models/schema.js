@@ -126,6 +126,24 @@ export const createTables = (db) => {
     )
   `);
 
+  // Payments table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      client_name TEXT NOT NULL,
+      invoice_id INTEGER,
+      amount REAL NOT NULL,
+      method TEXT NOT NULL DEFAULT 'Cash',
+      reference TEXT,
+      description TEXT,
+      status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received', 'pending', 'failed', 'refunded')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE SET NULL
+    )
+  `);
+
   // Reports table
   db.exec(`
     CREATE TABLE IF NOT EXISTS reports (
