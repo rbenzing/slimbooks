@@ -6,14 +6,23 @@ import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '../../lib/utils';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
+import { Expense } from '@/types';
+
+interface ExpenseReportData {
+  expenses: Expense[];
+  expensesByCategory: Record<string, number>;
+  expensesByStatus: Record<string, number>;
+  totalAmount: number;
+  totalCount: number;
+}
 
 interface ExpenseReportProps {
   onBack: () => void;
-  onSave: (reportData: any, reportType: ReportType, dateRange: DateRange) => void;
+  onSave: (reportData: ExpenseReportData, reportType: ReportType, dateRange: DateRange) => void;
 }
 
 export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) => {
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<ExpenseReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -53,18 +62,20 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
         break;
-      case 'this-quarter':
+      case 'this-quarter': {
         const currentQuarter = Math.floor(today.getMonth() / 3);
         start = new Date(today.getFullYear(), currentQuarter * 3, 1);
         end = today;
         break;
-      case 'last-quarter':
+      }
+      case 'last-quarter': {
         const lastQuarter = Math.floor(today.getMonth() / 3) - 1;
         const year = lastQuarter < 0 ? today.getFullYear() - 1 : today.getFullYear();
         const quarter = lastQuarter < 0 ? 3 : lastQuarter;
         start = new Date(year, quarter * 3, 1);
         end = new Date(year, (quarter + 1) * 3, 0);
         break;
+      }
       case 'this-year':
         start = new Date(today.getFullYear(), 0, 1);
         end = today;
@@ -296,7 +307,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {reportData.expenses.map((expense: any) => (
+                      {reportData.expenses.map((expense: Expense) => (
                         <tr key={expense.id} className={themeClasses.tableRow}>
                           <td className={themeClasses.tableCell}>
                             {formatDateSync(expense.date)}

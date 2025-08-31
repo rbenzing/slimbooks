@@ -1,5 +1,17 @@
 
-export const exportToCSV = (data: any[], filename: string) => {
+import { 
+  ClientImportData, 
+  ClientValidationResult, 
+  ExpenseImportData, 
+  ExpenseValidationResult 
+} from '@/types';
+
+// CSV utility types
+interface CSVRecord {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export const exportToCSV = (data: CSVRecord[], filename: string) => {
   if (data.length === 0) return;
   
   const headers = Object.keys(data[0]);
@@ -28,7 +40,7 @@ export const exportToCSV = (data: any[], filename: string) => {
   document.body.removeChild(link);
 };
 
-export const parseCSV = (csvText: string): any[] => {
+export const parseCSV = (csvText: string): CSVRecord[] => {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
   
@@ -37,7 +49,7 @@ export const parseCSV = (csvText: string): any[] => {
   
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
-    const row: any = {};
+    const row: CSVRecord = {};
     
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
@@ -75,7 +87,7 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
-export const validateClientData = (data: any): { isValid: boolean; errors: string[] } => {
+export const validateClientData = (data: CSVRecord): ClientValidationResult => {
   const errors: string[] = [];
 
   // Check if we have either a full name or first/last name
@@ -99,7 +111,7 @@ export const validateClientData = (data: any): { isValid: boolean; errors: strin
   };
 };
 
-export const validateExpenseData = (data: any): { isValid: boolean; errors: string[] } => {
+export const validateExpenseData = (data: CSVRecord): ExpenseValidationResult => {
   const errors: string[] = [];
   
   if (!data.merchant || data.merchant.trim() === '') {

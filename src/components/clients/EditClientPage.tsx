@@ -5,22 +5,7 @@ import { ArrowLeft, Save, User, Building, Mail, Phone, MapPin } from 'lucide-rea
 import { clientOperations } from '@/lib/database';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { InternationalAddressForm } from '@/components/ui/InternationalAddressForm';
-
-interface ClientFormData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  company: string;
-  companyEmail: string;
-  companyPhone: string;
-  address: string;
-  address2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
+import { ClientFormData } from '@/types/client.types';
 
 export const EditClientPage = () => {
   const navigate = useNavigate();
@@ -28,6 +13,7 @@ export const EditClientPage = () => {
   const isEditing = Boolean(id);
 
   const [formData, setFormData] = useState<ClientFormData>({
+    name: '',
     first_name: '',
     last_name: '',
     email: '',
@@ -65,6 +51,7 @@ export const EditClientPage = () => {
         const last_name = client.last_name || (client.name ? client.name.split(' ').slice(1).join(' ') : '') || '';
 
         const clientData = {
+          name: client.name || '',
           first_name,
           last_name,
           email: client.email,
@@ -85,6 +72,7 @@ export const EditClientPage = () => {
     } else {
       // For new clients, set original data after initial load
       const initialData = {
+        name: '',
         first_name: '',
         last_name: '',
         email: '',

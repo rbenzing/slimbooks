@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Download, Eye, AlertTriangle } from 'lucide-react';
-import { invoiceOperations } from '@/lib/database';
 import { CompanyHeader } from './invoices/CompanyHeader';
-import { themeClasses } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
+import { envConfig } from '@/lib/env-config';
 
 interface LineItem {
   id: string;
@@ -38,7 +37,7 @@ export const PublicInvoiceView: React.FC = () => {
 
       try {
         // Use the new secure public endpoint
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/invoices/public/${id}?token=${token}`);
+        const response = await fetch(`${envConfig.API_URL}/api/invoices/public/${id}?token=${token}`);
 
         if (!response.ok) {
           setError('Invalid or expired invoice link');
@@ -180,7 +179,7 @@ export const PublicInvoiceView: React.FC = () => {
         <div className="bg-card rounded-lg shadow-lg p-8 border">
           {/* Company Header */}
           <div className="flex justify-between items-start mb-8">
-            <CompanyHeader companyLogo={companyLogo} />
+            <CompanyHeader companyLogo={companyLogo} onLogoUpload={() => null} />
             <div className="text-right">
               <h2 className="text-3xl font-bold text-card-foreground mb-2">INVOICE</h2>
               <div className="space-y-1">
@@ -285,8 +284,4 @@ export const PublicInvoiceView: React.FC = () => {
   );
 };
 
-// Export the token generation function for use in email service
 export { PublicInvoiceView as default };
-export const generateInvoiceToken = (invoiceId: string): string => {
-  return btoa(`invoice-${invoiceId}-${new Date().toDateString()}`);
-};

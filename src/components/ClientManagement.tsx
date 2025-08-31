@@ -7,23 +7,7 @@ import { clientOperations } from '../lib/database';
 import { toast } from 'sonner';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/utils';
-
-interface Client {
-  id: number;
-  name: string;
-  first_name?: string;
-  last_name?: string;
-  email: string;
-  phone: string;
-  company: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Client, ClientFormData } from '@/types/client.types';
 
 export const ClientManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -63,7 +47,7 @@ export const ClientManagement: React.FC = () => {
     setShowCreateForm(true);
   };
 
-  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSaveClient = async (clientData: ClientFormData) => {
     try {
       if (editingClient) {
         await clientOperations.update(editingClient.id, clientData);
@@ -99,49 +83,49 @@ export const ClientManagement: React.FC = () => {
   };
 
   const renderTableView = () => (
-    <div className={themeClasses.card}>
+    <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className={themeClasses.tableHeader}>
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className={themeClasses.tableHeaderCell}>Name</th>
-              <th className={themeClasses.tableHeaderCell}>Company</th>
-              <th className={themeClasses.tableHeaderCell}>Email</th>
-              <th className={themeClasses.tableHeaderCell}>Phone</th>
-              <th className={themeClasses.tableHeaderCell}>Created</th>
-              <th className={themeClasses.tableHeaderCell}>Actions</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</th>
+              <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className={themeClasses.tableBody}>
+          <tbody className="divide-y divide-border">
             {filteredClients.map((client) => (
-              <tr key={client.id} className={themeClasses.tableRow}>
-                <td className={`${themeClasses.tableCell} font-medium`}>
+              <tr key={client.id} className="hover:bg-muted/50">
+                <td className="py-4 px-6 text-sm font-medium text-card-foreground">
                   {client.name}
                 </td>
-                <td className={themeClasses.tableCell}>
+                <td className="py-4 px-6 text-sm text-card-foreground">
                   {client.company}
                 </td>
-                <td className={themeClasses.tableCell}>
+                <td className="py-4 px-6 text-sm text-card-foreground">
                   {client.email}
                 </td>
-                <td className={themeClasses.tableCell}>
+                <td className="py-4 px-6 text-sm text-muted-foreground">
                   {client.phone || 'N/A'}
                 </td>
-                <td className={themeClasses.tableCell}>
+                <td className="py-4 px-6 text-sm text-card-foreground">
                   {formatDateSync(client.created_at)}
                 </td>
-                <td className={themeClasses.tableCell}>
+                <td className="py-4 px-6 text-sm">
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleEditClient(client)}
-                      className="p-1 text-muted-foreground hover:text-white"
+                      className="p-1 text-muted-foreground hover:text-blue-600"
                       title="Edit Client"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClientWithConfirm(client.id, client.name)}
-                      className="p-1 text-muted-foreground hover:text-white"
+                      className="p-1 text-muted-foreground hover:text-red-600"
                       title="Delete Client"
                     >
                       <Trash2 className="h-4 w-4" />

@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
-import { invoiceOperations, clientOperations, expenseOperations } from '../lib/database';
-import { themeClasses, getIconColorClasses, getStatusColor } from '../lib/utils';
+import { invoiceOperations, clientOperations, expenseOperations } from '@/lib/database';
+import { themeClasses, getIconColorClasses, getStatusColor } from '@/lib/utils';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
 type TimePeriod = 'last-week' | 'last-month' | 'last-year' | 'year-to-date' | 'month-to-date';
@@ -27,16 +27,14 @@ export const DashboardOverview = () => {
     filteredInvoices: [] as any[],
     filteredExpenses: [] as any[]
   });
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  useEffect(() => {
-    if (stats.allInvoices.length > 0 || stats.allExpenses.length > 0) {
-      filterDataByPeriod();
-    }
-  }, [selectedPeriod, stats.allInvoices, stats.allExpenses]);
+  
+  const timePeriodOptions = [
+    { value: 'last-week', label: 'Last Week' },
+    { value: 'last-month', label: 'Last Month' },
+    { value: 'last-year', label: 'Last Year' },
+    { value: 'year-to-date', label: 'Year to Date' },
+    { value: 'month-to-date', label: 'Month to Date' }
+  ];
 
   const loadDashboardData = async () => {
     try {
@@ -138,13 +136,15 @@ export const DashboardOverview = () => {
     }));
   };
 
-  const timePeriodOptions = [
-    { value: 'last-week', label: 'Last Week' },
-    { value: 'last-month', label: 'Last Month' },
-    { value: 'last-year', label: 'Last Year' },
-    { value: 'year-to-date', label: 'Year to Date' },
-    { value: 'month-to-date', label: 'Month to Date' }
-  ];
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  useEffect(() => {
+    if (stats.allInvoices.length > 0 || stats.allExpenses.length > 0) {
+      filterDataByPeriod();
+    }
+  }, [selectedPeriod, stats.allInvoices, stats.allExpenses, filterDataByPeriod]);
 
   return (
     <div className={themeClasses.page}>

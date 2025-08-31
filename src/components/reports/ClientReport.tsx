@@ -6,14 +6,30 @@ import { clientOperations, invoiceOperations, reportOperations } from '../../lib
 import { themeClasses, getButtonClasses } from '@/lib/utils';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
+import { Client } from '@/types';
+
+interface ClientReportData {
+  clients: (Client & {
+    totalInvoices: number;
+    totalRevenue: number;
+    paidRevenue: number;
+    pendingRevenue: number;
+    overdueRevenue: number;
+  })[];
+  totalClients: number;
+  totalRevenue: number;
+  totalPaidRevenue: number;
+  totalPendingRevenue: number;
+  totalOverdueRevenue: number;
+}
 
 interface ClientReportProps {
   onBack: () => void;
-  onSave: (reportData: any, reportType: ReportType, dateRange: DateRange) => void;
+  onSave: (reportData: ClientReportData, reportType: ReportType, dateRange: DateRange) => void;
 }
 
 export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) => {
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<ClientReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -54,18 +70,20 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
         break;
-      case 'this-quarter':
+      case 'this-quarter': {
         const currentQuarter = Math.floor(today.getMonth() / 3);
         start = new Date(today.getFullYear(), currentQuarter * 3, 1);
         end = today;
         break;
-      case 'last-quarter':
+      }
+      case 'last-quarter': {
         const lastQuarter = Math.floor(today.getMonth() / 3) - 1;
         const year = lastQuarter < 0 ? today.getFullYear() - 1 : today.getFullYear();
         const quarter = lastQuarter < 0 ? 3 : lastQuarter;
         start = new Date(year, quarter * 3, 1);
         end = new Date(year, (quarter + 1) * 3, 0);
         break;
+      }
       case 'this-year':
         start = new Date(today.getFullYear(), 0, 1);
         end = today;
@@ -255,7 +273,7 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {reportData.clients.map((client: any) => (
+                    {reportData.clients.map((client) => (
                       <tr key={client.id} className={themeClasses.tableRow}>
                         <td className={`${themeClasses.tableCell} font-medium`}>
                           {client.name}

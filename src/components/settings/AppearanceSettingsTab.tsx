@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { themeClasses } from '@/lib/utils';
 
 export const AppearanceSettingsTab = () => {
@@ -7,6 +7,24 @@ export const AppearanceSettingsTab = () => {
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern-blue');
   const [pdfFormat, setPdfFormat] = useState('A4');
   const [isLoaded, setIsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced save function to batch multiple setting changes
+  const debouncedSave = useCallback(async () => {
+    if (!isLoaded) return;
+
+    try {
+      const { sqliteService } = await import('@/services/sqlite.svc');
+      
+      await sqliteService.setMultipleSettings({
+        'theme': { value: theme, category: 'appearance' },
+        'invoice_template': { value: invoiceTemplate, category: 'appearance' },
+        'pdf_format': { value: { format: pdfFormat }, category: 'appearance' }
+      });
+    } catch (error) {
+      console.error('Error saving appearance settings:', error);
+    }
+  }, [theme, invoiceTemplate, pdfFormat, isLoaded]);
 
   // Load settings from database on component mount
   useEffect(() => {
@@ -22,7 +40,7 @@ export const AppearanceSettingsTab = () => {
         const settings = await sqliteService.getAllSettings('appearance');
 
         // Migrate from localStorage if database settings don't exist
-        if (!settings.theme && !settings.invoice_template) {
+        if (!settings || (!settings.theme && !settings.invoice_template)) {
           const localTheme = localStorage.getItem('theme') || 'system';
           const localTemplate = localStorage.getItem('invoiceTemplate') || 'modern-blue';
 
@@ -41,9 +59,9 @@ export const AppearanceSettingsTab = () => {
           localStorage.removeItem('invoiceTemplate');
         } else {
           // Use database settings
-          if (settings.theme) setTheme(settings.theme);
-          if (settings.invoice_template) setInvoiceTemplate(settings.invoice_template);
-          if (settings.pdf_format) setPdfFormat(settings.pdf_format.format || 'A4');
+          if (settings?.theme) setTheme(settings.theme);
+          if (settings?.invoice_template) setInvoiceTemplate(settings.invoice_template);
+          if (settings?.pdf_format) setPdfFormat(settings.pdf_format.format || 'A4');
         }
 
         setIsLoaded(true);
@@ -56,7 +74,7 @@ export const AppearanceSettingsTab = () => {
     loadSettings();
   }, []);
 
-  // Apply theme changes
+  // Apply theme changes (visual only)
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -73,11 +91,6 @@ export const AppearanceSettingsTab = () => {
 
     applyTheme(theme);
 
-    // Save to database
-    import('@/services/sqlite.svc').then(({ sqliteService }) => {
-      sqliteService.setSetting('theme', theme, 'appearance').catch(console.error);
-    });
-
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = () => applyTheme('system');
@@ -86,23 +99,27 @@ export const AppearanceSettingsTab = () => {
     }
   }, [theme, isLoaded]);
 
-  // Save invoice template changes
+  // Debounced save all settings changes
   useEffect(() => {
     if (!isLoaded) return;
 
-    import('@/services/sqlite.svc').then(({ sqliteService }) => {
-      sqliteService.setSetting('invoice_template', invoiceTemplate, 'appearance').catch(console.error);
-    });
-  }, [invoiceTemplate, isLoaded]);
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-  // Save PDF format changes
-  useEffect(() => {
-    if (!isLoaded) return;
+    // Set new timeout to batch saves
+    saveTimeoutRef.current = setTimeout(() => {
+      debouncedSave();
+    }, 500);
 
-    import('@/services/sqlite.svc').then(({ sqliteService }) => {
-      sqliteService.setSetting('pdf_format', { format: pdfFormat }, 'appearance').catch(console.error);
-    });
-  }, [pdfFormat, isLoaded]);
+    // Cleanup timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [theme, invoiceTemplate, pdfFormat, isLoaded, debouncedSave]);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);

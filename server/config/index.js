@@ -21,10 +21,6 @@ export const serverConfig = {
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
 
-  // HTTPS configuration
-  enableHttps: process.env.ENABLE_HTTPS === 'true',
-  sslKeyPath: process.env.SSL_KEY_PATH || 'certs/server.key',
-  sslCertPath: process.env.SSL_CERT_PATH || 'certs/server.crt',
 
   // CORS configuration
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:8080',

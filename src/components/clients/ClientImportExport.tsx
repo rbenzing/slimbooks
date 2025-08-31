@@ -5,6 +5,7 @@ import { clientOperations } from '@/lib/database';
 import { exportToCSV, parseCSV, validateClientData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/lib/utils';
+import { Client, ClientImportData, ClientValidationResult } from '@/types';
 
 interface ClientImportExportProps {
   onClose: () => void;
@@ -30,13 +31,17 @@ const CLIENT_FIELDS = [
   { key: 'country', label: 'Country', required: false }
 ];
 
+interface PreviewDataItem extends ClientImportData {
+  _originalIndex?: number;
+}
+
 export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose, onImportComplete }) => {
   const [mode, setMode] = useState<'select' | 'import' | 'export'>('select');
-  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvData, setCsvData] = useState<Array<Record<string, string | number | boolean | null | undefined>>>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
-  const [previewData, setPreviewData] = useState<any[]>([]);
-  const [validationResults, setValidationResults] = useState<any[]>([]);
+  const [previewData, setPreviewData] = useState<PreviewDataItem[]>([]);
+  const [validationResults, setValidationResults] = useState<ClientValidationResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleExport = async () => {

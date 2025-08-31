@@ -16,8 +16,9 @@ export const DEFAULT_INVOICE_NUMBER_SETTINGS: InvoiceNumberSettings = {
 export const getInvoiceNumberSettings = async (): Promise<InvoiceNumberSettings> => {
   try {
     // Try to access sqliteService if it's already available globally
-    if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
-      const settings = await (window as any).sqliteService.getSetting('invoice_number_settings');
+    if (typeof window !== 'undefined' && (window as unknown as { sqliteService?: { isReady(): boolean; getSetting(key: string): Promise<unknown> } }).sqliteService?.isReady()) {
+      const sqliteService = (window as unknown as { sqliteService: { getSetting(key: string): Promise<InvoiceNumberSettings | null> } }).sqliteService;
+      const settings = await sqliteService.getSetting('invoice_number_settings');
       if (settings) {
         return {
           prefix: settings.prefix || DEFAULT_INVOICE_NUMBER_SETTINGS.prefix

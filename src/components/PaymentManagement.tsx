@@ -5,6 +5,7 @@ import { PaymentForm } from './payments/PaymentForm';
 import { PaymentViewModal } from './payments/PaymentViewModal';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
+import { authenticatedFetch } from '@/utils/api';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 
@@ -41,12 +42,17 @@ export const PaymentManagement: React.FC = () => {
   const loadPayments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/payments');
+      const response = await authenticatedFetch('/api/payments');
       const data = await response.json();
+      
+      console.log('API Response:', data);
+      console.log('Response status:', response.status);
       
       if (data.success) {
         setPayments(data.data.payments || []);
       } else {
+        console.error('API returned success: false. Message:', data.message);
+        console.error('Full API response:', data);
         throw new Error(data.message || 'Failed to load payments');
       }
     } catch (error) {
@@ -102,7 +108,7 @@ export const PaymentManagement: React.FC = () => {
       const url = editingPayment ? `/api/payments/${editingPayment.id}` : '/api/payments';
       const method = editingPayment ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json'
@@ -128,7 +134,7 @@ export const PaymentManagement: React.FC = () => {
 
   const handleDeletePayment = async (id: number) => {
     try {
-      const response = await fetch(`/api/payments/${id}`, {
+      const response = await authenticatedFetch(`/api/payments/${id}`, {
         method: 'DELETE'
       });
       
@@ -148,7 +154,7 @@ export const PaymentManagement: React.FC = () => {
 
   const handleBulkDelete = async (paymentIds: number[]) => {
     try {
-      const response = await fetch('/api/payments/bulk-delete', {
+      const response = await authenticatedFetch('/api/payments/bulk-delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -173,7 +179,7 @@ export const PaymentManagement: React.FC = () => {
   const handleBulkChangeStatus = async (paymentIds: number[], status: string) => {
     try {
       const updatePromises = paymentIds.map(id => 
-        fetch(`/api/payments/${id}`, {
+        authenticatedFetch(`/api/payments/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -194,7 +200,7 @@ export const PaymentManagement: React.FC = () => {
   const handleBulkChangeMethod = async (paymentIds: number[], method: string) => {
     try {
       const updatePromises = paymentIds.map(id => 
-        fetch(`/api/payments/${id}`, {
+        authenticatedFetch(`/api/payments/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'

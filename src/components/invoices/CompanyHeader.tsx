@@ -3,13 +3,23 @@ import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
 
+interface CompanySettings {
+  companyName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  brandingImage: string;
+}
+
 interface CompanyHeaderProps {
   companyLogo: string;
   onLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLogoUpload }) => {
-  const [companySettings, setCompanySettings] = useState<any>({
+
+  const [companySettings, setCompanySettings] = useState<CompanySettings>({
     companyName: 'Your Company',
     address: '123 Business Street',
     city: 'City',
@@ -28,7 +38,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
           await sqliteService.initialize();
         }
 
-        const saved = await sqliteService.getSetting('company_settings');
+        const saved: CompanySettings = await sqliteService.getSetting('company_settings');
         if (saved) {
           setCompanySettings(saved);
         } else {
@@ -63,7 +73,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
     loadSettings();
   }, []);
 
-  const displayLogo = companyLogo || companySettings.brandingImage;
+  const displayLogo = companyLogo ?? companySettings.brandingImage;
 
   return (
     <div className="flex items-center space-x-4">

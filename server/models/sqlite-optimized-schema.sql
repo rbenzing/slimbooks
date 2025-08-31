@@ -123,6 +123,25 @@ CREATE TABLE IF NOT EXISTS expenses (
 );
 
 -- =====================================================
+-- PAYMENTS TABLE - Payment tracking
+-- =====================================================
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    client_name TEXT NOT NULL CHECK (length(trim(client_name)) >= 1 AND length(client_name) <= 100),
+    invoice_id INTEGER,
+    amount REAL NOT NULL CHECK (amount > 0),
+    method TEXT NOT NULL DEFAULT 'Cash' CHECK (method IN ('cash', 'check', 'bank_transfer', 'credit_card', 'paypal', 'other')),
+    reference TEXT CHECK (reference IS NULL OR length(reference) <= 100),
+    description TEXT CHECK (description IS NULL OR length(description) <= 500),
+    status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received', 'pending', 'failed', 'refunded')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    
+    FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE SET NULL
+);
+
+-- =====================================================
 -- REPORTS TABLE - Report storage
 -- =====================================================
 CREATE TABLE IF NOT EXISTS reports (
@@ -205,6 +224,16 @@ CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status);
 CREATE INDEX IF NOT EXISTS idx_expenses_amount ON expenses(amount);
 CREATE INDEX IF NOT EXISTS idx_expenses_date_category ON expenses(date, category);
 
+-- Payments table indexes
+CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(date);
+CREATE INDEX IF NOT EXISTS idx_payments_client_name ON payments(client_name);
+CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON payments(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_method ON payments(method);
+CREATE INDEX IF NOT EXISTS idx_payments_amount ON payments(amount);
+CREATE INDEX IF NOT EXISTS idx_payments_date_status ON payments(date, status);
+CREATE INDEX IF NOT EXISTS idx_payments_client_date ON payments(client_name, date);
+
 -- Reports table indexes
 CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
 CREATE INDEX IF NOT EXISTS idx_reports_date_range ON reports(date_range_start, date_range_end);
@@ -252,6 +281,14 @@ CREATE TRIGGER IF NOT EXISTS update_expenses_timestamp
     FOR EACH ROW
     BEGIN
         UPDATE expenses SET updated_at = datetime('now') WHERE id = NEW.id;
+    END;
+
+-- Payments table trigger
+CREATE TRIGGER IF NOT EXISTS update_payments_timestamp 
+    AFTER UPDATE ON payments
+    FOR EACH ROW
+    BEGIN
+        UPDATE payments SET updated_at = datetime('now') WHERE id = NEW.id;
     END;
 
 -- Project settings table trigger

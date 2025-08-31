@@ -19,10 +19,14 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [accountingMethod, setAccountingMethod] = useState<'cash' | 'accrual'>('accrual');
   const [breakdownPeriod, setBreakdownPeriod] = useState<'monthly' | 'quarterly'>('quarterly');
-  const [dateRange, setDateRange] = useState<DateRange>({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0],
-    preset: 'this-month'
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    return {
+      start: `${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}-${String(startOfMonth.getDate()).padStart(2, '0')}`,
+      end: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`,
+      preset: 'this-month'
+    };
   });
 
   const { formatAmountSync } = useCurrencyFormatter();
@@ -57,21 +61,23 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
         break;
-      case 'this-quarter':
+      case 'this-quarter': {
         const currentQuarter = Math.floor(today.getMonth() / 3);
         start = new Date(today.getFullYear(), currentQuarter * 3, 1);
         end = today;
         break;
-      case 'last-quarter':
+      }
+      case 'last-quarter': {
         const lastQuarter = Math.floor(today.getMonth() / 3) - 1;
         const year = lastQuarter < 0 ? today.getFullYear() - 1 : today.getFullYear();
         const quarter = lastQuarter < 0 ? 3 : lastQuarter;
         start = new Date(year, quarter * 3, 1);
         end = new Date(year, (quarter + 1) * 3, 0);
         break;
+      }
       case 'this-year':
         start = new Date(today.getFullYear(), 0, 1);
-        end = today;
+        end = new Date(today.getFullYear(), 11, 31);
         break;
       case 'last-year':
         start = new Date(today.getFullYear() - 1, 0, 1);
@@ -82,8 +88,8 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     }
 
     setDateRange({
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
+      start: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`,
+      end: `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`,
       preset
     });
   };
@@ -244,15 +250,12 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                 className={`w-full ${themeClasses.select}`}
                 value={breakdownPeriod}
                 onChange={(e) => setBreakdownPeriod(e.target.value as 'monthly' | 'quarterly')}
-                disabled={dateRange.preset !== 'this-year' && dateRange.preset !== 'last-year'}
               >
                 <option value="quarterly">Quarterly</option>
                 <option value="monthly">Monthly</option>
               </select>
               <p className={`text-xs ${themeClasses.mutedText} mt-1`}>
-                {dateRange.preset === 'this-year' || dateRange.preset === 'last-year'
-                  ? 'Show breakdown by period'
-                  : 'Only available for yearly reports'}
+                Show breakdown by period for multi-month ranges
               </p>
             </div>
           </div>
@@ -324,7 +327,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
                         </th>
                       ))}
                       <th className="text-center py-3 px-2 font-bold text-blue-600 dark:text-blue-400 min-w-[100px]">
-                        Year Total
+                        Total
                       </th>
                     </tr>
                   </thead>

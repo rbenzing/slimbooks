@@ -6,12 +6,11 @@ export interface User {
   email: string;
   username: string;
   password_hash?: string;
-  role: 'admin' | 'user';
-  email_verified: boolean;
+  role: 'admin' | 'user' | 'viewer';
+  email_verified: number; // SQLite uses INTEGER for boolean (0 or 1)
   google_id?: string;
-  two_factor_enabled: boolean;
-  two_factor_secret?: string;
-  backup_codes?: string[];
+  two_factor_enabled: number;
+  backup_codes: string;
   last_login?: string;
   failed_login_attempts: number;
   account_locked_until?: string;

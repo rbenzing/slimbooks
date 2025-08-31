@@ -2,30 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { themeClasses, getButtonClasses } from '@/lib/utils';
-
-interface Payment {
-  id?: number;
-  date: string;
-  client_name: string;
-  invoice_id?: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-}
-
-interface Invoice {
-  id: number;
-  invoice_number: string;
-  client_name?: string;
-  total_amount: number;
-  status: string;
-}
+import { authenticatedFetch } from '@/utils/api';
+import { Payment, PaymentFormData } from '@/types/payment.types';
+import { Invoice } from '@/types/invoice.types';
 
 interface PaymentFormProps {
   payment?: Payment | null;
-  onSave: (paymentData: Omit<Payment, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSave: (paymentData: PaymentFormData) => void;
   onCancel: () => void;
   preselectedInvoiceId?: number;
   preselectedClientName?: string;
@@ -100,7 +83,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
       }
       params.set('limit', '50');
 
-      const response = await fetch(`/api/invoices?${params}`);
+      const response = await authenticatedFetch(`/api/invoices?${params}`);
       const data = await response.json();
       
       if (data.success) {

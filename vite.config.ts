@@ -8,6 +8,13 @@ export default defineConfig({
   preview: {
     port: 8080,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   server: {
     origin: "http://0.0.0.0:8080",
@@ -16,6 +23,13 @@ export default defineConfig({
     port: 8080,
     hmr: {
       overlay: false
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+        secure: false,
+      }
     }
   },
   plugins: [

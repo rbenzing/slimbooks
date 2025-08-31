@@ -1,15 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { themeClasses } from '../lib/utils';
+import { themeClasses } from '@/lib/utils';
+import { Invoice, TimePeriod } from '@/types';
 
 interface DashboardChartProps {
-  invoices: any[];
+  invoices: Invoice[];
   title?: string;
   selectedPeriod: TimePeriod;
 }
-
-type TimePeriod = 'last-week' | 'last-month' | 'last-year' | 'year-to-date' | 'month-to-date';
 
 const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Revenue Trend", selectedPeriod }) => {
 
@@ -41,7 +40,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
-      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.amount;
+      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.total_amount;
     });
 
     const last7Days = [];
@@ -70,7 +69,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
-      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.amount;
+      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.total_amount;
     });
 
     const currentDate = new Date();
@@ -101,7 +100,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + invoice.amount;
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + invoice.total_amount;
     });
 
     const currentDate = new Date();
@@ -130,7 +129,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + invoice.amount;
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + invoice.total_amount;
     });
 
     const currentDate = new Date();
@@ -160,7 +159,7 @@ const DashboardChart: React.FC<DashboardChartProps> = ({ invoices, title = "Reve
     invoices.forEach(invoice => {
       const date = new Date(invoice.created_at);
       const dayKey = date.toISOString().split('T')[0];
-      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.amount;
+      dailyData[dayKey] = (dailyData[dayKey] || 0) + invoice.total_amount;
     });
 
     const currentDate = new Date();

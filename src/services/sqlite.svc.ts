@@ -1,15 +1,47 @@
 // Database service that communicates with backend API
+import {
+  User,
+  Client,
+  Invoice,
+  InvoiceTemplate,
+  Expense,
+  Payment,
+  Report,
+  ImportResult,
+  ValidationError
+} from '@/types';
 class SQLiteService {
   private isInitialized = false;
-  private baseUrl = 'http://localhost:3002/api';
+  private initializationPromise: Promise<void> | null = null;
+  private baseUrl = this.getApiBaseUrl();
+
+  private getApiBaseUrl(): string {
+    // Check if we're running on HTTPS
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      return 'https://localhost:3002/api';
+    }
+    return 'http://localhost:3002/api';
+  }
 
   async initialize(): Promise<void> {
+    // If already initialized, return immediately
     if (this.isInitialized) return;
+    
+    // If initialization is in progress, return the existing promise
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
 
+    // Start new initialization
+    this.initializationPromise = this.performInitialization();
+    return this.initializationPromise;
+  }
+
+  private async performInitialization(): Promise<void> {
     try {
       // Test connection to backend with retry logic
       let retries = 3;
-      let lastError: any;
+      let lastError: unknown;
       let delay = 2000; // Start with 2 seconds to avoid rate limiting
 
       while (retries > 0) {
@@ -29,6 +61,7 @@ class SQLiteService {
           }
 
           this.isInitialized = true;
+          this.initializationPromise = null; // Reset promise for future calls
           return;
         } catch (error) {
           lastError = error;
@@ -44,13 +77,14 @@ class SQLiteService {
 
       throw lastError;
     } catch (error) {
+      this.initializationPromise = null; // Reset promise on failure
       console.error('Failed to initialize database service after retries:', error);
       throw new Error('Backend server not available');
     }
   }
 
   // API helper methods
-  private async apiCall(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
+  private async apiCall(endpoint: string, method: string = 'GET', body?: any): Promise<{ success: boolean; data?: any; error?: string; result?: any }> {
     let url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -111,30 +145,30 @@ class SQLiteService {
   }
 
   // DEPRECATED: Generic query methods - use specific endpoints instead
-  async get(_sql: string, _params: any[] = []): Promise<any> {
+  async get(_sql: string, _params: unknown[] = []): Promise<unknown> {
     throw new Error('Direct SQL queries are deprecated. Use specific API endpoints instead.');
   }
 
-  async all(_sql: string, _params: any[] = []): Promise<any[]> {
+  async all(_sql: string, _params: unknown[] = []): Promise<unknown[]> {
     throw new Error('Direct SQL queries are deprecated. Use specific API endpoints instead.');
   }
 
-  async run(_sql: string, _params: any[] = []): Promise<any> {
+  async run(_sql: string, _params: unknown[] = []): Promise<unknown> {
     throw new Error('Direct SQL execution is deprecated. Use specific API endpoints instead.');
   }
 
   // ===== USER API METHODS =====
-  async getUsers(): Promise<any[]> {
+  async getUsers(): Promise<User[]> {
     const result = await this.apiCall('/users');
     return result.data;
   }
 
-  async getUserById(id: number): Promise<any> {
+  async getUserById(id: number): Promise<User | null> {
     const result = await this.apiCall(`/users/${id}`);
     return result.data;
   }
 
-  async getUserByEmail(email: string): Promise<any> {
+  async getUserByEmail(email: string): Promise<User | null> {
     try {
       const result = await this.apiCall(`/users/email/${encodeURIComponent(email)}`);
       return result.data;
@@ -146,12 +180,12 @@ class SQLiteService {
     }
   }
 
-  async createUser(userData: any): Promise<any> {
+  async createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/users', 'POST', { userData });
     return result.result;
   }
 
-  async getUserByGoogleId(googleId: string): Promise<any> {
+  async getUserByGoogleId(googleId: string): Promise<User | null> {
     try {
       const result = await this.apiCall(`/users/google/${encodeURIComponent(googleId)}`);
       return result.data;
@@ -163,12 +197,12 @@ class SQLiteService {
     }
   }
 
-  async updateUser(id: number, userData: any): Promise<any> {
+  async updateUser(id: number, userData: Partial<User>): Promise<{ changes: number }> {
     const result = await this.apiCall(`/users/${id}`, 'PUT', { userData });
     return result.result;
   }
 
-  async deleteUser(id: number): Promise<any> {
+  async deleteUser(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/users/${id}`, 'DELETE');
     return result.result;
   }
@@ -186,12 +220,12 @@ class SQLiteService {
   }
 
   // ===== CLIENT API METHODS =====
-  async getClients(): Promise<any[]> {
+  async getClients(): Promise<Client[]> {
     const result = await this.apiCall('/clients');
     return result.data;
   }
 
-  async getClientById(id: number): Promise<any> {
+  async getClientById(id: number): Promise<Client | null> {
     try {
       const result = await this.apiCall(`/clients/${id}`);
       return result.data;
@@ -203,17 +237,17 @@ class SQLiteService {
     }
   }
 
-  async createClient(clientData: any): Promise<any> {
+  async createClient(clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/clients', 'POST', { clientData });
     return result.result;
   }
 
-  async updateClient(id: number, clientData: any): Promise<any> {
+  async updateClient(id: number, clientData: Partial<Client>): Promise<{ changes: number }> {
     const result = await this.apiCall(`/clients/${id}`, 'PUT', { clientData });
     return result.result;
   }
 
-  async deleteClient(id: number): Promise<any> {
+  async deleteClient(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/clients/${id}`, 'DELETE');
     return result.result;
   }
@@ -221,13 +255,34 @@ class SQLiteService {
   // Counter operations
   async getNextId(counterName: string): Promise<number> {
     const result = await this.apiCall(`/counters/${counterName}/next`);
-    return result.nextId;
+    if (result.error) {
+      throw result.error;
+    }
+    return result.data?.nextId;
   }
 
   // Settings operations
   async getSetting(key: string): Promise<any> {
+    // Map specific keys to new section-based routes
+    const sectionMappings = {
+      'company_settings': 'company',
+      'notification_settings': 'notification', 
+      'currency_format_settings': 'currency'
+    };
+    
+    const section = sectionMappings[key];
+    if (section) {
+      const result = await this.apiCall(`/settings/${section}`);
+      // For notification settings, extract the nested value
+      if (key === 'notification_settings' && result.data?.settings) {
+        return result.data?.settings.notification_settings;
+      }
+      return result.data?.value;
+    }
+    
+    // Fall back to original route for other keys
     const result = await this.apiCall(`/settings/${key}`);
-    return result.value;
+    return result.data?.value;
   }
 
   async setSetting(key: string, value: any, category: string = 'general'): Promise<void> {
@@ -236,9 +291,20 @@ class SQLiteService {
 
   // Bulk settings operations
   async getAllSettings(category?: string): Promise<Record<string, any>> {
+    // Map categories to new section-based routes
+    if (category === 'appearance') {
+      const result = await this.apiCall('/settings/appearance');
+      return result.data?.settings;
+    }
+    if (category === 'general') {
+      const result = await this.apiCall('/settings/general');
+      return result.data?.settings;
+    }
+    
+    // Fall back to original query parameter route for other categories
     const params = category ? { category } : {};
     const result = await this.apiCall('/settings', 'GET', params);
-    return result.settings;
+    return result.data?.settings;
   }
 
   async setMultipleSettings(settings: Record<string, { value: any; category?: string }>): Promise<void> {
@@ -246,12 +312,12 @@ class SQLiteService {
   }
 
   // ===== INVOICE API METHODS =====
-  async getInvoices(): Promise<any[]> {
+  async getInvoices(): Promise<(Invoice & { client_name: string })[]> {
     const result = await this.apiCall('/invoices');
     return result.data?.invoices || [];
   }
 
-  async getInvoiceById(id: number): Promise<any> {
+  async getInvoiceById(id: number): Promise<(Invoice & { client_name: string }) | null> {
     try {
       const result = await this.apiCall(`/invoices/${id}`);
       return result.data;
@@ -263,29 +329,29 @@ class SQLiteService {
     }
   }
 
-  async createInvoice(invoiceData: any): Promise<any> {
+  async createInvoice(invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/invoices', 'POST', { invoiceData });
     return result.result;
   }
 
-  async updateInvoice(id: number, invoiceData: any): Promise<any> {
+  async updateInvoice(id: number, invoiceData: Partial<Invoice>): Promise<{ changes: number }> {
     const result = await this.apiCall(`/invoices/${id}`, 'PUT', { invoiceData });
     return result.result;
   }
 
-  async deleteInvoice(id: number): Promise<any> {
+  async deleteInvoice(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/invoices/${id}`, 'DELETE');
     return result.result;
   }
 
   // ===== EXPENSE API METHODS =====
-  async getExpenses(startDate?: string, endDate?: string): Promise<any[]> {
+  async getExpenses(startDate?: string, endDate?: string): Promise<Expense[]> {
     const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
     const result = await this.apiCall('/expenses', 'GET', params);
     return result.data?.expenses || [];
   }
 
-  async getExpenseById(id: number): Promise<any> {
+  async getExpenseById(id: number): Promise<Expense | null> {
     try {
       const result = await this.apiCall(`/expenses/${id}`);
       return result.data;
@@ -297,37 +363,37 @@ class SQLiteService {
     }
   }
 
-  async createExpense(expenseData: any): Promise<any> {
+  async createExpense(expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/expenses', 'POST', { expenseData });
     return result.result;
   }
 
-  async bulkImportExpenses(expenses: any[]): Promise<any> {
+  async bulkImportExpenses(expenses: Partial<Expense>[]): Promise<ImportResult<ValidationError>> {
     const result = await this.apiCall('/expenses/bulk-import', 'POST', { expenses });
     return result.data;
   }
 
-  async bulkDeleteExpenses(expenseIds: number[]): Promise<any> {
+  async bulkDeleteExpenses(expenseIds: number[]): Promise<{ changes: number }> {
     const result = await this.apiCall('/expenses/bulk-delete', 'POST', { expense_ids: expenseIds });
     return result.data;
   }
 
-  async bulkUpdateExpenseCategory(expenseIds: number[], category: string): Promise<any> {
+  async bulkUpdateExpenseCategory(expenseIds: number[], category: string): Promise<{ changes: number }> {
     const result = await this.apiCall('/expenses/bulk-category', 'POST', { expense_ids: expenseIds, category });
     return result.data;
   }
 
-  async bulkUpdateExpenseMerchant(expenseIds: number[], merchant: string): Promise<any> {
+  async bulkUpdateExpenseMerchant(expenseIds: number[], merchant: string): Promise<{ changes: number }> {
     const result = await this.apiCall('/expenses/bulk-merchant', 'POST', { expense_ids: expenseIds, merchant });
     return result.data;
   }
 
-  async updateExpense(id: number, expenseData: any): Promise<any> {
+  async updateExpense(id: number, expenseData: Partial<Expense>): Promise<{ changes: number }> {
     const result = await this.apiCall(`/expenses/${id}`, 'PUT', { expenseData });
     return result.result;
   }
 
-  async deleteExpense(id: number): Promise<any> {
+  async deleteExpense(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/expenses/${id}`, 'DELETE');
     return result.result;
   }
@@ -360,12 +426,12 @@ class SQLiteService {
   }
 
   // ===== TEMPLATE API METHODS =====
-  async getTemplates(): Promise<any[]> {
+  async getTemplates(): Promise<(InvoiceTemplate & { client_name: string })[]> {
     const result = await this.apiCall('/templates');
     return result.data;
   }
 
-  async getTemplateById(id: number): Promise<any> {
+  async getTemplateById(id: number): Promise<(InvoiceTemplate & { client_name: string }) | null> {
     try {
       const result = await this.apiCall(`/templates/${id}`);
       return result.data;
@@ -377,28 +443,28 @@ class SQLiteService {
     }
   }
 
-  async createTemplate(templateData: any): Promise<any> {
+  async createTemplate(templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/templates', 'POST', { templateData });
     return result.result;
   }
 
-  async updateTemplate(id: number, templateData: any): Promise<any> {
+  async updateTemplate(id: number, templateData: Partial<InvoiceTemplate>): Promise<{ changes: number }> {
     const result = await this.apiCall(`/templates/${id}`, 'PUT', { templateData });
     return result.result;
   }
 
-  async deleteTemplate(id: number): Promise<any> {
+  async deleteTemplate(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/templates/${id}`, 'DELETE');
     return result.result;
   }
 
   // ===== REPORT API METHODS =====
-  async getReports(): Promise<any[]> {
+  async getReports(): Promise<Report[]> {
     const result = await this.apiCall('/reports');
     return result.data;
   }
 
-  async getReportById(id: number): Promise<any> {
+  async getReportById(id: number): Promise<Report | null> {
     try {
       const result = await this.apiCall(`/reports/${id}`);
       return result.data;
@@ -410,20 +476,23 @@ class SQLiteService {
     }
   }
 
-  async createReport(reportData: any): Promise<any> {
+  async createReport(reportData: Omit<Report, 'id' | 'created_at'>): Promise<{ lastInsertRowid: number }> {
     const result = await this.apiCall('/reports', 'POST', { reportData });
     return result.result;
   }
 
-  async deleteReport(id: number): Promise<any> {
+  async deleteReport(id: number): Promise<{ changes: number }> {
     const result = await this.apiCall(`/reports/${id}`, 'DELETE');
     return result.result;
   }
 
   // ===== PROJECT SETTINGS API METHODS =====
   async getProjectSettings(): Promise<any> {
+    if (!this.isReady()) {
+      await this.initialize();
+    }
     const result = await this.apiCall('/project-settings');
-    return result.settings;
+    return result.data?.settings;
   }
 
   async updateProjectSettings(settings: any): Promise<void> {

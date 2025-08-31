@@ -15,7 +15,7 @@ const router = Router();
 // Public settings (no auth required)
 
 // Get currency format settings (public for UI formatting)
-router.get('/currency_format_settings', async (_req, res) => {
+router.get('/currency', async (_req, res) => {
   try {
     const { db } = await import('../models/index.js');
     const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('currency_format_settings');
@@ -47,7 +47,7 @@ router.get('/currency_format_settings', async (_req, res) => {
 });
 
 // Get company settings (public for UI display and invoice generation)
-router.get('/company_settings', async (_req, res) => {
+router.get('/company', async (_req, res) => {
   try {
     const { db } = await import('../models/index.js');
     const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('company_settings');
@@ -73,6 +73,61 @@ router.get('/company_settings', async (_req, res) => {
           email: '',
           phone: '',
           brandingImage: ''
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get appearance settings (category-based)
+router.get('/appearance', requireAuth, async (req, res) => {
+  try {
+    req.query.category = 'appearance';
+    await getAllSettings(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get general settings (category-based)  
+router.get('/general', requireAuth, async (req, res) => {
+  try {
+    req.query.category = 'general';
+    await getAllSettings(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get notification settings (specific key)
+router.get('/notification', requireAuth, async (req, res) => {
+  try {
+    const { db } = await import('../models/index.js');
+    const result = db.prepare('SELECT value FROM settings WHERE key = ?').get('notification_settings');
+
+    if (result?.value) {
+      try {
+        const parsedValue = JSON.parse(result.value);
+        res.json({ success: true, settings: { notification_settings: parsedValue } });
+      } catch {
+        res.json({ success: true, settings: { notification_settings: result.value } });
+      }
+    } else {
+      // Return default notification settings
+      res.json({
+        success: true,
+        settings: {
+          notification_settings: {
+            showToastNotifications: true,
+            showSuccessToasts: true,
+            showErrorToasts: true,
+            showWarningToasts: true,
+            showInfoToasts: true,
+            toastDuration: 4000,
+            toastPosition: 'bottom-right'
+          }
         }
       });
     }

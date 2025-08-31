@@ -38,10 +38,7 @@ export const useProjectSettings = () => {
         setIsLoading(true);
         setError(null);
         
-        if (!sqliteService.isReady()) {
-          await sqliteService.initialize();
-        }
-
+        // Remove redundant initialization - getProjectSettings will handle it
         const projectSettings = await sqliteService.getProjectSettings();
         setSettings(projectSettings);
       } catch (err) {
@@ -84,10 +81,7 @@ export const useProjectSettings = () => {
 
   const refreshSettings = async () => {
     try {
-      if (!sqliteService.isReady()) {
-        await sqliteService.initialize();
-      }
-
+      // Remove redundant initialization - getProjectSettings will handle it
       const projectSettings = await sqliteService.getProjectSettings();
       setSettings(projectSettings);
       setError(null);

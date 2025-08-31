@@ -1,32 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-
-interface Client {
-  id?: number;
-  name: string;
-  first_name?: string;
-  last_name?: string;
-  email: string;
-  phone: string;
-  company: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
+import { Client, ClientFormData } from '@/types/client.types';
 
 interface ClientFormProps {
   isOpen?: boolean;
   onClose?: () => void;
-  onSave: (client: Omit<Client, 'id'>) => void;
+  onSave: (client: ClientFormData) => void;
   onCancel: () => void;
   client?: Client | null;
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({ isOpen = true, onClose, onSave, onCancel, client }) => {
-  const [formData, setFormData] = useState<Omit<Client, 'id'>>({
+  const [formData, setFormData] = useState<ClientFormData>({
     name: '',
     first_name: '',
     last_name: '',

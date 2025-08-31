@@ -2,11 +2,12 @@
 import React from 'react';
 import { User, Plus } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
+import { Client } from '@/types/client.types';
 
 interface ClientSelectorProps {
-  clients: any[];
-  selectedClient: any;
-  onClientSelect: (client: any) => void;
+  clients: Client[];
+  selectedClient: Client | null;
+  onClientSelect: (client: Client) => void;
   disabled?: boolean;
 }
 

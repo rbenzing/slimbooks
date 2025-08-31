@@ -270,7 +270,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     setIsSending(true);
     try {
       // Auto-fill due date if not set
-      let updatedInvoiceData = { ...invoiceData };
+      const updatedInvoiceData = { ...invoiceData };
       if (!updatedInvoiceData.due_date || updatedInvoiceData.due_date.trim() === '') {
         updatedInvoiceData.due_date = new Date().toISOString().split('T')[0];
         // Update the state so user sees the auto-filled date

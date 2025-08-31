@@ -31,8 +31,9 @@ export const TIME_FORMAT_OPTIONS = [
 export const getDateTimeSettings = async (): Promise<DateTimeSettings> => {
   try {
     // Try to access sqliteService if it's already available globally
-    if (typeof window !== 'undefined' && (window as any).sqliteService && (window as any).sqliteService.isReady()) {
-      const settings = await (window as any).sqliteService.getSetting('date_time_settings');
+    if (typeof window !== 'undefined' && (window as unknown as { sqliteService?: { isReady(): boolean; getSetting(key: string): Promise<unknown> } }).sqliteService?.isReady()) {
+      const sqliteService = (window as unknown as { sqliteService: { getSetting(key: string): Promise<DateTimeSettings | null> } }).sqliteService;
+      const settings = await sqliteService.getSetting('date_time_settings');
       if (settings) {
         return {
           dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,

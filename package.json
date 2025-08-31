@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently --kill-others --prefix \"[{name}]\" --names \"server,ui\" \"npm run server\" \"npm run ui\"",
+    "dev:https": "concurrently --kill-others --prefix \"[{name}]\" --names \"server,ui\" \"npm run server\" \"npm run ui:https\"",
     "server": "node server/index.js",
     "ui": "vite",
+    "ui:https": "vite --host",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "start": "concurrently \"npm run server\" \"vite preview --host\"",
+    "start:https": "concurrently \"npm run server\" \"vite preview --host\"",
     "server-only": "node server/index.js",
-    "ui-only": "vite"
+    "ui-only": "vite",
+    "ui-only:https": "vite --host"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

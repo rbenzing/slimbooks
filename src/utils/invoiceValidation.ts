@@ -1,23 +1,13 @@
 // Invoice validation utilities for ensuring invoices are ready to send
 
+import { Client } from '@/types/client.types';
+
 interface LineItem {
   id: string;
   description: string;
   quantity: number;
   rate: number;
   amount: number;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
 }
 
 interface InvoiceValidationResult {

@@ -2,6 +2,7 @@
 
 import { userOperations } from '@/lib/database';
 import { AuthUtils } from '@/lib/auth-utils';
+import { envConfig } from '@/lib/env-config';
 import { 
   User, 
   LoginCredentials, 
@@ -36,9 +37,9 @@ export class AuthService {
           username: 'admin@slimbooks.app',
           password_hash: hashedPassword,
           role: 'admin',
-          email_verified: true,
-          two_factor_enabled: false,
-          backup_codes: [],
+          email_verified: 1,
+          two_factor_enabled: 0,
+          backup_codes: "",
           failed_login_attempts: 0
         });
       }
@@ -79,9 +80,9 @@ export class AuthService {
         username: data.email, // Using email as username for now
         password_hash: hashedPassword,
         role: 'user',
-        email_verified: false,
-        two_factor_enabled: false,
-        backup_codes: [],
+        email_verified: 0,
+        two_factor_enabled: 0,
+        backup_codes: "",
         failed_login_attempts: 0
       });
 
@@ -122,7 +123,7 @@ export class AuthService {
   // User login
   async login(credentials: LoginCredentials & { rememberMe?: boolean }): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/auth/login`, {
+      const response = await fetch(`${envConfig.API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -200,7 +201,7 @@ export class AuthService {
   async verifyToken(token: string): Promise<User | null> {
     try {
       // Make a simple authenticated API call to verify the token
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/auth/profile`, {
+      const response = await fetch(`${envConfig.API_URL}/api/auth/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

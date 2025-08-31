@@ -48,10 +48,25 @@ export const getAllPayments = asyncHandler(async (req, res) => {
   
   const payments = db.prepare(query).all(...params);
   
-  res.json({
-    success: true,
-    data: { payments },
-    message: 'Payments retrieved successfully'
+  // Get total count for pagination
+  let countQuery = 'SELECT COUNT(*) as count FROM payments';
+  if (conditions.length > 0) {
+    countQuery += ' WHERE ' + conditions.join(' AND ');
+  }
+  
+  const totalCount = db.prepare(countQuery).get(...params.slice(0, -2));
+  
+  res.json({ 
+    success: true, 
+    data: {
+      payments,
+      pagination: {
+        total: totalCount.count,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: totalCount.count > parseInt(offset) + parseInt(limit)
+      }
+    }
   });
 });
 
@@ -62,16 +77,12 @@ export const getPaymentById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
   const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(id);
-  
+
   if (!payment) {
-    throw new NotFoundError('Payment not found');
+    throw new NotFoundError('Payment');
   }
-  
-  res.json({
-    success: true,
-    data: payment,
-    message: 'Payment retrieved successfully'
-  });
+
+  res.json({ success: true, data: payment });
 });
 
 /**
@@ -79,40 +90,44 @@ export const getPaymentById = asyncHandler(async (req, res) => {
  */
 export const createPayment = asyncHandler(async (req, res) => {
   const { paymentData } = req.body;
-  
-  // Validate required fields
-  if (!paymentData.date || !paymentData.client_name || !paymentData.amount || !paymentData.method) {
-    throw new ValidationError('Date, client name, amount, and payment method are required');
+
+  if (!paymentData || !paymentData.date || !paymentData.client_name || !paymentData.amount || !paymentData.method) {
+    throw new ValidationError('Invalid payment data - date, client_name, amount, and method are required');
   }
-  
-  // Validate amount
-  const amount = parseFloat(paymentData.amount);
-  if (isNaN(amount) || amount <= 0) {
-    throw new ValidationError('Amount must be a positive number');
+
+  // Validate amount is positive
+  if (paymentData.amount <= 0) {
+    throw new ValidationError('Amount must be positive');
   }
-  
-  // Insert payment
-  const insertPayment = db.prepare(`
-    INSERT INTO payments (date, client_name, invoice_id, amount, method, reference, description, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+
+  // Get next ID
+  const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('payments');
+  const nextId = (counterResult?.value || 0) + 1;
+  db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'payments');
+
+  const now = new Date().toISOString();
+  const stmt = db.prepare(`
+    INSERT INTO payments (id, date, client_name, invoice_id, amount, method, reference, description, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
-  const result = insertPayment.run(
+
+  const result = stmt.run(
+    nextId,
     paymentData.date,
     paymentData.client_name,
     paymentData.invoice_id || null,
-    amount,
+    paymentData.amount,
     paymentData.method,
     paymentData.reference || null,
-    paymentData.description || null,
-    paymentData.status || 'received'
+    paymentData.description || '',
+    paymentData.status || 'received',
+    now,
+    now
   );
-  
-  const newPayment = db.prepare('SELECT * FROM payments WHERE id = ?').get(result.lastInsertRowid);
-  
-  res.status(201).json({
-    success: true,
-    data: newPayment,
+
+  res.status(201).json({ 
+    success: true, 
+    data: { id: nextId },
     message: 'Payment created successfully'
   });
 });
@@ -123,53 +138,46 @@ export const createPayment = asyncHandler(async (req, res) => {
 export const updatePayment = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { paymentData } = req.body;
-  
+
+  if (!id || !paymentData) {
+    throw new ValidationError('Invalid parameters');
+  }
+
   // Check if payment exists
-  const existingPayment = db.prepare('SELECT * FROM payments WHERE id = ?').get(id);
+  const existingPayment = db.prepare('SELECT id FROM payments WHERE id = ?').get(id);
   if (!existingPayment) {
-    throw new NotFoundError('Payment not found');
+    throw new NotFoundError('Payment');
   }
-  
+
   // Validate amount if provided
-  if (paymentData.amount !== undefined) {
-    const amount = parseFloat(paymentData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      throw new ValidationError('Amount must be a positive number');
+  if (paymentData.amount !== undefined && paymentData.amount <= 0) {
+    throw new ValidationError('Amount must be positive');
+  }
+
+  // Build dynamic update query
+  const updateFields = [];
+  const values = [];
+  
+  Object.keys(paymentData).forEach(key => {
+    if (paymentData[key] !== undefined) {
+      updateFields.push(`${key} = ?`);
+      values.push(paymentData[key]);
     }
+  });
+  
+  if (updateFields.length === 0) {
+    throw new ValidationError('No fields to update');
   }
   
-  // Update payment
-  const updatePaymentStmt = db.prepare(`
-    UPDATE payments 
-    SET date = COALESCE(?, date),
-        client_name = COALESCE(?, client_name),
-        invoice_id = COALESCE(?, invoice_id),
-        amount = COALESCE(?, amount),
-        method = COALESCE(?, method),
-        reference = COALESCE(?, reference),
-        description = COALESCE(?, description),
-        status = COALESCE(?, status),
-        updated_at = datetime('now')
-    WHERE id = ?
-  `);
-  
-  updatePaymentStmt.run(
-    paymentData.date || null,
-    paymentData.client_name || null,
-    paymentData.invoice_id || null,
-    paymentData.amount || null,
-    paymentData.method || null,
-    paymentData.reference || null,
-    paymentData.description || null,
-    paymentData.status || null,
-    id
-  );
-  
-  const updatedPayment = db.prepare('SELECT * FROM payments WHERE id = ?').get(id);
-  
-  res.json({
-    success: true,
-    data: updatedPayment,
+  updateFields.push('updated_at = datetime("now")');
+  values.push(id);
+
+  const stmt = db.prepare(`UPDATE payments SET ${updateFields.join(', ')} WHERE id = ?`);
+  const result = stmt.run(values);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
     message: 'Payment updated successfully'
   });
 });
@@ -180,15 +188,18 @@ export const updatePayment = asyncHandler(async (req, res) => {
 export const deletePayment = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
-  const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(id);
-  if (!payment) {
-    throw new NotFoundError('Payment not found');
+  // Check if payment exists
+  const existingPayment = db.prepare('SELECT id FROM payments WHERE id = ?').get(id);
+  if (!existingPayment) {
+    throw new NotFoundError('Payment');
   }
   
-  db.prepare('DELETE FROM payments WHERE id = ?').run(id);
-  
-  res.json({
-    success: true,
+  const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
+  const result = stmt.run(id);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
     message: 'Payment deleted successfully'
   });
 });
@@ -198,20 +209,31 @@ export const deletePayment = asyncHandler(async (req, res) => {
  */
 export const bulkDeletePayments = asyncHandler(async (req, res) => {
   const { payment_ids } = req.body;
-  
+
   if (!payment_ids || !Array.isArray(payment_ids) || payment_ids.length === 0) {
-    throw new ValidationError('Payment IDs array is required');
+    throw new ValidationError('payment_ids must be a non-empty array');
   }
-  
+
+  if (payment_ids.length > 500) {
+    throw new ValidationError('Maximum 500 payments can be deleted at once');
+  }
+
+  // Validate all payment IDs exist
   const placeholders = payment_ids.map(() => '?').join(',');
-  const query = `DELETE FROM payments WHERE id IN (${placeholders})`;
+  const existingPayments = db.prepare(`SELECT id FROM payments WHERE id IN (${placeholders})`).all(...payment_ids);
   
-  const result = db.prepare(query).run(...payment_ids);
-  
-  res.json({
-    success: true,
-    data: { deleted_count: result.changes },
-    message: `${result.changes} payment(s) deleted successfully`
+  if (existingPayments.length !== payment_ids.length) {
+    throw new ValidationError('One or more payment IDs not found');
+  }
+
+  // Delete all payments
+  const stmt = db.prepare(`DELETE FROM payments WHERE id IN (${placeholders})`);
+  const result = stmt.run(...payment_ids);
+
+  res.json({ 
+    success: true, 
+    data: { changes: result.changes },
+    message: `${result.changes} payments deleted successfully`
   });
 });
 
@@ -219,52 +241,65 @@ export const bulkDeletePayments = asyncHandler(async (req, res) => {
  * Get payment statistics
  */
 export const getPaymentStats = asyncHandler(async (req, res) => {
-  const { date_from, date_to } = req.query;
+  const { year, month } = req.query;
   
-  let conditions = [];
-  let params = [];
+  let dateFilter = '';
+  const params = [];
   
-  if (date_from) {
-    conditions.push('date >= ?');
-    params.push(date_from);
+  if (year) {
+    if (month) {
+      dateFilter = "WHERE strftime('%Y-%m', date) = ?";
+      params.push(`${year}-${month.padStart(2, '0')}`);
+    } else {
+      dateFilter = "WHERE strftime('%Y', date) = ?";
+      params.push(year);
+    }
   }
   
-  if (date_to) {
-    conditions.push('date <= ?');
-    params.push(date_to);
-  }
-  
-  const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
-  
-  // Total payments
-  const totalPayments = db.prepare(`
-    SELECT COUNT(*) as count, SUM(amount) as total_amount 
-    FROM payments${whereClause}
+  const stats = db.prepare(`
+    SELECT 
+      COUNT(*) as total_payments,
+      SUM(amount) as total_amount,
+      AVG(amount) as average_amount,
+      COUNT(CASE WHEN status = 'received' THEN 1 END) as received_count,
+      COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+      COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_count,
+      COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_count,
+      SUM(CASE WHEN status = 'received' THEN amount ELSE 0 END) as received_amount,
+      SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount
+    FROM payments ${dateFilter}
   `).get(...params);
   
-  // Payments by method
-  const paymentsByMethod = db.prepare(`
-    SELECT method, COUNT(*) as count, SUM(amount) as total_amount 
-    FROM payments${whereClause}
+  // Get method breakdown
+  const methodStats = db.prepare(`
+    SELECT 
+      method,
+      COUNT(*) as count,
+      SUM(amount) as total_amount,
+      AVG(amount) as average_amount
+    FROM payments ${dateFilter}
     GROUP BY method
     ORDER BY total_amount DESC
   `).all(...params);
   
-  // Payments by status
-  const paymentsByStatus = db.prepare(`
-    SELECT status, COUNT(*) as count, SUM(amount) as total_amount 
-    FROM payments${whereClause}
-    GROUP BY status
-    ORDER BY total_amount DESC
-  `).all(...params);
-  
-  res.json({
-    success: true,
+  // Get monthly trends (last 12 months)
+  const monthlyTrends = db.prepare(`
+    SELECT 
+      strftime('%Y-%m', date) as month,
+      COUNT(*) as count,
+      SUM(amount) as total_amount
+    FROM payments
+    WHERE date >= date('now', '-12 months')
+    GROUP BY strftime('%Y-%m', date)
+    ORDER BY month ASC
+  `).all();
+
+  res.json({ 
+    success: true, 
     data: {
-      total: totalPayments,
-      by_method: paymentsByMethod,
-      by_status: paymentsByStatus
-    },
-    message: 'Payment statistics retrieved successfully'
+      summary: stats,
+      methods: methodStats,
+      monthlyTrends
+    }
   });
 });

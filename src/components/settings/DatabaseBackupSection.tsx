@@ -7,6 +7,7 @@ interface DatabaseStats {
   invoices: number;
   templates: number;
   expenses: number;
+  payments: number;
   users: number;
   settings: number;
   webhookLogs: number;
@@ -20,6 +21,7 @@ export const DatabaseBackupSection = () => {
     invoices: 0,
     templates: 0,
     expenses: 0,
+    payments: 0,
     users: 0,
     settings: 0,
     webhookLogs: 0
@@ -39,18 +41,19 @@ export const DatabaseBackupSection = () => {
       }
 
       // Use specific API endpoints to get counts
-      const [clients, invoices, templates, expenses, users] = await Promise.all([
+      const [clients, invoices, templates, expenses, payments, users] = await Promise.all([
         sqliteService.getClients().catch(() => []),
         sqliteService.getInvoices().catch(() => []),
         sqliteService.getTemplates().catch(() => []),
         sqliteService.getExpenses().catch(() => []),
+        sqliteService.getPayments().catch(() => []),
         sqliteService.getUsers().catch(() => [])
       ]);
 
       // For settings and webhook logs, we'll need to estimate or use alternative methods
       // since there are no specific endpoints for these counts
       let settingsCount = 0;
-      let webhookLogsCount = 0;
+      const webhookLogsCount = 0;
 
       try {
         // Try to get various settings to estimate count
@@ -83,6 +86,7 @@ export const DatabaseBackupSection = () => {
         invoices: invoices.length,
         templates: templates.length,
         expenses: expenses.length,
+        payments: payments.length,
         users: users.length,
         settings: settingsCount,
         webhookLogs: webhookLogsCount
@@ -198,6 +202,10 @@ export const DatabaseBackupSection = () => {
                   <div className="text-muted-foreground">Expenses</div>
                 </div>
                 <div className="text-center">
+                  <div className="text-lg font-semibold text-primary">{dbStats.payments}</div>
+                  <div className="text-muted-foreground">Payments</div>
+                </div>
+                <div className="text-center">
                   <div className="text-lg font-semibold text-primary">{dbStats.users}</div>
                   <div className="text-muted-foreground">Users</div>
                 </div>
@@ -227,7 +235,7 @@ export const DatabaseBackupSection = () => {
             <div className="flex-1">
               <h4 className="text-sm font-medium text-card-foreground mb-2">Export Database</h4>
               <p className="text-sm text-muted-foreground mb-4">
-                Download a backup of your entire database including all clients, invoices, templates, expenses, and settings.
+                Download a backup of your entire database including all clients, invoices, templates, expenses, payments, and settings.
               </p>
               <button
                 onClick={handleExportDatabase}

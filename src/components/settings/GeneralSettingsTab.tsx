@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Calendar, Clock, FileText, DollarSign } from 'lucide-react';
+import { Calendar, Clock, FileText, DollarSign, List } from 'lucide-react';
 import { themeClasses } from '@/lib/utils';
 import {
   getDateTimeSettings,
@@ -29,6 +29,16 @@ import {
   getCurrencyFormatPreview,
   type CurrencySettings
 } from '@/utils/currencyFormatting';
+import {
+  getPaginationSettingsAsync,
+  savePaginationSettings,
+  DEFAULT_ITEMS_PER_PAGE_OPTIONS,
+  MAX_ITEMS_PER_PAGE_OPTIONS,
+  AVAILABLE_PAGE_SIZES_OPTIONS,
+  MAX_PAGE_NUMBERS_OPTIONS,
+  validatePaginationSettings,
+  type PaginationSettings
+} from '@/utils/paginationSettings';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });
@@ -39,6 +49,14 @@ export const GeneralSettingsTab = () => {
     decimalPlaces: 2,
     thousandsSeparator: ',',
     decimalSeparator: '.'
+  });
+  const [paginationSettings, setPaginationSettings] = useState<PaginationSettings>({
+    defaultItemsPerPage: 25,
+    availablePageSizes: [10, 25, 50, 100],
+    maxItemsPerPage: 500,
+    showItemsPerPageSelector: true,
+    showPageNumbers: true,
+    maxPageNumbers: 5
   });
   const [timeZone, setTimeZone] = useState('America/New_York');
   const [isLoaded, setIsLoaded] = useState(false);
@@ -64,6 +82,7 @@ export const GeneralSettingsTab = () => {
           if (allSettings.currency_format_settings) setCurrencySettings(allSettings.currency_format_settings);
           if (allSettings.date_time_settings) setDateTimeSettings(allSettings.date_time_settings);
           if (allSettings.invoice_number_settings) setInvoiceSettings(allSettings.invoice_number_settings);
+          if (allSettings.pagination_settings) setPaginationSettings(allSettings.pagination_settings);
         } catch (bulkError) {
           console.warn('Bulk settings API failed, falling back to individual calls:', bulkError);
 
@@ -72,11 +91,13 @@ export const GeneralSettingsTab = () => {
           const savedInvoiceSettings = await getInvoiceNumberSettings();
           const savedDateTimeSettings = await getDateTimeSettings();
           const savedCurrencySettings = await getCurrencySettings();
+          const savedPaginationSettings = await getPaginationSettingsAsync();
 
           if (savedTimeZone) setTimeZone(savedTimeZone);
           setInvoiceSettings(savedInvoiceSettings);
           setDateTimeSettings(savedDateTimeSettings);
           setCurrencySettings(savedCurrencySettings);
+          setPaginationSettings(savedPaginationSettings);
         }
 
         setIsLoaded(true);
@@ -102,6 +123,7 @@ export const GeneralSettingsTab = () => {
           'date_time_settings': { value: dateTimeSettings, category: 'general' },
           'invoice_number_settings': { value: invoiceSettings, category: 'general' },
           'currency_format_settings': { value: currencySettings, category: 'general' },
+          'pagination_settings': { value: validatePaginationSettings(paginationSettings), category: 'general' },
           'default_timezone': { value: timeZone, category: 'general' }
         };
 
@@ -116,6 +138,7 @@ export const GeneralSettingsTab = () => {
           await saveDateTimeSettings(dateTimeSettings);
           await saveInvoiceNumberSettings(invoiceSettings);
           await saveCurrencySettings(currencySettings);
+          await savePaginationSettings(validatePaginationSettings(paginationSettings));
           const { sqliteService: sqliteServiceFallback } = await import('@/services/sqlite.svc');
           await sqliteServiceFallback.setSetting('default_timezone', timeZone, 'general');
         } catch (fallbackError) {
@@ -123,7 +146,7 @@ export const GeneralSettingsTab = () => {
         }
       }
     }, 500);
-  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone]);
+  }, [dateTimeSettings, invoiceSettings, currencySettings, paginationSettings, timeZone]);
 
   useEffect(() => {
     // Only save if settings have been loaded and this is a user change
@@ -349,6 +372,139 @@ export const GeneralSettingsTab = () => {
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Note: Changing the prefix will only affect new invoices. Existing invoices will keep their current numbers.
+          </p>
+        </div>
+
+        {/* Pagination Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center mb-4">
+            <List className="h-4 w-4 text-primary mr-2" />
+            <h4 className="text-sm font-medium text-muted-foreground">Pagination Settings</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Default Items Per Page */}
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-2">
+                Default Items Per Page
+              </label>
+              <select
+                value={paginationSettings.defaultItemsPerPage}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  defaultItemsPerPage: Number(e.target.value)
+                })}
+                className={themeClasses.select}
+              >
+                {DEFAULT_ITEMS_PER_PAGE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Maximum Items Per Page */}
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-2">
+                Maximum Items Per Page
+              </label>
+              <select
+                value={paginationSettings.maxItemsPerPage}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  maxItemsPerPage: Number(e.target.value)
+                })}
+                className={themeClasses.select}
+              >
+                {MAX_ITEMS_PER_PAGE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Available Page Sizes */}
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-2">
+                Available Page Sizes
+              </label>
+              <select
+                value={JSON.stringify(paginationSettings.availablePageSizes)}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  availablePageSizes: JSON.parse(e.target.value)
+                })}
+                className={themeClasses.select}
+              >
+                {AVAILABLE_PAGE_SIZES_OPTIONS.map(option => (
+                  <option key={JSON.stringify(option.value)} value={JSON.stringify(option.value)}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Max Page Numbers */}
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-2">
+                Page Numbers to Show
+              </label>
+              <select
+                value={paginationSettings.maxPageNumbers}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  maxPageNumbers: Number(e.target.value)
+                })}
+                className={themeClasses.select}
+              >
+                {MAX_PAGE_NUMBERS_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Pagination Feature Toggles */}
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showItemsPerPageSelector"
+                checked={paginationSettings.showItemsPerPageSelector}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  showItemsPerPageSelector: e.target.checked
+                })}
+                className="rounded border-border"
+              />
+              <label htmlFor="showItemsPerPageSelector" className="ml-2 text-sm text-card-foreground">
+                Show items per page selector
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showPageNumbers"
+                checked={paginationSettings.showPageNumbers}
+                onChange={(e) => setPaginationSettings({
+                  ...paginationSettings,
+                  showPageNumbers: e.target.checked
+                })}
+                className="rounded border-border"
+              />
+              <label htmlFor="showPageNumbers" className="ml-2 text-sm text-card-foreground">
+                Show page numbers
+              </label>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            These settings control pagination behavior across invoices, expenses, clients, and payments.
           </p>
         </div>
       </div>

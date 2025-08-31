@@ -1,113 +1,14 @@
 // SQLite-based database operations for Slimbooks application
 import { sqliteService } from '@/services/sqlite.svc';
-import { User } from '@/types/auth';
-
-// Interfaces (keeping the same structure for compatibility)
-interface Client {
-  id: number;
-  name: string;
-  first_name?: string;
-  last_name?: string;
-  email: string;
-  phone: string;
-  company: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  stripe_customer_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Invoice {
-  id: number;
-  invoice_number: string;
-  client_id: number;
-  template_id?: number;
-  amount: number;
-  tax_amount?: number;
-  total_amount: number;
-  status: string;
-  due_date: string;
-  issue_date?: string;
-  description: string;
-  stripe_invoice_id?: string;
-  type: string;
-  created_at: string;
-  updated_at: string;
-  client_name?: string;
-  client_email?: string;
-  client_phone?: string;
-  client_address?: string;
-  line_items?: string;
-  tax_rate_id?: string;
-  shipping_amount?: number;
-  shipping_rate_id?: string;
-  notes?: string;
-  email_status?: string;
-  email_sent_at?: string;
-  email_error?: string;
-  last_email_attempt?: string;
-}
-
-interface InvoiceTemplate {
-  id: number;
-  name: string;
-  client_id: number;
-  amount: number;
-  description?: string;
-  frequency: string;
-  payment_terms: string;
-  next_invoice_date: string;
-  is_active: number; // SQLite uses INTEGER for boolean
-  line_items?: string;
-  tax_amount?: number;
-  tax_rate_id?: string;
-  shipping_amount?: number;
-  shipping_rate_id?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Expense {
-  id: number;
-  date: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'reimbursed';
-  created_at: string;
-  updated_at: string;
-}
-
-interface Payment {
-  id: number;
-  date: string;
-  client_name: string;
-  invoice_id?: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-  created_at: string;
-  updated_at: string;
-}
-
-interface Report {
-  id: number;
-  name: string;
-  type: 'profit-loss' | 'expense' | 'invoice' | 'client';
-  date_range_start: string;
-  date_range_end: string;
-  data: any;
-  created_at: string;
-}
+import { 
+  User,
+  Client,
+  Invoice,
+  Expense,
+  InvoiceTemplate,
+  Report,
+  ValidationError
+} from '@/types';
 
 // Initialize database
 let initializationPromise: Promise<void> | null = null;
@@ -307,7 +208,33 @@ export const reportOperations = {
   },
 
   // Generate Profit & Loss Report Data
-  generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual', preset?: string, breakdownPeriod: 'monthly' | 'quarterly' = 'quarterly'): Promise<any> => {
+  generateProfitLossData: async (startDate: string, endDate: string, accountingMethod: 'cash' | 'accrual' = 'accrual', preset?: string, breakdownPeriod: 'monthly' | 'quarterly' = 'quarterly'): Promise<{
+    revenue: {
+      total: number;
+      paid: number;
+      pending: number;
+      invoices: number;
+      otherIncome: number;
+    };
+    expenses: Record<string, number> & { total: number };
+    profit: {
+      net: number;
+      gross: number;
+      margin: number;
+    };
+    netIncome: number;
+    accountingMethod: 'cash' | 'accrual';
+    invoices: (Invoice & { client_name: string })[];
+    periodColumns: Array<{
+      label: string;
+      revenue: number;
+      expenses: number;
+      expensesByCategory: Record<string, number>;
+      netIncome: number;
+    }>;
+    hasBreakdown: boolean;
+    breakdownPeriod: 'monthly' | 'quarterly';
+  }> => {
     await ensureInitialized();
 
     // Get all invoices and filter by date range
@@ -329,40 +256,101 @@ export const reportOperations = {
       return isNaN(num) ? 0 : num;
     };
 
-    // Function to generate period columns for yearly reports
+    // Function to generate period columns for any date range
     const generatePeriodColumns = () => {
-      if (preset !== 'this-year' && preset !== 'last-year') {
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      const columns: any[] = [];
+
+      // For yearly reports, use the existing quarterly/monthly logic
+      if (preset === 'this-year' || preset === 'last-year') {
+        const year = startDateObj.getFullYear();
+        const periodsCount = breakdownPeriod === 'quarterly' ? 4 : 12;
+
+        for (let i = 0; i < periodsCount; i++) {
+          let periodStart: Date;
+          let periodEnd: Date;
+          let periodLabel: string;
+
+          if (breakdownPeriod === 'quarterly') {
+            periodStart = new Date(year, i * 3, 1);
+            periodEnd = new Date(year, (i + 1) * 3, 0);
+            periodLabel = `Q${i + 1}`;
+          } else {
+            periodStart = new Date(year, i, 1);
+            periodEnd = new Date(year, i + 1, 0);
+            periodLabel = periodStart.toLocaleDateString('en-US', { month: 'short' });
+          }
+
+          // Filter data for this period
+          const periodInvoices = invoices.filter((invoice: any) => {
+            const invoiceDate = new Date(invoice.created_at);
+            return invoiceDate >= periodStart && invoiceDate <= periodEnd;
+          });
+
+          const periodExpenses = expenses.filter((expense: any) => {
+            const expenseDate = new Date(expense.date);
+            return expenseDate >= periodStart && expenseDate <= periodEnd;
+          });
+
+          // Calculate revenue for this period
+          const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+          const periodPaidRevenue = periodInvoices
+            .filter((invoice: any) => invoice.status === 'paid')
+            .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+          
+          const periodRecognizedRevenue = accountingMethod === 'cash' ? periodPaidRevenue : periodInvoiceRevenue;
+
+          // Calculate expenses by category for this period
+          const periodExpensesByCategory = periodExpenses.reduce((acc: any, expense: any) => {
+            const category = expense.category || 'Uncategorized';
+            acc[category] = (acc[category] || 0) + toNumber(expense.amount);
+            return acc;
+          }, {});
+
+          const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
+
+          columns.push({
+            label: periodLabel,
+            revenue: periodRecognizedRevenue,
+            expenses: periodTotalExpenses,
+            expensesByCategory: periodExpensesByCategory,
+            netIncome: periodRecognizedRevenue - periodTotalExpenses
+          });
+        }
+
+        return { columns, hasBreakdown: true };
+      }
+
+      // For other date ranges, create period breakdown based on the date range span
+      const daysDiff = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Don't show breakdown for periods shorter than a month
+      if (daysDiff < 30) {
         return { columns: [], hasBreakdown: false };
       }
 
-      const year = new Date(startDate).getFullYear();
-      const columns: any[] = [];
-      const periodsCount = breakdownPeriod === 'quarterly' ? 4 : 12;
+      // For multi-month ranges, create monthly periods
+      let currentPeriodStart = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+      const endPeriod = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1);
 
-      for (let i = 0; i < periodsCount; i++) {
-        let periodStart: Date;
-        let periodEnd: Date;
-        let periodLabel: string;
+      while (currentPeriodStart <= endPeriod) {
+        const currentPeriodEnd = new Date(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth() + 1, 0);
+        const periodLabel = currentPeriodStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
-        if (breakdownPeriod === 'quarterly') {
-          periodStart = new Date(year, i * 3, 1);
-          periodEnd = new Date(year, (i + 1) * 3, 0);
-          periodLabel = `Q${i + 1}`;
-        } else {
-          periodStart = new Date(year, i, 1);
-          periodEnd = new Date(year, i + 1, 0);
-          periodLabel = periodStart.toLocaleDateString('en-US', { month: 'short' });
-        }
+        // Ensure we don't go beyond the actual end date
+        const actualPeriodStart = new Date(Math.max(currentPeriodStart.getTime(), startDateObj.getTime()));
+        const actualPeriodEnd = new Date(Math.min(currentPeriodEnd.getTime(), endDateObj.getTime()));
 
         // Filter data for this period
         const periodInvoices = invoices.filter((invoice: any) => {
           const invoiceDate = new Date(invoice.created_at);
-          return invoiceDate >= periodStart && invoiceDate <= periodEnd;
+          return invoiceDate >= actualPeriodStart && invoiceDate <= actualPeriodEnd;
         });
 
         const periodExpenses = expenses.filter((expense: any) => {
           const expenseDate = new Date(expense.date);
-          return expenseDate >= periodStart && expenseDate <= periodEnd;
+          return expenseDate >= actualPeriodStart && expenseDate <= actualPeriodEnd;
         });
 
         // Calculate revenue for this period
@@ -389,9 +377,12 @@ export const reportOperations = {
           expensesByCategory: periodExpensesByCategory,
           netIncome: periodRecognizedRevenue - periodTotalExpenses
         });
+
+        // Move to next month
+        currentPeriodStart = new Date(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth() + 1, 1);
       }
 
-      return { columns, hasBreakdown: true };
+      return { columns, hasBreakdown: columns.length > 1 };
     };
 
     // Calculate revenue with proper type conversion
@@ -540,7 +531,20 @@ export const reportOperations = {
   },
 
   // Generate Client Report Data
-  generateClientData: async (startDate?: string, endDate?: string): Promise<any> => {
+  generateClientData: async (startDate?: string, endDate?: string): Promise<{
+    clients: (Client & {
+      totalInvoices: number;
+      totalRevenue: number;
+      paidRevenue: number;
+      pendingRevenue: number;
+      overdueRevenue: number;
+    })[];
+    totalClients: number;
+    totalRevenue: number;
+    totalPaidRevenue: number;
+    totalPendingRevenue: number;
+    totalOverdueRevenue: number;
+  }> => {
     await ensureInitialized();
 
     const clients = await sqliteService.getClients();
@@ -550,7 +554,7 @@ export const reportOperations = {
     let invoices = allInvoices;
 
     if (startDate && endDate) {
-      invoices = allInvoices.filter((invoice: any) => {
+      invoices = allInvoices.filter((invoice: Invoice & { client_name: string }) => {
         const invoiceDate = new Date(invoice.created_at);
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -565,18 +569,18 @@ export const reportOperations = {
       return isNaN(num) ? 0 : num;
     };
 
-    const clientStats = clients.map((client: any) => {
-      const clientInvoices = invoices.filter((invoice: any) => invoice.client_id === client.id);
-      const totalRevenue = clientInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+    const clientStats = clients.map((client: Client) => {
+      const clientInvoices = invoices.filter((invoice: Invoice & { client_name: string }) => invoice.client_id === client.id);
+      const totalRevenue = clientInvoices.reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
       const paidRevenue = clientInvoices
-        .filter((invoice: any) => invoice.status === 'paid')
-        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        .filter((invoice: Invoice & { client_name: string }) => invoice.status === 'paid')
+        .reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
       const pendingRevenue = clientInvoices
-        .filter((invoice: any) => invoice.status !== 'paid')
-        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        .filter((invoice: Invoice & { client_name: string }) => invoice.status !== 'paid')
+        .reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
       const overdueRevenue = clientInvoices
-        .filter((invoice: any) => invoice.status === 'overdue')
-        .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        .filter((invoice: Invoice & { client_name: string }) => invoice.status === 'overdue')
+        .reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
 
       return {
         ...client,
@@ -588,10 +592,10 @@ export const reportOperations = {
       };
     }).filter(client => client.totalInvoices > 0); // Only include clients with invoices
 
-    const totalRevenue = clientStats.reduce((sum: number, client: any) => sum + client.totalRevenue, 0);
-    const totalPaidRevenue = clientStats.reduce((sum: number, client: any) => sum + client.paidRevenue, 0);
-    const totalPendingRevenue = clientStats.reduce((sum: number, client: any) => sum + client.pendingRevenue, 0);
-    const totalOverdueRevenue = clientStats.reduce((sum: number, client: any) => sum + client.overdueRevenue, 0);
+    const totalRevenue = clientStats.reduce((sum: number, client) => sum + client.totalRevenue, 0);
+    const totalPaidRevenue = clientStats.reduce((sum: number, client) => sum + client.paidRevenue, 0);
+    const totalPendingRevenue = clientStats.reduce((sum: number, client) => sum + client.pendingRevenue, 0);
+    const totalOverdueRevenue = clientStats.reduce((sum: number, client) => sum + client.overdueRevenue, 0);
 
     return {
       clients: clientStats,

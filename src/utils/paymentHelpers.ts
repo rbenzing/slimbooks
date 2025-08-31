@@ -1,37 +1,20 @@
 // Utility functions for payment-related operations
 import { toast } from 'sonner';
-
-interface Invoice {
-  id: number;
-  invoice_number: string;
-  client_name?: string;
-  client_id: number;
-  total_amount: number;
-  status: string;
-}
-
-interface PaymentData {
-  date: string;
-  client_name: string;
-  invoice_id: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-}
+import { authenticatedFetch } from './api';
+import { Invoice } from '@/types/invoice.types';
+import { PaymentFormData } from '@/types/payment.types';
 
 /**
  * Create a payment record for an invoice and mark the invoice as paid
  */
 export const createPaymentForInvoice = async (
   invoice: Invoice,
-  paymentMethod: PaymentData['method'] = 'bank_transfer',
+  paymentMethod: PaymentFormData['method'] = 'bank_transfer',
   paymentDate: string = new Date().toISOString().split('T')[0]
 ): Promise<boolean> => {
   try {
     // Create payment record
-    const paymentData: Omit<PaymentData, 'created_at' | 'updated_at'> = {
+    const paymentData: PaymentFormData = {
       date: paymentDate,
       client_name: invoice.client_name || 'Unknown Client',
       invoice_id: invoice.id,
@@ -43,7 +26,7 @@ export const createPaymentForInvoice = async (
     };
 
     // Create payment via API
-    const paymentResponse = await fetch('/api/payments', {
+    const paymentResponse = await authenticatedFetch('/api/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -58,7 +41,7 @@ export const createPaymentForInvoice = async (
     }
 
     // Update invoice status to paid
-    const invoiceResponse = await fetch(`/api/invoices/${invoice.id}/status`, {
+    const invoiceResponse = await authenticatedFetch(`/api/invoices/${invoice.id}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
@@ -106,8 +89,8 @@ export const showPaymentFormForInvoice = (
  */
 export const createPaymentDataFromInvoice = (
   invoice: Invoice,
-  overrides: Partial<PaymentData> = {}
-): Omit<PaymentData, 'created_at' | 'updated_at'> => {
+  overrides: Partial<PaymentFormData> = {}
+): PaymentFormData => {
   return {
     date: new Date().toISOString().split('T')[0],
     client_name: invoice.client_name || 'Unknown Client',

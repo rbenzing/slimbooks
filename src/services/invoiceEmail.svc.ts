@@ -1,19 +1,9 @@
 // Invoice email service for sending invoices to clients
 
 import { EmailService } from './email.svc';
-import { generateInvoiceToken } from '@/components/PublicInvoiceView';
+import { generateInvoiceToken } from '@/utils/invoiceTokens';
 import { sqliteService } from './sqlite.svc';
-
-interface InvoiceEmailData {
-  id: number;
-  invoice_number: string;
-  client_name: string;
-  client_email: string;
-  amount: number;
-  due_date: string;
-  status: string;
-  notes?: string;
-}
+import { InvoiceEmailData } from '@/types/invoice.types';
 
 interface CompanySettings {
   companyName: string;
