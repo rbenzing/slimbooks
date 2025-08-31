@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Users, Building, Mail, Phone, LayoutGrid, Table, Edit, Trash2 } from 'lucide-react';
 import { ClientForm } from './ClientForm';
 import { ClientImportExport } from './clients/ClientImportExport';
+import { PaginationControls } from './ui/PaginationControls';
 import { clientOperations } from '../lib/database';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/utils';
@@ -36,6 +38,13 @@ export const ClientManagement: React.FC = () => {
     client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Use pagination hook
+  const pagination = usePagination({
+    data: filteredClients,
+    searchTerm,
+    filters: {}
+  });
 
   const handleCreateClient = () => {
     setEditingClient(null);
@@ -97,7 +106,7 @@ export const ClientManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredClients.map((client) => (
+            {pagination.paginatedData.map((client) => (
               <tr key={client.id} className="hover:bg-muted/50">
                 <td className="py-4 px-6 text-sm font-medium text-card-foreground">
                   {client.name}
@@ -147,7 +156,7 @@ export const ClientManagement: React.FC = () => {
 
   const renderPanelView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredClients.map((client) => (
+      {pagination.paginatedData.map((client) => (
         <div
           key={client.id}
           className={themeClasses.cardHover}
@@ -321,6 +330,26 @@ export const ClientManagement: React.FC = () => {
 
         {/* Clients Display */}
         {viewMode === 'panel' ? renderPanelView() : renderTableView()}
+
+        {/* Pagination Controls */}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          itemsPerPage={pagination.itemsPerPage}
+          totalItems={pagination.totalItems}
+          displayStart={pagination.displayStart}
+          displayEnd={pagination.displayEnd}
+          pageNumbers={pagination.pageNumbers}
+          paginationSettings={pagination.paginationSettings}
+          onPageChange={pagination.setCurrentPage}
+          onItemsPerPageChange={pagination.setItemsPerPage}
+          onNextPage={pagination.goToNextPage}
+          onPrevPage={pagination.goToPrevPage}
+          canGoNext={pagination.canGoNext}
+          canGoPrev={pagination.canGoPrev}
+          className="mt-6"
+          itemType="clients"
+        />
 
         {/* Empty State */}
         {filteredClients.length === 0 && (

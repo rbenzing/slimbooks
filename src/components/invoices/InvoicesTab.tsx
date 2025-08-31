@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { invoiceOperations } from '@/lib/database';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
+import { PaginationControls } from '../ui/PaginationControls';
+import { usePagination } from '@/hooks/usePagination';
 import { getStatusColor } from '@/lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
@@ -45,6 +47,13 @@ export const InvoicesTab = () => {
   });
 
   const uniqueClients = [...new Set(invoices.map(invoice => invoice.client_name))];
+
+  // Use pagination hook
+  const pagination = usePagination({
+    data: filteredInvoices,
+    searchTerm,
+    filters: { statusFilter, clientFilter }
+  });
 
   const totalInvoices = filteredInvoices.length;
   const totalAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -120,7 +129,7 @@ export const InvoicesTab = () => {
 
   const renderPanelView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredInvoices.map((invoice) => (
+      {pagination.paginatedData.map((invoice) => (
         <div key={invoice.id} className="bg-card rounded-lg shadow-sm border border-border p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -197,7 +206,7 @@ export const InvoicesTab = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredInvoices.map((invoice) => (
+            {pagination.paginatedData.map((invoice) => (
               <tr key={invoice.id}>
                 <td className="py-4 px-6 text-sm font-medium text-card-foreground">
                   {invoice.invoice_number || `Invoice #${invoice.id}`}
@@ -362,6 +371,26 @@ export const InvoicesTab = () => {
 
       {/* Invoices Display */}
       {viewMode === 'panel' ? renderPanelView() : renderTableView()}
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        itemsPerPage={pagination.itemsPerPage}
+        totalItems={pagination.totalItems}
+        displayStart={pagination.displayStart}
+        displayEnd={pagination.displayEnd}
+        pageNumbers={pagination.pageNumbers}
+        paginationSettings={pagination.paginationSettings}
+        onPageChange={pagination.setCurrentPage}
+        onItemsPerPageChange={pagination.setItemsPerPage}
+        onNextPage={pagination.goToNextPage}
+        onPrevPage={pagination.goToPrevPage}
+        canGoNext={pagination.canGoNext}
+        canGoPrev={pagination.canGoPrev}
+        className="mt-6"
+        itemType="invoices"
+      />
 
       {filteredInvoices.length === 0 && (
         <div className="col-span-full text-center py-12">

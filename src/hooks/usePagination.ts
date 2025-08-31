@@ -9,7 +9,7 @@ import {
 interface UsePaginationProps<T> {
   data: T[];
   searchTerm?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 interface UsePaginationReturn<T> {

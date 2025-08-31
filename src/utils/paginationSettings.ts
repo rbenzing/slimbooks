@@ -52,9 +52,9 @@ export const MAX_PAGE_NUMBERS_OPTIONS = [
 export const getPaginationSettings = async (): Promise<PaginationSettings> => {
   try {
     // Try to access sqliteService if it's available globally
-    if (typeof window !== 'undefined' && (window as any).sqliteService?.isReady()) {
-      const sqliteService = (window as any).sqliteService;
-      const settings = await sqliteService.getSetting('pagination_settings');
+    if (typeof window !== 'undefined' && (window as unknown as { sqliteService?: { isReady(): boolean; getSetting(key: string): Promise<unknown> } }).sqliteService?.isReady()) {
+      const sqliteService = (window as unknown as { sqliteService: { getSetting(key: string): Promise<unknown> } }).sqliteService;
+      const settings = await sqliteService.getSetting('pagination_settings') as Partial<PaginationSettings>;
       if (settings) {
         return {
           defaultItemsPerPage: settings.defaultItemsPerPage || DEFAULT_PAGINATION_SETTINGS.defaultItemsPerPage,
@@ -82,7 +82,7 @@ export const getPaginationSettingsAsync = async (): Promise<PaginationSettings> 
     const { sqliteService } = await import('@/services/sqlite.svc');
 
     if (sqliteService.isReady()) {
-      const settings = await sqliteService.getSetting('pagination_settings');
+      const settings = await sqliteService.getSetting('pagination_settings') as Partial<PaginationSettings>;
       if (settings) {
         return {
           defaultItemsPerPage: settings.defaultItemsPerPage || DEFAULT_PAGINATION_SETTINGS.defaultItemsPerPage,
@@ -167,7 +167,7 @@ export const generatePageNumbers = (
 
   const halfMax = Math.floor(maxPageNumbers / 2);
   let startPage = Math.max(1, currentPage - halfMax);
-  let endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
+  const endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
 
   // Adjust if we're near the end
   if (endPage - startPage + 1 < maxPageNumbers) {

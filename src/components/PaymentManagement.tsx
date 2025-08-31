@@ -3,6 +3,8 @@ import { Plus, Search, CreditCard, DollarSign, Calendar, CheckCircle, Clock, XCi
 import { PaymentsList } from './payments/PaymentsList';
 import { PaymentForm } from './payments/PaymentForm';
 import { PaymentViewModal } from './payments/PaymentViewModal';
+import { PaginationControls } from './ui/PaginationControls';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
 import { authenticatedFetch } from '@/utils/api';
@@ -81,6 +83,13 @@ export const PaymentManagement: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
 
     return matchesSearch && matchesMethod && matchesStatus;
+  });
+
+  // Use pagination hook
+  const pagination = usePagination({
+    data: filteredPayments,
+    searchTerm,
+    filters: { methodFilter, statusFilter }
   });
 
   const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -225,7 +234,7 @@ export const PaymentManagement: React.FC = () => {
 
   const renderPanelView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredPayments.map((payment) => (
+      {pagination.paginatedData.map((payment) => (
         <div key={payment.id} className="bg-card rounded-lg shadow-sm border border-border p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -446,7 +455,7 @@ export const PaymentManagement: React.FC = () => {
           </div>
         ) : viewMode === 'panel' ? renderPanelView() : (
           <PaymentsList
-            payments={filteredPayments}
+            payments={pagination.paginatedData}
             onEditPayment={handleEditPayment}
             onDeletePayment={handleDeletePayment}
             onViewPayment={handleViewPayment}
@@ -455,6 +464,26 @@ export const PaymentManagement: React.FC = () => {
             onBulkChangeMethod={handleBulkChangeMethod}
           />
         )}
+
+        {/* Pagination Controls */}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          itemsPerPage={pagination.itemsPerPage}
+          totalItems={pagination.totalItems}
+          displayStart={pagination.displayStart}
+          displayEnd={pagination.displayEnd}
+          pageNumbers={pagination.pageNumbers}
+          paginationSettings={pagination.paginationSettings}
+          onPageChange={pagination.setCurrentPage}
+          onItemsPerPageChange={pagination.setItemsPerPage}
+          onNextPage={pagination.goToNextPage}
+          onPrevPage={pagination.goToPrevPage}
+          canGoNext={pagination.canGoNext}
+          canGoPrev={pagination.canGoPrev}
+          className="mt-6"
+          itemType="payments"
+        />
 
         {/* Empty State */}
         {!loading && filteredPayments.length === 0 && (

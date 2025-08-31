@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Receipt, DollarSign, Calendar, FileText, Upload, LayoutGrid, Table, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Receipt, DollarSign, Calendar, FileText, Upload, LayoutGrid, Table, Eye, Edit, Trash2 } from 'lucide-react';
 import { ExpenseForm } from './expenses/ExpenseForm';
 import { ExpensesList } from './expenses/ExpensesList';
 import { ExpenseImportExport } from './expenses/ExpenseImportExport';
 import { ExpenseViewModal } from './expenses/ExpenseViewModal';
+import { PaginationControls } from './ui/PaginationControls';
 import { expenseOperations } from '../lib/database';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
 import { formatDateSync } from '@/components/ui/FormattedDate';
@@ -35,10 +37,6 @@ export const ExpenseManagement: React.FC = () => {
   const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'panel' | 'table'>('table');
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
     loadExpenses();
@@ -77,19 +75,12 @@ export const ExpenseManagement: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Pagination calculations
-  const totalItems = filteredExpenses.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedExpenses = filteredExpenses.slice(startIndex, endIndex);
-
-  // Reset pagination when filters change
-  React.useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [searchTerm, categoryFilter, statusFilter, totalPages, currentPage]);
+  // Use pagination hook
+  const pagination = usePagination({
+    data: filteredExpenses,
+    searchTerm,
+    filters: { categoryFilter, statusFilter }
+  });
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const pendingCount = filteredExpenses.filter(exp => exp.status === 'pending').length;
@@ -180,7 +171,7 @@ export const ExpenseManagement: React.FC = () => {
 
   const renderPanelView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {paginatedExpenses.map((expense) => (
+      {pagination.paginatedData.map((expense) => (
         <div key={expense.id} className="bg-card rounded-lg shadow-sm border border-border p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -401,7 +392,7 @@ export const ExpenseManagement: React.FC = () => {
         <div>
           {viewMode === 'panel' ? renderPanelView() : (
             <ExpensesList
-              expenses={paginatedExpenses}
+              expenses={pagination.paginatedData}
               onEditExpense={handleEditExpense}
               onDeleteExpense={handleDeleteExpense}
               onViewExpense={handleViewExpense}
@@ -414,100 +405,24 @@ export const ExpenseManagement: React.FC = () => {
         </div>
 
         {/* Pagination Controls */}
-        {totalItems > 0 && (
-          <div className="bg-card rounded-lg shadow-sm border border-border p-4 mt-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              {/* Results info */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} expenses
-                </span>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground">Show:</label>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="text-sm border border-input rounded-md px-2 py-1 bg-background"
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span className="text-sm text-muted-foreground">per page</span>
-                </div>
-              </div>
-
-              {/* Pagination buttons */}
-              {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="flex items-center gap-1 px-3 py-2 text-sm border border-input rounded-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {/* Page numbers */}
-                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage > totalPages - 3) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-2 text-sm rounded-md ${
-                            currentPage === pageNum
-                              ? 'bg-primary text-primary-foreground'
-                              : 'border border-input hover:bg-accent hover:text-accent-foreground'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                    
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <span className="px-2 py-2 text-sm text-muted-foreground">...</span>
-                        <button
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="px-3 py-2 text-sm border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex items-center gap-1 px-3 py-2 text-sm border border-input rounded-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          itemsPerPage={pagination.itemsPerPage}
+          totalItems={pagination.totalItems}
+          displayStart={pagination.displayStart}
+          displayEnd={pagination.displayEnd}
+          pageNumbers={pagination.pageNumbers}
+          paginationSettings={pagination.paginationSettings}
+          onPageChange={pagination.setCurrentPage}
+          onItemsPerPageChange={pagination.setItemsPerPage}
+          onNextPage={pagination.goToNextPage}
+          onPrevPage={pagination.goToPrevPage}
+          canGoNext={pagination.canGoNext}
+          canGoPrev={pagination.canGoPrev}
+          className="mt-6"
+          itemType="expenses"
+        />
 
         {/* Empty State */}
         {filteredExpenses.length === 0 && (
