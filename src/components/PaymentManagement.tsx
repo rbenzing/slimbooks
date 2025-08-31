@@ -47,8 +47,6 @@ export const PaymentManagement: React.FC = () => {
       const response = await authenticatedFetch('/api/payments');
       const data = await response.json();
       
-      console.log('API Response:', data);
-      console.log('Response status:', response.status);
       
       if (data.success) {
         setPayments(data.data.payments || []);

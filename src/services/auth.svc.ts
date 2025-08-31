@@ -97,11 +97,7 @@ export class AuthService {
           const verificationToken = AuthUtils.generateEmailToken(user.email, user.id);
 
           // TODO: Send verification email using email service
-          // For now, we'll just log the token in development
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Verification token for ${user.email}: ${verificationToken}`);
-            console.log(`Verification link: ${window.location.origin}/verify-email?token=${verificationToken}`);
-          }
+          // In development, verification tokens would be logged here
         } catch (emailError) {
           console.error('Failed to send verification email:', emailError);
           // Don't fail registration if email sending fails

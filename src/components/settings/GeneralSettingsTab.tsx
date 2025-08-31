@@ -78,11 +78,11 @@ export const GeneralSettingsTab = () => {
           const allSettings = await sqliteService.getAllSettings('general');
 
           // Load settings from bulk response
-          if (allSettings.default_timezone) setTimeZone(allSettings.default_timezone);
-          if (allSettings.currency_format_settings) setCurrencySettings(allSettings.currency_format_settings);
-          if (allSettings.date_time_settings) setDateTimeSettings(allSettings.date_time_settings);
-          if (allSettings.invoice_number_settings) setInvoiceSettings(allSettings.invoice_number_settings);
-          if (allSettings.pagination_settings) setPaginationSettings(allSettings.pagination_settings);
+          if (allSettings && allSettings.default_timezone) setTimeZone(allSettings.default_timezone);
+          if (allSettings && allSettings.currency_format_settings) setCurrencySettings(allSettings.currency_format_settings);
+          if (allSettings && allSettings.date_time_settings) setDateTimeSettings(allSettings.date_time_settings);
+          if (allSettings && allSettings.invoice_number_settings) setInvoiceSettings(allSettings.invoice_number_settings);
+          if (allSettings && allSettings.pagination_settings) setPaginationSettings(allSettings.pagination_settings);
         } catch (bulkError) {
           console.warn('Bulk settings API failed, falling back to individual calls:', bulkError);
 

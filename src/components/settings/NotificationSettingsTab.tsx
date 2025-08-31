@@ -86,7 +86,6 @@ export const NotificationSettingsTab = () => {
   const applyToastSettings = (settings: NotificationSettings) => {
     // This would integrate with the toast system to apply settings
     // For now, we'll just log the settings
-    console.log('Applied toast settings:', settings);
   };
 
   const testNotification = (type: 'success' | 'error' | 'warning' | 'info') => {

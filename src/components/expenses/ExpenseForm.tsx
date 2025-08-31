@@ -90,7 +90,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       setReceiptFile(file);
       // In a real app, you'd upload this file and get a URL
       setFormData({ ...formData, receipt_url: `receipt_${Date.now()}.${file.name.split('.').pop()}` });
-      console.log('Receipt file selected:', file.name);
     }
   };
 

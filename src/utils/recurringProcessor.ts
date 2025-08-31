@@ -9,7 +9,6 @@ export const processRecurringInvoices = async () => {
     
     // Exit early if no templates
     if (!templates || templates.length === 0) {
-      console.log('No recurring invoice templates found');
       return;
     }
     
@@ -34,7 +33,6 @@ export const processRecurringInvoices = async () => {
 
       // If the next invoice date is today or in the past, create an invoice
       if (nextInvoiceDate <= today) {
-        console.log(`Creating recurring invoice for template: ${template.name}`);
 
         // Get client information
         const client = await clientOperations.getById(template.client_id);
@@ -96,7 +94,6 @@ export const processRecurringInvoices = async () => {
           next_invoice_date: nextDate.toISOString().split('T')[0]
         });
 
-        console.log(`Next invoice for ${template.name} scheduled for: ${formatDateSync(nextDate)}`);
       }
     }
   } catch (error) {

@@ -134,11 +134,6 @@ export class StripeService {
 
       // In a browser environment, we simulate the connection test
       // In a real implementation, this would test the actual Stripe API connection
-      console.log('Testing Stripe connection with settings:', {
-        publishableKey: settings.publishableKey ? settings.publishableKey.substring(0, 12) + '...' : 'Not set',
-        testMode: settings.testMode,
-        webhookEndpoint: settings.webhookEndpoint
-      });
 
       // Simulate connection test
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -198,12 +193,6 @@ export class StripeService {
 
       // In a real implementation, this would create an actual Stripe payment link
       // For now, we'll simulate the payment link creation
-      console.log('Creating Stripe payment link for invoice:', {
-        invoiceNumber: invoiceData.invoice_number,
-        amount: invoiceData.amount,
-        currency: invoiceData.currency,
-        clientEmail: invoiceData.client_email
-      });
 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -249,7 +238,6 @@ export class StripeService {
       }
 
       // In a real implementation, this would retrieve the actual payment link from Stripe
-      console.log('Retrieving Stripe payment link:', linkId);
 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -295,7 +283,6 @@ export class StripeService {
       }
 
       // In a real implementation, this would deactivate the actual payment link in Stripe
-      console.log('Deactivating Stripe payment link:', linkId);
 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -336,7 +323,6 @@ export class StripeService {
 
       // In a real implementation, this would verify the webhook signature
       // and process the actual Stripe event
-      console.log('Processing Stripe webhook with signature:', signature.substring(0, 20) + '...');
 
       // Simulate webhook processing
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -361,7 +347,6 @@ export class StripeService {
           await this.handlePaymentIntentSucceeded(event.data.object);
           break;
         default:
-          console.log('Unhandled webhook event type:', event.type);
       }
 
       return {
@@ -382,7 +367,6 @@ export class StripeService {
    */
   private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
     try {
-      console.log('Invoice payment succeeded:', invoice.id);
 
       // Update local invoice status to paid
       const { invoiceOperations } = await import('@/lib/database');
@@ -393,7 +377,6 @@ export class StripeService {
         await invoiceOperations.update(localInvoice.id, {
           status: 'paid'
         });
-        console.log('Updated local invoice status to paid');
       }
     } catch (error) {
       console.error('Error handling invoice payment succeeded:', error);
@@ -405,7 +388,6 @@ export class StripeService {
    */
   private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
     try {
-      console.log('Invoice payment failed:', invoice.id);
 
       // Update local invoice status
       const { invoiceOperations } = await import('@/lib/database');
@@ -416,7 +398,6 @@ export class StripeService {
         await invoiceOperations.update(localInvoice.id, {
           status: 'overdue'
         });
-        console.log('Updated local invoice status to overdue');
       }
     } catch (error) {
       console.error('Error handling invoice payment failed:', error);
@@ -428,7 +409,6 @@ export class StripeService {
    */
   private async handleSubscriptionEvent(subscription: any, eventType: string): Promise<void> {
     try {
-      console.log('Subscription event:', eventType, subscription.id);
       // Handle subscription updates in your local database
     } catch (error) {
       console.error('Error handling subscription event:', error);
@@ -440,7 +420,6 @@ export class StripeService {
    */
   private async handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
     try {
-      console.log('Payment intent succeeded:', paymentIntent.id);
       // Handle successful payment
     } catch (error) {
       console.error('Error handling payment intent succeeded:', error);

@@ -52,11 +52,6 @@ export class StripeWebhookHandler {
       // Parse the webhook payload
       const event: WebhookEvent = JSON.parse(payload);
       
-      console.log('Processing Stripe webhook:', {
-        id: event.id,
-        type: event.type,
-        created: new Date(event.created * 1000).toISOString()
-      });
 
       // Verify webhook signature and process
       const result = await this.stripeService.handleWebhook(event, signature);
@@ -190,7 +185,6 @@ export class StripeWebhookHandler {
         break;
       
       default:
-        console.log('Unhandled event type:', eventType);
     }
   }
 
@@ -199,7 +193,6 @@ export class StripeWebhookHandler {
    */
   private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
     try {
-      console.log('Processing successful invoice payment:', invoice.id);
       
       // Update local invoice status
       const { invoiceOperations } = await import('@/lib/database');
@@ -211,7 +204,6 @@ export class StripeWebhookHandler {
           status: 'paid'
         });
         
-        console.log(`Updated invoice ${localInvoice.invoice_number} status to paid`);
         
         // You could also trigger notifications here
         // await this.sendPaymentConfirmation(localInvoice);
@@ -229,7 +221,6 @@ export class StripeWebhookHandler {
    */
   private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
     try {
-      console.log('Processing failed invoice payment:', invoice.id);
       
       // Update local invoice status
       const { invoiceOperations } = await import('@/lib/database');
@@ -241,7 +232,6 @@ export class StripeWebhookHandler {
           status: 'overdue'
         });
         
-        console.log(`Updated invoice ${localInvoice.invoice_number} status to overdue`);
         
         // You could also trigger payment failure notifications here
         // await this.sendPaymentFailureNotification(localInvoice);
@@ -257,7 +247,6 @@ export class StripeWebhookHandler {
    */
   private async handleSubscriptionCreated(subscription: any): Promise<void> {
     try {
-      console.log('Processing subscription created:', subscription.id);
       
       // Update client record with subscription info
       const { clientOperations } = await import('@/lib/database');
@@ -266,7 +255,6 @@ export class StripeWebhookHandler {
       
       if (client) {
         // You could store subscription info in client record or separate table
-        console.log(`Subscription created for client: ${client.name}`);
       }
     } catch (error) {
       console.error('Error handling subscription created:', error);
@@ -279,7 +267,6 @@ export class StripeWebhookHandler {
    */
   private async handleSubscriptionUpdated(subscription: any): Promise<void> {
     try {
-      console.log('Processing subscription updated:', subscription.id);
       // Handle subscription changes
     } catch (error) {
       console.error('Error handling subscription updated:', error);
@@ -292,7 +279,6 @@ export class StripeWebhookHandler {
    */
   private async handleSubscriptionDeleted(subscription: any): Promise<void> {
     try {
-      console.log('Processing subscription deleted:', subscription.id);
       // Handle subscription cancellation
     } catch (error) {
       console.error('Error handling subscription deleted:', error);
@@ -305,7 +291,6 @@ export class StripeWebhookHandler {
    */
   private async handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
     try {
-      console.log('Processing payment intent succeeded:', paymentIntent.id);
       // Handle successful one-time payments
     } catch (error) {
       console.error('Error handling payment intent succeeded:', error);

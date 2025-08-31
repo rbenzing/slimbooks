@@ -61,12 +61,6 @@ export class EmailService {
 
       // In a browser environment, we simulate the connection test
       // In a real implementation, this would test the actual SMTP connection
-      console.log('Testing SMTP connection with settings:', {
-        host: settings.smtpHost,
-        port: settings.smtpPort,
-        secure: settings.smtpSecure,
-        username: settings.smtpUsername
-      });
 
       // Simulate connection test
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -115,19 +109,6 @@ export class EmailService {
 
       // In a real application, this would make an API call to a backend service
       // For now, we'll simulate the email sending
-      console.log('📧 Email Simulation with settings:');
-      console.log('From:', settings.fromEmail || settings.smtpUsername);
-      console.log('From Name:', settings.fromName);
-      console.log('To:', to);
-      console.log('Subject:', subject);
-      console.log('Reply-To:', settings.replyToEmail);
-      console.log('SMTP Host:', settings.smtpHost);
-      console.log('SMTP Port:', settings.smtpPort);
-      console.log('SMTP Security:', settings.smtpSecure);
-      console.log('HTML Content:', htmlContent);
-      if (textContent) {
-        console.log('Text Content:', textContent);
-      }
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1000));
