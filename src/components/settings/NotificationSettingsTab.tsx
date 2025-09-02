@@ -2,18 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
 // Use dynamic import to avoid circular dependencies
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-
-interface NotificationSettings {
-  showToastNotifications: boolean;
-  showSuccessToasts: boolean;
-  showErrorToasts: boolean;
-  showWarningToasts: boolean;
-  showInfoToasts: boolean;
-  toastDuration: number;
-  toastPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
-}
+import { NotificationSettings, isNotificationSettings } from '@/types/settings.types';
 
 export const NotificationSettingsTab = () => {
   const [settings, setSettings] = useState<NotificationSettings>({
@@ -40,15 +31,18 @@ export const NotificationSettingsTab = () => {
       }
 
       const saved = await sqliteService.getSetting('notification_settings');
-      if (saved) {
+      if (saved && typeof saved === 'object' && saved !== null) {
+        const savedSettings = saved as Record<string, unknown>;
+        const toastPositions = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'bottom-center'];
         setSettings({
-          showToastNotifications: saved.showToastNotifications ?? true,
-          showSuccessToasts: saved.showSuccessToasts ?? true,
-          showErrorToasts: saved.showErrorToasts ?? true,
-          showWarningToasts: saved.showWarningToasts ?? true,
-          showInfoToasts: saved.showInfoToasts ?? true,
-          toastDuration: saved.toastDuration ?? 4000,
-          toastPosition: saved.toastPosition ?? 'bottom-right'
+          showToastNotifications: typeof savedSettings.showToastNotifications === 'boolean' ? savedSettings.showToastNotifications : true,
+          showSuccessToasts: typeof savedSettings.showSuccessToasts === 'boolean' ? savedSettings.showSuccessToasts : true,
+          showErrorToasts: typeof savedSettings.showErrorToasts === 'boolean' ? savedSettings.showErrorToasts : true,
+          showWarningToasts: typeof savedSettings.showWarningToasts === 'boolean' ? savedSettings.showWarningToasts : true,
+          showInfoToasts: typeof savedSettings.showInfoToasts === 'boolean' ? savedSettings.showInfoToasts : true,
+          toastDuration: typeof savedSettings.toastDuration === 'number' ? savedSettings.toastDuration : 4000,
+          toastPosition: typeof savedSettings.toastPosition === 'string' && toastPositions.includes(savedSettings.toastPosition) 
+                        ? savedSettings.toastPosition as any : 'bottom-right'
         });
       }
     } catch (error) {

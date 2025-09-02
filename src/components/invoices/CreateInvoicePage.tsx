@@ -5,14 +5,17 @@ import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/invoiceNumbering';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
-import { InvoiceEmailService } from '@/services/invoiceEmail.svc';
+import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
-import { InvoiceStatusService } from '@/services/invoiceStatus.svc';
-import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
+import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
+import { EmailConfigStatus } from '@/types/settings.types';
 import { toast } from 'sonner';
+import { InvoiceType } from '@/types/invoice.types';
+import { Client } from '@/types/client.types';
+import { TaxRate, ShippingRate } from '@/types/settings.types';
 
 interface LineItem {
   id: string;
@@ -24,14 +27,14 @@ interface LineItem {
 
 interface CreateInvoicePageProps {
   onBack: () => void;
-  editingInvoice?: any;
+  editingInvoice?: any; // TODO: Type this properly based on Invoice interface
   viewOnly?: boolean;
 }
 
 export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, editingInvoice, viewOnly = false }) => {
   const navigate = useNavigate();
-  const [clients, setClients] = useState<any[]>([]);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [invoiceData, setInvoiceData] = useState({
     invoice_number: '',
     due_date: '',
@@ -40,13 +43,13 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
   ]);
-  const [selectedTaxRate, setSelectedTaxRate] = useState<any>(null);
-  const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
-  const [taxRates, setTaxRates] = useState<any[]>([]);
-  const [shippingRates, setShippingRates] = useState<any[]>([]);
+  const [selectedTaxRate, setSelectedTaxRate] = useState<TaxRate | null>(null);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
+  const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [companyLogo, setCompanyLogo] = useState<string>('');
-  const [originalFormData, setOriginalFormData] = useState<any>(null);
+  const [originalFormData, setOriginalFormData] = useState<any>(null); // TODO: Create proper interface for form data
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [emailConfig, setEmailConfig] = useState<EmailConfigStatus | null>(null);
@@ -83,16 +86,16 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         const savedTaxRates = localStorage.getItem('tax_rates');
         if (savedTaxRates) {
           const rates = JSON.parse(savedTaxRates);
-          setTaxRates(rates);
-          setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+          setTaxRates(rates as TaxRate[]);
+          setSelectedTaxRate((rates as TaxRate[]).find((r: TaxRate) => r.isDefault) || (rates as TaxRate[])[0]);
         }
 
         // Load shipping rates from settings
         const savedShippingRates = localStorage.getItem('shipping_rates');
         if (savedShippingRates) {
           const rates = JSON.parse(savedShippingRates);
-          setShippingRates(rates);
-          setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+          setShippingRates(rates as ShippingRate[]);
+          setSelectedShippingRate((rates as ShippingRate[]).find((r: ShippingRate) => r.isDefault) || (rates as ShippingRate[])[0]);
         }
 
         // Load email configuration
@@ -172,7 +175,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     }
   };
 
-  const updateLineItem = (id: string, field: string, value: any) => {
+  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
     setLineItems(lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
@@ -227,7 +230,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         total_amount: total,
         issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
-        type: 'one-time',
+        type: 'one-time' as InvoiceType,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -285,7 +288,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         total_amount: total,
         issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
-        type: 'one-time',
+        type: 'one-time' as InvoiceType,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -316,12 +319,10 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       }
 
       // Update email status to sending
-      const statusService = InvoiceStatusService.getInstance();
-      await statusService.updateEmailStatus(invoiceId, 'sending');
+      await invoiceService.updateEmailStatus(invoiceId, 'sending');
 
       // Send email
-      const emailService = InvoiceEmailService.getInstance();
-      const emailResult = await emailService.sendInvoiceEmail({
+      const emailResult = await invoiceService.sendInvoiceEmail({
         id: invoiceId,
         invoice_number: updatedInvoiceData.invoice_number,
         client_name: selectedClient.name,
@@ -333,10 +334,10 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       });
 
       if (emailResult.success) {
-        await statusService.markInvoiceAsSent(invoiceId);
+        await invoiceService.markInvoiceAsSent(invoiceId);
         toast.success('Invoice sent successfully');
       } else {
-        await statusService.updateEmailStatus(invoiceId, 'failed', emailResult.message);
+        await invoiceService.updateEmailStatus(invoiceId, 'failed', emailResult.message);
         toast.error(`Failed to send invoice: ${emailResult.message}`);
       }
 

@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, CreditCard, DollarSign, Calendar, CheckCircle, Clock, XCircle, Upload, LayoutGrid, Table, Eye, Edit, Trash2 } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  CreditCard, 
+  DollarSign, 
+  CheckCircle, 
+  Clock, 
+  XCircle, 
+  LayoutGrid, 
+  Table, 
+  Eye, 
+  Edit, 
+  Trash2 
+} from 'lucide-react';
 import { PaymentsList } from './payments/PaymentsList';
 import { PaymentForm } from './payments/PaymentForm';
 import { PaymentViewModal } from './payments/PaymentViewModal';
 import { PaginationControls } from './ui/PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
-import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
-import { authenticatedFetch } from '@/utils/api';
+import { 
+  themeClasses, 
+  getIconColorClasses, 
+  getButtonClasses, 
+  getStatusColor 
+} from '@/utils/themeUtils.util';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Payment {
-  id: number;
-  date: string;
-  client_name: string;
-  invoice_id?: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-  created_at: string;
-  updated_at: string;
-}
+import { Payment } from '@/types/payment.types';
 
 export const PaymentManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);

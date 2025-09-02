@@ -1,6 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Receipt, DollarSign, Calendar, FileText, Upload, LayoutGrid, Table, Eye, Edit, Trash2 } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Receipt, 
+  DollarSign, 
+  Calendar, 
+  FileText, 
+  Upload, 
+  LayoutGrid, 
+  Table, 
+  Eye, 
+  Edit, 
+  Trash2 
+} from 'lucide-react';
 import { ExpenseForm } from './expenses/ExpenseForm';
 import { ExpensesList } from './expenses/ExpensesList';
 import { ExpenseImportExport } from './expenses/ExpenseImportExport';
@@ -9,22 +22,15 @@ import { PaginationControls } from './ui/PaginationControls';
 import { expenseOperations } from '../lib/database';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
-import { themeClasses, getIconColorClasses, getButtonClasses, getStatusColor } from '../lib/utils';
+import { 
+  themeClasses, 
+  getIconColorClasses, 
+  getButtonClasses, 
+  getStatusColor 
+} from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Expense {
-  id: number;
-  date: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'reimbursed';
-  created_at: string;
-  updated_at: string;
-}
+import { Expense } from '@/types/expense.types';
 
 export const ExpenseManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);

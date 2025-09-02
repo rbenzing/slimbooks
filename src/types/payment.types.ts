@@ -14,7 +14,7 @@ export interface Payment {
   description?: string;
   status: PaymentStatus;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface PaymentFormData {
@@ -60,4 +60,30 @@ export interface BulkPaymentOperation {
   payment_ids: number[];
   operation: 'delete' | 'update_status' | 'export';
   new_status?: PaymentStatus;
+}
+
+// Component prop interfaces
+export interface PaymentFormProps {
+  payment?: Payment | null;
+  onSave: (paymentData: PaymentFormData) => void;
+  onCancel: () => void;
+  preselectedInvoiceId?: number;
+  preselectedClientName?: string;
+  preselectedAmount?: number;
+}
+
+export interface PaymentViewModalProps {
+  payment: Payment | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export interface PaymentsListProps {
+  payments: Payment[];
+  onEditPayment: (payment: Payment) => void;
+  onDeletePayment: (id: number) => void;
+  onViewPayment: (payment: Payment) => void;
+  onBulkDelete?: (ids: number[]) => void;
+  onBulkChangeStatus?: (ids: number[], status: string) => void;
+  onBulkChangeMethod?: (ids: number[], method: string) => void;
 }

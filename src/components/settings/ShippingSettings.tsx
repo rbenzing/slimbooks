@@ -1,15 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
+import { ShippingRate, validateShippingRateArray } from '@/types/settings.types';
 // Use dynamic import to avoid circular dependencies
-
-interface ShippingRate {
-  id: string;
-  name: string;
-  amount: number;
-  isDefault: boolean;
-}
 
 export const ShippingSettings = () => {
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
@@ -28,7 +22,7 @@ export const ShippingSettings = () => {
 
         const saved = await sqliteService.getSetting('shipping_rates');
         if (saved) {
-          setShippingRates(saved);
+          setShippingRates(validateShippingRateArray(saved));
         } else {
           // Migrate from localStorage if it exists
           const localStorageData = localStorage.getItem('shipping_rates');

@@ -1,14 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
-
-interface TaxRate {
-  id: string;
-  name: string;
-  rate: number;
-  isDefault: boolean;
-}
+import { themeClasses } from '@/utils/themeUtils.util';
+import { TaxRate, validateTaxRateArray } from '@/types/settings.types';
 
 export const TaxSettings = () => {
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
@@ -27,7 +21,7 @@ export const TaxSettings = () => {
 
         const saved = await sqliteService.getSetting('tax_rates');
         if (saved) {
-          setTaxRates(saved);
+          setTaxRates(validateTaxRateArray(saved));
         } else {
           // Default tax rates
           const defaultRates = [

@@ -2,17 +2,9 @@
 // Handles PDF generation requests to the server
 
 import { envConfig } from '@/lib/env-config';
+import { PDFGenerationOptions } from '@/types';
 
-export interface PDFGenerationOptions {
-  format?: 'A4' | 'Letter';
-  orientation?: 'portrait' | 'landscape';
-  margin?: {
-    top?: string;
-    right?: string;
-    bottom?: string;
-    left?: string;
-  };
-}
+// PDFGenerationOptions moved to @/types/common.types.ts
 
 class PDFService {
   private baseUrl: string;
@@ -205,7 +197,7 @@ class PDFService {
   /**
    * Get PDF service status
    */
-  async getServiceStatus(): Promise<any> {
+  async getServiceStatus(): Promise<{ status: string; message?: string }> {
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch(`${this.baseUrl}/status`, {

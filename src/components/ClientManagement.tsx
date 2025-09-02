@@ -8,7 +8,7 @@ import { clientOperations } from '../lib/database';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { formatDateSync } from '@/components/ui/FormattedDate';
-import { themeClasses, getButtonClasses, getIconColorClasses } from '../lib/utils';
+import { themeClasses, getButtonClasses, getIconColorClasses } from '@/utils/themeUtils.util';
 import { Client, ClientFormData } from '@/types/client.types';
 
 export const ClientManagement: React.FC = () => {

@@ -1,58 +1,10 @@
 // Currency formatting utilities with user settings support
+import { CurrencySettings } from '@/types/settings.types';
+import { DEFAULT_CURRENCY_SETTINGS, CURRENCY_OPTIONS, SYMBOL_POSITION_OPTIONS, DECIMAL_PLACES_OPTIONS, THOUSANDS_SEPARATOR_OPTIONS, DECIMAL_SEPARATOR_OPTIONS } from '@/lib/constants';
 
-export interface CurrencySettings {
-  currency: string;
-  symbolPosition: 'before' | 'after';
-  decimalPlaces: number;
-  thousandsSeparator: ',' | '.' | ' ' | 'none';
-  decimalSeparator: '.' | ',';
-}
+// Re-export constants for backward compatibility (can be removed in future refactor)
+export { CURRENCY_OPTIONS, SYMBOL_POSITION_OPTIONS, DECIMAL_PLACES_OPTIONS, THOUSANDS_SEPARATOR_OPTIONS, DECIMAL_SEPARATOR_OPTIONS };
 
-export const DEFAULT_CURRENCY_SETTINGS: CurrencySettings = {
-  currency: 'USD',
-  symbolPosition: 'before',
-  decimalPlaces: 2,
-  thousandsSeparator: ',',
-  decimalSeparator: '.'
-};
-
-// Currency format options for the settings UI
-export const CURRENCY_OPTIONS = [
-  { value: 'USD', label: 'USD - US Dollar', symbol: '$' },
-  { value: 'EUR', label: 'EUR - Euro', symbol: '€' },
-  { value: 'GBP', label: 'GBP - British Pound', symbol: '£' },
-  { value: 'CAD', label: 'CAD - Canadian Dollar', symbol: 'C$' },
-  { value: 'AUD', label: 'AUD - Australian Dollar', symbol: 'A$' },
-  { value: 'JPY', label: 'JPY - Japanese Yen', symbol: '¥' },
-  { value: 'CHF', label: 'CHF - Swiss Franc', symbol: 'CHF' },
-  { value: 'CNY', label: 'CNY - Chinese Yuan', symbol: '¥' },
-  { value: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
-  { value: 'BRL', label: 'BRL - Brazilian Real', symbol: 'R$' }
-];
-
-export const SYMBOL_POSITION_OPTIONS = [
-  { value: 'before', label: 'Before amount ($100.00)' },
-  { value: 'after', label: 'After amount (100.00$)' }
-];
-
-export const DECIMAL_PLACES_OPTIONS = [
-  { value: 0, label: '0 decimal places (100)' },
-  { value: 1, label: '1 decimal place (100.0)' },
-  { value: 2, label: '2 decimal places (100.00)' },
-  { value: 3, label: '3 decimal places (100.000)' }
-];
-
-export const THOUSANDS_SEPARATOR_OPTIONS = [
-  { value: ',', label: 'Comma (1,000.00)' },
-  { value: '.', label: 'Period (1.000,00)' },
-  { value: ' ', label: 'Space (1 000.00)' },
-  { value: 'none', label: 'None (1000.00)' }
-];
-
-export const DECIMAL_SEPARATOR_OPTIONS = [
-  { value: '.', label: 'Period (100.00)' },
-  { value: ',', label: 'Comma (100,00)' }
-];
 
 // Get currency symbol for a given currency code
 export const getCurrencySymbol = (currencyCode: string): string => {
@@ -83,7 +35,7 @@ export const getCurrencySettings = async (): Promise<CurrencySettings> => {
       const { sqliteService } = await import('@/services/sqlite.svc');
 
       if (sqliteService.isReady()) {
-        const settings = await sqliteService.getSetting('currency_format_settings');
+        const settings = await sqliteService.getSetting('currency_format_settings') as CurrencySettings;
         if (settings) {
           const result = {
             currency: settings.currency || DEFAULT_CURRENCY_SETTINGS.currency,

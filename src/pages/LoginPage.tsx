@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
-import { AuthUtils } from '@/lib/auth-utils';
+import { AuthUtils } from '@/utils/authUtils.util';
 
 export const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({

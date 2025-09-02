@@ -6,7 +6,7 @@ import QRCode from 'qrcode';
 import { PasswordRequirements } from '@/types/auth';
 
 // Import environment configuration
-import { securityConfig } from './env-config';
+import { securityConfig } from '@/lib/env-config';
 
 // JWT Secrets from environment variables
 const JWT_SECRET = securityConfig.JWT_SECRET;
@@ -18,14 +18,32 @@ const REFRESH_TOKEN_EXPIRY = securityConfig.REFRESH_TOKEN_EXPIRY;
 const EMAIL_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const PASSWORD_RESET_EXPIRY = 60 * 60 * 1000; // 1 hour in milliseconds
 
-export interface JWTPayload {
+// Base interface for all JWT tokens
+interface BaseJWTPayload {
   userId: number;
   email: string;
-  role: string;
-  type: 'access' | 'refresh';
   iat: number;
   exp: number;
 }
+
+// Access/Refresh tokens with role information
+export interface JWTPayload extends BaseJWTPayload {
+  role: string;
+  type: 'access' | 'refresh';
+}
+
+// Email verification tokens
+interface EmailVerificationPayload extends BaseJWTPayload {
+  type: 'email_verification';
+}
+
+// Password reset tokens
+interface PasswordResetPayload extends BaseJWTPayload {
+  type: 'password_reset';
+}
+
+// Union type for all possible JWT payloads
+type AnyJWTPayload = JWTPayload | EmailVerificationPayload | PasswordResetPayload;
 
 export class AuthUtils {
   // Password hashing
@@ -87,7 +105,7 @@ export class AuthUtils {
 
   static generateEmailToken(email: string, userId: number): string {
     const now = Date.now();
-    const tokenPayload = {
+    const tokenPayload: EmailVerificationPayload = {
       email,
       userId,
       type: 'email_verification',
@@ -110,7 +128,7 @@ export class AuthUtils {
 
   static generatePasswordResetToken(email: string, userId: number): string {
     const now = Date.now();
-    const tokenPayload = {
+    const tokenPayload: PasswordResetPayload = {
       email,
       userId,
       type: 'password_reset',
@@ -132,7 +150,7 @@ export class AuthUtils {
   }
 
   // Simple JWT implementation for browser compatibility
-  private static createSimpleJWT(payload: JWTPayload, secret: string): string {
+  private static createSimpleJWT(payload: AnyJWTPayload, secret: string): string {
     const header = {
       alg: 'HS256',
       typ: 'JWT'
@@ -145,7 +163,7 @@ export class AuthUtils {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
 
-  private static verifySimpleJWT(token: string, secret: string): JWTPayload | null {
+  private static verifySimpleJWT(token: string, secret: string): AnyJWTPayload | null {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;

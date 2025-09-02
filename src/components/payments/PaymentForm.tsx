@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
-import { themeClasses, getButtonClasses } from '@/lib/utils';
-import { authenticatedFetch } from '@/utils/api';
-import { Payment, PaymentFormData } from '@/types/payment.types';
+import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { Payment, PaymentFormProps } from '@/types/payment.types';
 import { Invoice } from '@/types/invoice.types';
-
-interface PaymentFormProps {
-  payment?: Payment | null;
-  onSave: (paymentData: PaymentFormData) => void;
-  onCancel: () => void;
-  preselectedInvoiceId?: number;
-  preselectedClientName?: string;
-  preselectedAmount?: number;
-}
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ 
   payment, 

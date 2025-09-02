@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { themeClasses } from '@/lib/utils';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { themeClasses } from '@/utils/themeUtils.util';
 
 export const AppearanceSettingsTab = () => {
   const [theme, setTheme] = useState('system');
@@ -58,10 +58,21 @@ export const AppearanceSettingsTab = () => {
           localStorage.removeItem('theme');
           localStorage.removeItem('invoiceTemplate');
         } else {
-          // Use database settings
-          if (settings?.theme) setTheme(settings.theme);
-          if (settings?.invoice_template) setInvoiceTemplate(settings.invoice_template);
-          if (settings?.pdf_format) setPdfFormat(settings.pdf_format.format || 'A4');
+          // Use database settings with proper type checking
+          if (settings?.theme && typeof settings.theme === 'string') {
+            setTheme(settings.theme);
+          }
+          if (settings?.invoice_template && typeof settings.invoice_template === 'string') {
+            setInvoiceTemplate(settings.invoice_template);
+          }
+          if (settings?.pdf_format) {
+            const pdfFormatValue = typeof settings.pdf_format === 'object' && settings.pdf_format !== null && 'format' in settings.pdf_format
+              ? (settings.pdf_format as { format: string }).format
+              : typeof settings.pdf_format === 'string'
+              ? settings.pdf_format
+              : 'A4';
+            setPdfFormat(pdfFormatValue || 'A4');
+          }
         }
 
         setIsLoaded(true);

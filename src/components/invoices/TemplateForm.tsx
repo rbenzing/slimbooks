@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { clientOperations } from '@/lib/database';
-import { themeClasses, getButtonClasses } from '@/lib/utils';
+import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 
 interface TemplateFormProps {
   isOpen: boolean;

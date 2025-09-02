@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Download, Eye, AlertTriangle } from 'lucide-react';
+import { Download, AlertTriangle } from 'lucide-react';
 import { CompanyHeader } from './invoices/CompanyHeader';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { envConfig } from '@/lib/env-config';
-
-interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
+import { InvoiceItem } from '@/types/invoice.types';
 
 export const PublicInvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +14,7 @@ export const PublicInvoiceView: React.FC = () => {
   const token = searchParams.get('token');
   
   const [invoice, setInvoice] = useState<any>(null);
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [lineItems, setLineItems] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string>('');
@@ -66,11 +59,11 @@ export const PublicInvoiceView: React.FC = () => {
           try {
             const parsedLineItems = JSON.parse(invoiceRecord.line_items);
             setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
-              { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+              { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
             ]);
           } catch (e) {
             setLineItems([
-              { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+              { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
             ]);
           }
         }
@@ -97,7 +90,7 @@ export const PublicInvoiceView: React.FC = () => {
     return btoa(`invoice-${invoiceId}-${new Date().toDateString()}`);
   };
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const taxAmount = invoice?.tax_amount || 0;
   const shippingAmount = invoice?.shipping_amount || 0;
   const total = subtotal + taxAmount + shippingAmount;
@@ -234,10 +227,10 @@ export const PublicInvoiceView: React.FC = () => {
                     <td className="py-3 text-card-foreground">{item.description}</td>
                     <td className="py-3 text-center text-muted-foreground">{item.quantity}</td>
                     <td className="py-3 text-right text-muted-foreground">
-                      <FormattedCurrency amount={item.rate} />
+                      <FormattedCurrency amount={item.unit_price} />
                     </td>
                     <td className="py-3 text-right font-medium text-card-foreground">
-                      <FormattedCurrency amount={item.amount} />
+                      <FormattedCurrency amount={item.total} />
                     </td>
                   </tr>
                 ))}

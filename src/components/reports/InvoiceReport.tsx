@@ -1,33 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
-import { getStatusColor, themeClasses, getButtonClasses } from '@/lib/utils';
-import { DateRange, ReportType } from '../ReportsManagement';
+import { getStatusColor, themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { reportOperations } from '../../lib/database';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
-import { Invoice } from '@/types';
-
-interface InvoiceReportData {
-  invoices: (Invoice & { client_name: string })[];
-  invoicesByStatus: Record<string, number>;
-  invoicesByClient: Record<string, number>;
-  totalAmount: number;
-  paidAmount: number;
-  pendingAmount: number;
-  overdueAmount: number;
-  totalCount: number;
-}
-
-interface InvoiceReportProps {
-  onBack: () => void;
-  onSave: (reportData: InvoiceReportData, reportType: ReportType, dateRange: DateRange) => void;
-}
+import { InvoiceReportData, InvoiceReportProps, ReportDateRange } from '@/types/reports.types';
 
 export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<InvoiceReportData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [dateRange, setDateRange] = useState<ReportDateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
@@ -51,7 +34,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
     }
   };
 
-  const handleDatePresetChange = (preset: DateRange['preset']) => {
+  const handleDatePresetChange = (preset: ReportDateRange['preset']) => {
     const today = new Date();
     let start: Date;
     let end: Date;
@@ -177,7 +160,7 @@ export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) 
               <select
                 className={`w-full ${themeClasses.select}`}
                 value={dateRange.preset}
-                onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+                onChange={(e) => handleDatePresetChange(e.target.value as ReportDateRange['preset'])}
               >
                 <option value="this-month">This Month</option>
                 <option value="last-month">Last Month</option>

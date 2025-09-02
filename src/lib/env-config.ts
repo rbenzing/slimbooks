@@ -69,7 +69,7 @@ const DEFAULT_CONFIG: EnvironmentConfig = {
   JWT_REFRESH_SECRET: 'default-refresh-secret-change-in-production',
   SESSION_SECRET: 'default-session-secret-change-in-production',
   
-  ACCESS_TOKEN_EXPIRY: 15 * 60 * 1000, // 15 minutes
+  ACCESS_TOKEN_EXPIRY: 2 * 60 * 60 * 1000, // 2 hours
   REFRESH_TOKEN_EXPIRY: 7 * 24 * 60 * 60 * 1000, // 7 days
   EMAIL_TOKEN_EXPIRY: 24 * 60 * 60 * 1000, // 24 hours
   PASSWORD_RESET_EXPIRY: 60 * 60 * 1000, // 1 hour

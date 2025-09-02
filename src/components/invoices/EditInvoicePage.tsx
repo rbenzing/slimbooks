@@ -6,42 +6,40 @@ import { invoiceOperations, clientOperations } from '@/lib/database';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
-import { statusColors, themeClasses, getButtonClasses } from '@/lib/utils';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getInvoiceStatusPermissions } from '@/utils/invoiceValidation';
-import { InvoiceEmailService } from '@/services/invoiceEmail.svc';
+import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
-import { InvoiceStatusService } from '@/services/invoiceStatus.svc';
-import { getEmailConfigurationStatus, EmailConfigStatus } from '@/utils/emailConfigUtils';
+import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
+import { EmailConfigStatus } from '@/types/settings.types';
 import { toast } from 'sonner';
-
-interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
+import { InvoiceItem, Invoice, InvoiceStatus } from '@/types/invoice.types';
+import { Client } from '@/types/client.types';
+import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types/settings.types';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [invoice, setInvoice] = useState<any>(null);
-  const [clients, setClients] = useState<any[]>([]);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [invoiceData, setInvoiceData] = useState({
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [invoiceData, setInvoiceData] = useState<{
+    invoice_number: string;
+    due_date: string;
+    status: InvoiceStatus;
+  }>({
     invoice_number: '',
     due_date: '',
     status: 'draft'
   });
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
+  const [lineItems, setLineItems] = useState<InvoiceItem[]>([
+    { id: 1, description: '', quantity: 1, unit_price: 0, total: 0 }
   ]);
   const [companyLogo, setCompanyLogo] = useState('');
-  const [taxRates, setTaxRates] = useState<any[]>([]);
-  const [selectedTaxRate, setSelectedTaxRate] = useState<any>(null);
-  const [shippingRates, setShippingRates] = useState<any[]>([]);
-  const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
+  const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
+  const [selectedTaxRate, setSelectedTaxRate] = useState<TaxRate | null>(null);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
   const [isDirty, setIsDirty] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -74,18 +72,18 @@ export const EditInvoicePage = () => {
               try {
                 const parsedLineItems = JSON.parse(invoiceRecord.line_items);
                 setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
-                  { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+                  { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
                 ]);
               } catch (e) {
                 // Fallback to single line item from description and amount
                 setLineItems([
-                  { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+                  { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
                 ]);
               }
             } else {
               // Fallback to single line item from description and amount
               setLineItems([
-                { id: '1', description: invoiceRecord.description || '', quantity: 1, rate: invoiceRecord.amount || 0, amount: invoiceRecord.amount || 0 }
+                { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
               ]);
             }
 
@@ -112,33 +110,33 @@ export const EditInvoicePage = () => {
       }
     };
 
-    const loadSettings = async (invoiceRecord?: any) => {
+    const loadSettings = async (invoiceRecord?: Invoice) => {
       try {
         // Load tax rates from SQLite settings
         const { sqliteService } = await import('@/services/sqlite.svc');
         if (sqliteService.isReady()) {
           const savedTaxRates = await sqliteService.getSetting('tax_rates');
           if (savedTaxRates) {
-            setTaxRates(savedTaxRates);
+            setTaxRates(savedTaxRates as TaxRate[]);
             // If invoice has a saved tax rate ID, use that; otherwise use default
             if (invoiceRecord?.tax_rate_id) {
-              const savedTaxRate = savedTaxRates.find((r: any) => r.id === invoiceRecord.tax_rate_id);
+              const savedTaxRate = (savedTaxRates as TaxRate[]).find((r: TaxRate) => r.id === invoiceRecord.tax_rate_id);
               setSelectedTaxRate(savedTaxRate || null);
             } else {
-              setSelectedTaxRate(savedTaxRates.find((r: any) => r.isDefault) || savedTaxRates[0]);
+              setSelectedTaxRate((savedTaxRates as TaxRate[]).find((r: TaxRate) => r.isDefault) || (savedTaxRates as TaxRate[])[0]);
             }
           }
 
           // Load shipping rates from SQLite settings
           const savedShippingRates = await sqliteService.getSetting('shipping_rates');
           if (savedShippingRates) {
-            setShippingRates(savedShippingRates);
+            setShippingRates(savedShippingRates as ShippingRate[]);
             // If invoice has a saved shipping rate ID, use that; otherwise use default
             if (invoiceRecord?.shipping_rate_id) {
-              const savedShippingRate = savedShippingRates.find((r: any) => r.id === invoiceRecord.shipping_rate_id);
+              const savedShippingRate = (savedShippingRates as ShippingRate[]).find((r: ShippingRate) => r.id === invoiceRecord.shipping_rate_id);
               setSelectedShippingRate(savedShippingRate || null);
             } else {
-              setSelectedShippingRate(savedShippingRates.find((r: any) => r.isDefault) || savedShippingRates[0]);
+              setSelectedShippingRate((savedShippingRates as ShippingRate[]).find((r: ShippingRate) => r.isDefault) || (savedShippingRates as ShippingRate[])[0]);
             }
           }
 
@@ -162,20 +160,31 @@ export const EditInvoicePage = () => {
         invoiceData.due_date !== (invoice.due_date || '') ||
         invoiceData.invoice_number !== (invoice.invoice_number || '') ||
         selectedClient?.id !== invoice.client_id ||
-        JSON.stringify(lineItems) !== (invoice.line_items || JSON.stringify([{ id: '1', description: invoice.description || '', quantity: 1, rate: invoice.amount || 0, amount: invoice.amount || 0 }]));
+        JSON.stringify(lineItems) !== (invoice.line_items || JSON.stringify([{ id: 1, description: invoice.description || '', quantity: 1, unit_price: invoice.amount || 0, total: invoice.amount || 0 }]));
 
       setIsDirty(hasChanges);
     }
   }, [invoiceData, selectedClient, invoice, lineItems]);
 
+  // Helper function to map InvoiceItem to LineItem format for validation
+  const mapInvoiceItemsToLineItems = (items: InvoiceItem[]) => {
+    return items.map(item => ({
+      id: item.id?.toString() || '1',
+      description: item.description,
+      quantity: item.quantity,
+      rate: item.unit_price,
+      amount: item.total
+    }));
+  };
+
   // Validation functions
   const isValidForSave = () => {
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, mapInvoiceItemsToLineItems(lineItems));
     return validation.isValid;
   };
 
   const isValidForSend = () => {
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, mapInvoiceItemsToLineItems(lineItems));
     return validation.canSend;
   };
 
@@ -192,7 +201,7 @@ export const EditInvoicePage = () => {
     setIsSaving(true);
     try {
       // Calculate total amount from line items
-      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+      const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
       const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
       const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
       const total = subtotal + taxAmount + shippingAmount;
@@ -254,7 +263,7 @@ export const EditInvoicePage = () => {
       }
 
       // Calculate total amount from line items
-      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+      const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
       const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
       const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
       const total = subtotal + taxAmount + shippingAmount;
@@ -264,7 +273,7 @@ export const EditInvoicePage = () => {
         client_id: selectedClient.id,
         template_id: invoice.template_id,
         amount: total,
-        status: 'sent',
+        status: 'sent' as InvoiceStatus,
         due_date: updatedInvoiceData.due_date,
         description: lineItems.map(item => item.description).join(', '),
         stripe_invoice_id: invoice.stripe_invoice_id,
@@ -284,12 +293,10 @@ export const EditInvoicePage = () => {
       await invoiceOperations.update(parseInt(id!), updatedInvoice);
 
       // Update email status to sending
-      const statusService = InvoiceStatusService.getInstance();
-      await statusService.updateEmailStatus(parseInt(id!), 'sending');
+      await invoiceService.updateEmailStatus(parseInt(id!), 'sending');
 
       // Send email
-      const emailService = InvoiceEmailService.getInstance();
-      const emailResult = await emailService.sendInvoiceEmail({
+      const emailResult = await invoiceService.sendInvoiceEmail({
         id: parseInt(id!),
         invoice_number: updatedInvoiceData.invoice_number,
         client_name: selectedClient.name,
@@ -301,10 +308,10 @@ export const EditInvoicePage = () => {
       });
 
       if (emailResult.success) {
-        await statusService.markInvoiceAsSent(parseInt(id!));
+        await invoiceService.markInvoiceAsSent(parseInt(id!));
         toast.success('Invoice sent successfully');
       } else {
-        await statusService.updateEmailStatus(parseInt(id!), 'failed', emailResult.message);
+        await invoiceService.updateEmailStatus(parseInt(id!), 'failed', emailResult.message);
         toast.error(`Failed to send invoice: ${emailResult.message}`);
       }
 
@@ -358,12 +365,12 @@ export const EditInvoicePage = () => {
   };
 
   // Helper functions for line items
-  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
+  const updateLineItem = (id: number, field: keyof InvoiceItem, value: string | number) => {
     setLineItems(items => items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        if (field === 'quantity' || field === 'rate') {
-          updatedItem.amount = updatedItem.quantity * updatedItem.rate;
+        if (field === 'quantity' || field === 'unit_price') {
+          updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
         }
         return updatedItem;
       }
@@ -372,11 +379,11 @@ export const EditInvoicePage = () => {
   };
 
   const addLineItem = () => {
-    const newId = (lineItems.length + 1).toString();
-    setLineItems([...lineItems, { id: newId, description: '', quantity: 1, rate: 0, amount: 0 }]);
+    const newId = lineItems.length + 1;
+    setLineItems([...lineItems, { id: newId, description: '', quantity: 1, unit_price: 0, total: 0 }]);
   };
 
-  const removeLineItem = (id: string) => {
+  const removeLineItem = (id: number) => {
     if (lineItems.length > 1) {
       setLineItems(lineItems.filter(item => item.id !== id));
     }
@@ -418,7 +425,7 @@ export const EditInvoicePage = () => {
   }
 
   // Calculate totals
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
@@ -558,7 +565,7 @@ export const EditInvoicePage = () => {
                   <label className="text-sm text-muted-foreground">Status</label>
                   <select
                     value={invoiceData.status}
-                    onChange={(e) => setInvoiceData({...invoiceData, status: e.target.value})}
+                    onChange={(e) => setInvoiceData({...invoiceData, status: e.target.value as InvoiceStatus})}
                     className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
                   >
                     <option value="draft">Draft</option>
@@ -617,15 +624,15 @@ export const EditInvoicePage = () => {
                     <td className="py-3 text-right">
                       <input
                         type="number"
-                        value={item.rate}
-                        onChange={(e) => updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                        value={item.unit_price}
+                        onChange={(e) => updateLineItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
                         className="w-20 text-right border-0 border-b border-transparent focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
                         min="0"
                         step="0.01"
                       />
                     </td>
                     <td className="py-3 text-right text-card-foreground">
-                      ${item.amount.toFixed(2)}
+                      ${item.total.toFixed(2)}
                     </td>
                     <td className="py-3">
                       {lineItems.length > 1 && (

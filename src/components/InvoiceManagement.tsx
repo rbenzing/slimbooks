@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { InvoicesTab } from './invoices/InvoicesTab';
 import { TemplatesTab } from './invoices/TemplatesTab';
 import { EditInvoicePage } from './invoices/EditInvoicePage';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { themeClasses } from '../lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 
 export const InvoiceManagement = () => {
   const [activeTab, setActiveTab] = useState('invoices');

@@ -2,7 +2,7 @@
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
 export type InvoiceType = 'one-time' | 'recurring' | 'subscription';
-export type EmailStatus = 'not_sent' | 'sent' | 'failed' | 'bounced';
+export type EmailStatus = 'not_sent' | 'sent' | 'sending' | 'failed' | 'bounced';
 
 export interface InvoiceItem {
   id?: number;
@@ -126,9 +126,33 @@ export interface InvoiceFilters {
 
 // For invoice email sending
 export interface InvoiceEmailData {
-  invoice_id: number;
-  to_email: string;
-  subject?: string;
-  message?: string;
-  send_copy_to_self?: boolean;
+  id: number;
+  invoice_number: string;
+  client_name: string;
+  client_email: string;
+  amount: number;
+  due_date: string;
+  status: InvoiceStatus;
+  notes?: string;
+}
+
+// Email status update interface
+export interface EmailStatusUpdate {
+  email_status: EmailStatus;
+  email_sent_at?: string;
+  email_error?: string;
+  last_email_attempt: string;
+}
+
+// Scheduled invoice interface
+export interface ScheduledInvoice {
+  id: number;
+  invoice_number: string;
+  client_name: string;
+  client_email: string;
+  amount: number;
+  due_date: string;
+  status: InvoiceStatus;
+  notes?: string;
+  email_status?: EmailStatus;
 }

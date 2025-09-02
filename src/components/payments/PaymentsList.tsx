@@ -1,31 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, CreditCard, Eye, Trash2, Delete, Receipt, Building } from 'lucide-react';
-import { getStatusColor } from '@/lib/utils';
+import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Payment {
-  id: number;
-  date: string;
-  client_name: string;
-  invoice_id?: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-  created_at: string;
-}
-
-interface PaymentsListProps {
-  payments: Payment[];
-  onEditPayment: (payment: Payment) => void;
-  onDeletePayment: (id: number) => void;
-  onViewPayment: (payment: Payment) => void;
-  onBulkDelete?: (ids: number[]) => void;
-  onBulkChangeStatus?: (ids: number[], status: string) => void;
-  onBulkChangeMethod?: (ids: number[], method: string) => void;
-}
+import { PaymentsListProps } from '@/types/payment.types';
 
 export const PaymentsList: React.FC<PaymentsListProps> = ({ 
   payments, 

@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
 import { invoiceOperations, clientOperations, expenseOperations } from '@/lib/database';
-import { themeClasses, getIconColorClasses, getStatusColor } from '@/lib/utils';
+import { themeClasses, getIconColorClasses, getStatusColor } from '@/utils/themeUtils.util';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-type TimePeriod = 'last-week' | 'last-month' | 'last-year' | 'year-to-date' | 'month-to-date';
+import { TimePeriod } from '@/types/common.types';
 
 export const DashboardOverview = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
@@ -55,7 +54,7 @@ export const DashboardOverview = () => {
     }
   };
 
-  const filterDataByPeriod = () => {
+  const filterDataByPeriod = useCallback(() => {
     const currentDate = new Date();
     let startDate: Date;
     let endDate: Date = currentDate;
@@ -134,7 +133,7 @@ export const DashboardOverview = () => {
       filteredInvoices,
       filteredExpenses
     }));
-  };
+  }, [selectedPeriod, stats.allInvoices, stats.allExpenses]);
 
   useEffect(() => {
     loadDashboardData();
@@ -144,7 +143,7 @@ export const DashboardOverview = () => {
     if (stats.allInvoices.length > 0 || stats.allExpenses.length > 0) {
       filterDataByPeriod();
     }
-  }, [selectedPeriod, stats.allInvoices, stats.allExpenses, filterDataByPeriod]);
+  }, [filterDataByPeriod, stats.allInvoices.length, stats.allExpenses.length]);
 
   return (
     <div className={themeClasses.page}>

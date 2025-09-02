@@ -8,7 +8,7 @@ This application uses a systematic theme approach based on the Dashboard design 
 
 1. **Dashboard as Standard**: The dashboard page represents our design pinnacle - all other pages should match its styling patterns
 2. **CSS Custom Properties**: Use CSS custom properties (CSS variables) instead of hardcoded Tailwind classes for theme-aware styling
-3. **Systematic Approach**: Use the `themeClasses` utility from `src/lib/utils.ts` for consistent component styling
+3. **Systematic Approach**: Use the `themeClasses` utility from `src/utils/themeUtils.util.ts` for consistent component styling
 4. **Semantic Colors**: Use semantic color names that adapt to light/dark modes automatically
 
 ## Theme Structure
@@ -33,7 +33,7 @@ This application uses a systematic theme approach based on the Dashboard design 
 - `--dashboard-stat-yellow`: Yellow accent color and background
 - `--dashboard-stat-orange`: Orange accent color and background
 
-### Theme Classes (`src/lib/utils.ts`)
+### Theme Classes (`src/utils/themeUtils.util.ts`)
 
 #### Layout Classes
 ```typescript

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Mail, ArrowLeft } from 'lucide-react';
-import { AuthUtils } from '@/lib/auth-utils';
+import { AuthUtils } from '@/utils/authUtils.util';
 
 export const VerifyEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams();

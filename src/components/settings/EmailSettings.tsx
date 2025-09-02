@@ -2,20 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Mail, TestTube, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { sqliteService } from '@/services/sqlite.svc';
 import { EmailService } from '@/services/email.svc';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-
-export interface EmailSettings {
-  smtpHost: string;
-  smtpPort: number;
-  smtpUsername: string;
-  smtpPassword: string;
-  smtpSecure: 'tls' | 'ssl' | 'none';
-  fromEmail: string;
-  fromName: string;
-  replyToEmail: string;
-  isEnabled: boolean;
-}
+import { EmailSettings, isEmailSettings } from '@/types/settings.types';
 
 export const EmailSettings = () => {
   const [settings, setSettings] = useState<EmailSettings>({
@@ -45,17 +34,19 @@ export const EmailSettings = () => {
       }
 
       const saved = await sqliteService.getSetting('email_settings');
-      if (saved) {
+      if (saved && typeof saved === 'object' && saved !== null) {
+        const savedSettings = saved as Record<string, unknown>;
         setSettings({
-          smtpHost: saved.smtpHost || '',
-          smtpPort: saved.smtpPort || 587,
-          smtpUsername: saved.smtpUsername || '',
-          smtpPassword: saved.smtpPassword || '',
-          smtpSecure: saved.smtpSecure || 'tls',
-          fromEmail: saved.fromEmail || '',
-          fromName: saved.fromName || '',
-          replyToEmail: saved.replyToEmail || '',
-          isEnabled: saved.isEnabled || false
+          smtpHost: typeof savedSettings.smtpHost === 'string' ? savedSettings.smtpHost : '',
+          smtpPort: typeof savedSettings.smtpPort === 'number' ? savedSettings.smtpPort : 587,
+          smtpUsername: typeof savedSettings.smtpUsername === 'string' ? savedSettings.smtpUsername : '',
+          smtpPassword: typeof savedSettings.smtpPassword === 'string' ? savedSettings.smtpPassword : '',
+          smtpSecure: typeof savedSettings.smtpSecure === 'string' && ['tls', 'ssl', 'none'].includes(savedSettings.smtpSecure) 
+                      ? savedSettings.smtpSecure as 'tls' | 'ssl' | 'none' : 'tls',
+          fromEmail: typeof savedSettings.fromEmail === 'string' ? savedSettings.fromEmail : '',
+          fromName: typeof savedSettings.fromName === 'string' ? savedSettings.fromName : '',
+          replyToEmail: typeof savedSettings.replyToEmail === 'string' ? savedSettings.replyToEmail : '',
+          isEnabled: typeof savedSettings.isEnabled === 'boolean' ? savedSettings.isEnabled : false
         });
       }
     } catch (error) {

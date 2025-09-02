@@ -1,28 +1,9 @@
 import React from 'react';
 import { X, Calendar, DollarSign, User, CreditCard, Hash, FileText, Clock, Receipt } from 'lucide-react';
-import { getStatusColor, themeClasses } from '@/lib/utils';
+import { getStatusColor, themeClasses } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Payment {
-  id: number;
-  date: string;
-  client_name: string;
-  invoice_id?: number;
-  amount: number;
-  method: 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
-  reference?: string;
-  description?: string;
-  status: 'received' | 'pending' | 'failed' | 'refunded';
-  created_at: string;
-  updated_at?: string;
-}
-
-interface PaymentViewModalProps {
-  payment: Payment | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { PaymentViewModalProps } from '@/types/payment.types';
 
 export const PaymentViewModal: React.FC<PaymentViewModalProps> = ({ payment, isOpen, onClose }) => {
   if (!isOpen || !payment) return null;

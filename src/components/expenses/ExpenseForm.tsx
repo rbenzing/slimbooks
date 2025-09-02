@@ -2,22 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, X, Receipt } from 'lucide-react';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
-import { themeClasses, getButtonClasses } from '@/lib/utils';
-
-interface Expense {
-  id?: number;
-  date: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'reimbursed';
-}
+import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
+import { Expense, ExpenseFormData } from '@/types/expense.types';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
-  onSave: (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSave: (expenseData: ExpenseFormData) => void;
   onCancel: () => void;
 }
 

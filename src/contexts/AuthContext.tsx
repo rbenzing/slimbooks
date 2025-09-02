@@ -5,6 +5,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { Navigate, useLocation } from 'react-router-dom';
 import { User, AuthResponse } from '@/types/auth';
 import { AuthService } from '@/services/auth.svc';
+import { TokenManagerService } from '@/services/tokenManager.svc';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -27,11 +29,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const authService = AuthService.getInstance();
+  const tokenManager = TokenManagerService.getInstance();
 
   // Initialize authentication state
   useEffect(() => {
     initializeAuth();
   }, []);
+
+  // Simple token expiry monitoring - only checks expiry time and redirects
+  useEffect(() => {
+    if (user) {
+      // Start simple expiry monitoring when user is authenticated
+      tokenManager.startMonitoring(
+        () => {
+          // Handle token expiration - simple redirect to login
+          toast.error('Your session has expired. Please log in again.');
+          handleAutoLogout();
+        },
+        (minutesLeft) => {
+          // Handle token warning - optional notification
+          toast.warning(`Your session will expire in ${minutesLeft} minutes.`, {
+            duration: 10000 // Show for 10 seconds
+          });
+        }
+      );
+    } else {
+      // Stop monitoring when user is not authenticated
+      tokenManager.stopMonitoring();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      tokenManager.stopMonitoring();
+    };
+  }, [user]);
 
   const initializeAuth = async () => {
     try {
@@ -40,20 +71,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Initialize admin user
       await authService.initializeAdminUser();
 
-      // Check for existing session (localStorage first, then sessionStorage)
+      // Check for existing session with simple expiry check
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (token) {
-        const user = await authService.verifyToken(token);
-        if (user) {
-          setUser(user);
-          authService.setCurrentUser(user);
-        } else {
-          // Invalid token, remove it from both storages
+        // Simple expiry check before attempting backend verification
+        const isExpired = tokenManager.isTokenExpired();
+        
+        if (isExpired) {
+          console.log('Found expired token, clearing storage');
+          // Clear expired tokens
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('remember_me');
           sessionStorage.removeItem('auth_token');
           sessionStorage.removeItem('refresh_token');
+        } else {
+          // Token not expired, try to verify with backend
+          try {
+            const user = await authService.verifyToken(token);
+            if (user) {
+              setUser(user);
+              authService.setCurrentUser(user);
+            } else {
+              // Backend verification failed, clear tokens
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('remember_me');
+              sessionStorage.removeItem('auth_token');
+              sessionStorage.removeItem('refresh_token');
+            }
+          } catch (error) {
+            console.warn('Token verification failed:', error);
+            // Clear tokens on verification error
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('remember_me');
+            sessionStorage.removeItem('auth_token');
+            sessionStorage.removeItem('refresh_token');
+          }
         }
       }
     } catch (error) {
@@ -67,26 +122,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.login({ email, password, rememberMe });
 
-      if (response.success && response.data?.user && response.data?.token) {
+      if (response.success && response.user && response.session_token) {
         // Store tokens BEFORE setting user state to ensure they're available for API calls
         if (rememberMe) {
           // Use localStorage for persistent storage
-          localStorage.setItem('auth_token', response.data.token);
+          localStorage.setItem('auth_token', response.session_token);
           localStorage.setItem('remember_me', 'true');
-          if (response.data.refresh_token) {
-            localStorage.setItem('refresh_token', response.data.refresh_token);
+          if (response.refresh_token) {
+            localStorage.setItem('refresh_token', response.refresh_token);
           }
         } else {
           // Use sessionStorage for session-only storage
-          sessionStorage.setItem('auth_token', response.data.token);
+          sessionStorage.setItem('auth_token', response.session_token);
           localStorage.removeItem('remember_me');
-          if (response.data.refresh_token) {
-            sessionStorage.setItem('refresh_token', response.data.refresh_token);
+          if (response.refresh_token) {
+            sessionStorage.setItem('refresh_token', response.refresh_token);
           }
         }
 
         // Set user state AFTER tokens are stored
-        setUser(response.data.user);
+        setUser(response.user);
+        authService.setCurrentUser(response.user);
       }
 
       return response;
@@ -122,12 +178,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     authService.logout();
+    tokenManager.stopMonitoring();
     // Clear tokens from both storages
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('refresh_token');
+  };
+
+  const handleAutoLogout = () => {
+    setUser(null);
+    authService.logout();
+    tokenManager.stopMonitoring();
+    // Clear tokens from both storages
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('refresh_token');
+    
+    // Force redirect to login page
+    window.location.href = '/login';
   };
 
   const refreshUser = async () => {

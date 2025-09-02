@@ -9,7 +9,7 @@ import {
   Receipt,
   BarChart
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/themeUtils.util';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 import {

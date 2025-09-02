@@ -1,7 +1,6 @@
 
 import { templateOperations, invoiceOperations, clientOperations } from '@/lib/database';
 import { generateInvoiceNumber } from '@/utils/invoiceNumbering';
-import { formatDateSync } from '@/utils/dateFormatting';
 
 export const processRecurringInvoices = async () => {
   try {
@@ -51,26 +50,33 @@ export const processRecurringInvoices = async () => {
       }
 
       // Create the invoice
+      const amount = Number(template.amount);
+      const taxAmount = template.tax_amount || 0;
+      const shippingAmount = template.shipping_amount || 0;
+      const totalAmount = amount + taxAmount + shippingAmount;
+
       const invoiceData = {
         client_id: template.client_id,
         template_id: template.id,
-        amount: Number(template.amount),
+        amount: amount,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
         status: 'draft' as const,
         invoice_number: invoiceNumber,
         due_date: calculateDueDate(template.payment_terms || 'net_30'),
         issue_date: today.toISOString().split('T')[0],
         description: template.description || '',
-        type: 'invoice' as const,
+        type: 'recurring' as const,
         client_name: client.name,
         client_email: client.email,
         client_phone: client.phone,
         client_address: `${client.address}, ${client.city}, ${client.state} ${client.zipCode}`,
         line_items: template.line_items || '[]',
-        tax_amount: template.tax_amount || 0,
         tax_rate_id: template.tax_rate_id || null,
-        shipping_amount: template.shipping_amount || 0,
+        shipping_amount: shippingAmount,
         shipping_rate_id: template.shipping_rate_id || null,
-        notes: template.notes || ''
+        notes: template.notes || '',
+        email_status: 'not_sent' as const
       };
 
       // Additional validation before creating invoice

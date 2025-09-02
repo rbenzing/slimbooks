@@ -1,13 +1,7 @@
 // Email configuration utilities
 
 import { sqliteService } from '@/services/sqlite.svc';
-
-export interface EmailConfigStatus {
-  isConfigured: boolean;
-  isEnabled: boolean;
-  missingFields: string[];
-  canSendEmails: boolean;
-}
+import { EmailSettings, EmailConfigStatus } from '@/types/settings.types';
 
 /**
  * Checks if email settings are properly configured and enabled
@@ -20,7 +14,7 @@ export const checkEmailConfiguration = async (): Promise<EmailConfigStatus> => {
     }
 
     // Get email settings from database
-    const emailSettings = await sqliteService.getSetting('email_settings');
+    const emailSettings = await sqliteService.getSetting('email_settings') as EmailSettings;
     
     if (!emailSettings) {
       return {

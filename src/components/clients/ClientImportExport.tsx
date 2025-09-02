@@ -4,8 +4,8 @@ import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-
 import { clientOperations } from '@/lib/database';
 import { exportToCSV, parseCSV, validateClientData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
-import { themeClasses, getIconColorClasses, getButtonClasses } from '@/lib/utils';
-import { Client, ClientImportData, ClientValidationResult } from '@/types';
+import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
+import { ClientImportData, ClientValidationResult } from '@/types';
 
 interface ClientImportExportProps {
   onClose: () => void;

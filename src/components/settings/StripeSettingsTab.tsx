@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, TestTube, Eye, EyeOff } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 // Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
 

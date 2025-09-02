@@ -1,21 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Edit, Receipt, Eye, Trash2, Delete, Tag, Building } from 'lucide-react';
-import { getStatusColor } from '@/lib/utils';
+import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Expense {
-  id: number;
-  date: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'reimbursed';
-  created_at: string;
-}
+import { Expense } from '@/types/expense.types';
 
 interface ExpensesListProps {
   expenses: Expense[];

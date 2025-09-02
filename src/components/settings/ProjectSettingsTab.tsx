@@ -1,37 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Settings, Globe, CreditCard, Mail, Shield, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 // Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
-
-interface ProjectSettings {
-  google_oauth: {
-    enabled: boolean;
-    client_id: string;
-    client_secret: string;
-    configured: boolean;
-  };
-  stripe: {
-    enabled: boolean;
-    publishable_key: string;
-    secret_key: string;
-    configured: boolean;
-  };
-  email: {
-    enabled: boolean;
-    smtp_host: string;
-    smtp_port: number;
-    smtp_user: string;
-    smtp_pass: string;
-    email_from: string;
-    configured: boolean;
-  };
-  security: {
-    require_email_verification: boolean;
-    max_failed_login_attempts: number;
-    account_lockout_duration: number;
-  };
-}
+import { ProjectSettings } from '@/types/common.types';
 
 export interface ProjectSettingsRef {
   saveSettings: () => Promise<void>;

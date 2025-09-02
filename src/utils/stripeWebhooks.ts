@@ -1,12 +1,13 @@
 // Stripe webhook utilities and handlers
 
 import { StripeService } from '@/services/stripe.svc';
+import { Request, Response, NextFunction } from 'express';
 
 export interface WebhookEvent {
   id: string;
   type: string;
   data: {
-    object: any;
+    object: unknown;
   };
   created: number;
   livemode: boolean;
@@ -158,7 +159,7 @@ export class StripeWebhookHandler {
   /**
    * Handles specific event types with custom logic
    */
-  async handleSpecificEvent(eventType: string, eventData: any): Promise<void> {
+  async handleSpecificEvent(eventType: string, eventData: unknown): Promise<void> {
     switch (eventType) {
       case 'invoice.payment_succeeded':
         await this.handleInvoicePaymentSucceeded(eventData);
@@ -191,7 +192,7 @@ export class StripeWebhookHandler {
   /**
    * Handles successful invoice payments
    */
-  private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
+  private async handleInvoicePaymentSucceeded(invoice: unknown): Promise<void> {
     try {
       
       // Update local invoice status
@@ -219,7 +220,7 @@ export class StripeWebhookHandler {
   /**
    * Handles failed invoice payments
    */
-  private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
+  private async handleInvoicePaymentFailed(invoice: unknown): Promise<void> {
     try {
       
       // Update local invoice status
@@ -245,7 +246,7 @@ export class StripeWebhookHandler {
   /**
    * Handles subscription creation
    */
-  private async handleSubscriptionCreated(subscription: any): Promise<void> {
+  private async handleSubscriptionCreated(subscription: unknown): Promise<void> {
     try {
       
       // Update client record with subscription info
@@ -265,7 +266,7 @@ export class StripeWebhookHandler {
   /**
    * Handles subscription updates
    */
-  private async handleSubscriptionUpdated(subscription: any): Promise<void> {
+  private async handleSubscriptionUpdated(subscription: unknown): Promise<void> {
     try {
       // Handle subscription changes
     } catch (error) {
@@ -277,7 +278,7 @@ export class StripeWebhookHandler {
   /**
    * Handles subscription deletion
    */
-  private async handleSubscriptionDeleted(subscription: any): Promise<void> {
+  private async handleSubscriptionDeleted(subscription: unknown): Promise<void> {
     try {
       // Handle subscription cancellation
     } catch (error) {
@@ -289,7 +290,7 @@ export class StripeWebhookHandler {
   /**
    * Handles successful payment intents
    */
-  private async handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: unknown): Promise<void> {
     try {
       // Handle successful one-time payments
     } catch (error) {
@@ -305,7 +306,7 @@ export class StripeWebhookHandler {
     total: number;
     processed: number;
     failed: number;
-    recent: any[];
+    recent: unknown[];
   }> {
     try {
       const logs = await this.getWebhookLogs(100);
@@ -330,7 +331,7 @@ export class StripeWebhookHandler {
  * (This would be used in a backend implementation)
  */
 export const createStripeWebhookMiddleware = () => {
-  return async (req: any, res: any, next: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const signature = req.headers['stripe-signature'];
       const payload = req.body;

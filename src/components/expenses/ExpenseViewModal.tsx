@@ -1,21 +1,9 @@
 import React from 'react';
 import { X, Calendar, DollarSign, FileText, Tag, Receipt, Clock } from 'lucide-react';
-import { getStatusColor, themeClasses } from '@/lib/utils';
+import { getStatusColor, themeClasses } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-
-interface Expense {
-  id: number;
-  date: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'reimbursed';
-  created_at: string;
-  updated_at?: string;
-}
+import { Expense } from '@/types/expense.types';
 
 interface ExpenseViewModalProps {
   expense: Expense | null;

@@ -6,27 +6,14 @@ import { ExpenseReport } from './reports/ExpenseReport';
 import { InvoiceReport } from './reports/InvoiceReport';
 import { ClientReport } from './reports/ClientReport';
 import { reportOperations } from '../lib/database';
-import { themeClasses } from '../lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
+import { Report, ReportType } from '@/types/common.types';
+import { ReportDateRange } from '@/types/reports.types';
 
-export type ReportType = 'profit-loss' | 'expense' | 'invoice' | 'client';
-
-export interface DateRange {
-  start: string;
-  end: string;
-  preset: 'custom' | 'this-month' | 'last-month' | 'this-quarter' | 'last-quarter' | 'this-year' | 'last-year';
-}
-
-interface Report {
-  id: number;
-  name: string;
-  type: ReportType;
-  date_range_start: string;
-  date_range_end: string;
-  data: any;
-  created_at: string;
-}
+export type { ReportType };
+export type { ReportDateRange as DateRange }; // Re-export for backward compatibility
 
 export const ReportsManagement: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<ReportType | null>(null);
@@ -77,7 +64,7 @@ export const ReportsManagement: React.FC = () => {
     }
   ];
 
-  const handleSaveReport = async (reportData: any, reportType: ReportType, dateRange: DateRange) => {
+  const handleSaveReport = async (reportData: any, reportType: ReportType, dateRange: ReportDateRange) => {
     try {
       const reportName = `${reportTypes.find(r => r.id === reportType)?.name} - ${formatDateRangeSync(dateRange.start, dateRange.end)}`;
       await reportOperations.create({
@@ -108,7 +95,7 @@ export const ReportsManagement: React.FC = () => {
     }
   };
 
-  const getFormattedDateRange = (dateRange: DateRange) => {
+  const getFormattedDateRange = (dateRange: ReportDateRange) => {
     return formatDateRangeSync(dateRange.start, dateRange.end);
   };
 

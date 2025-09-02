@@ -15,7 +15,7 @@ import {
 interface UseFormNavigationProps {
   isDirty: boolean;
   isEnabled: boolean;
-  entityType: 'client' | 'invoice' | 'expense' | 'template';
+  entityType: 'client' | 'invoice' | 'expense' | 'template' | 'payment';
   onCancel?: () => void;
 }
 

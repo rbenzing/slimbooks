@@ -1,16 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
-
-interface CompanySettings {
-  companyName: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  brandingImage: string;
-}
+import { CompanySettings } from '@/types/common.types';
 
 interface CompanyHeaderProps {
   companyLogo: string;
@@ -21,6 +12,9 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
 
   const [companySettings, setCompanySettings] = useState<CompanySettings>({
     companyName: 'Your Company',
+    ownerName: 'Owner Name',
+    email: 'contact@yourcompany.com',
+    phone: '(555) 123-4567',
     address: '123 Business Street',
     city: 'City',
     state: 'State',
@@ -38,13 +32,16 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
           await sqliteService.initialize();
         }
 
-        const saved: CompanySettings = await sqliteService.getSetting('company_settings');
+        const saved = await sqliteService.getSetting('company_settings') as CompanySettings;
         if (saved) {
           setCompanySettings(saved);
         } else {
           // Set default company settings if none exist
           const defaultSettings = {
             companyName: 'ClientBill Pro',
+            ownerName: 'Business Owner',
+            email: 'contact@clientbillpro.com',
+            phone: '(555) 123-4567',
             address: '123 Business Street',
             city: 'Business City',
             state: 'CA',
@@ -60,6 +57,9 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
         // Fallback to default settings
         const defaultSettings = {
           companyName: 'ClientBill Pro',
+          ownerName: 'Business Owner',
+          email: 'contact@clientbillpro.com',
+          phone: '(555) 123-4567',
           address: '123 Business Street',
           city: 'Business City',
           state: 'CA',

@@ -91,17 +91,17 @@ export const validateClientData = (data: CSVRecord): ClientValidationResult => {
   const errors: string[] = [];
 
   // Check if we have either a full name or first/last name
-  const hasFullName = data.name && data.name.trim() !== '';
-  const hasFirstOrLastName = (data.first_name && data.first_name.trim() !== '') ||
-                            (data.last_name && data.last_name.trim() !== '');
+  const hasFullName = data.name && data.name.toString().trim() !== '';
+  const hasFirstOrLastName = (data.first_name && data.first_name.toString().trim() !== '') ||
+                            (data.last_name && data.last_name.toString().trim() !== '');
 
   if (!hasFullName && !hasFirstOrLastName) {
     errors.push('Name is required (either full name or first/last name)');
   }
 
-  if (!data.email || data.email.trim() === '') {
+  if (!data.email || data.email.toString().trim() === '') {
     errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.toString())) {
     errors.push('Invalid email format');
   }
 
@@ -114,11 +114,11 @@ export const validateClientData = (data: CSVRecord): ClientValidationResult => {
 export const validateExpenseData = (data: CSVRecord): ExpenseValidationResult => {
   const errors: string[] = [];
   
-  if (!data.merchant || data.merchant.trim() === '') {
+  if (!data.merchant || data.merchant.toString().trim() === '') {
     errors.push('Merchant is required');
   }
   
-  if (!data.amount || isNaN(parseFloat(data.amount))) {
+  if (!data.amount || isNaN(parseFloat(data.amount.toString()))) {
     errors.push('Valid amount is required');
   }
   
@@ -126,7 +126,7 @@ export const validateExpenseData = (data: CSVRecord): ExpenseValidationResult =>
     errors.push('Date is required');
   }
   
-  if (!data.category || data.category.trim() === '') {
+  if (!data.category || data.category.toString().trim() === '') {
     errors.push('Category is required');
   }
   

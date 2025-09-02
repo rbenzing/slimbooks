@@ -1,25 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, TrendingUp, TrendingDown, Save, Calendar } from 'lucide-react';
-import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
-import { themeClasses, getButtonClasses } from '../../lib/utils';
+import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
-
-interface ProfitLossReportProps {
-  onBack: () => void;
-  onSave: (reportData: any, reportType: ReportType, dateRange: DateRange) => void;
-}
+import { ProfitLossReportProps, ProfitLossReportData, ReportDateRange, AccountingMethod, BreakdownPeriod } from '@/types/reports.types';
 
 export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSave }) => {
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<ProfitLossReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const [accountingMethod, setAccountingMethod] = useState<'cash' | 'accrual'>('accrual');
-  const [breakdownPeriod, setBreakdownPeriod] = useState<'monthly' | 'quarterly'>('quarterly');
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
+  const [accountingMethod, setAccountingMethod] = useState<AccountingMethod>('accrual');
+  const [breakdownPeriod, setBreakdownPeriod] = useState<BreakdownPeriod>('quarterly');
+  const [dateRange, setDateRange] = useState<ReportDateRange>(() => {
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     return {
@@ -47,7 +42,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
     }
   };
 
-  const handleDatePresetChange = (preset: DateRange['preset']) => {
+  const handleDatePresetChange = (preset: ReportDateRange['preset']) => {
     const today = new Date();
     let start: Date;
     let end: Date;
@@ -191,7 +186,7 @@ export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSa
               <select
                 className={`w-full ${themeClasses.select}`}
                 value={dateRange.preset}
-                onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+                onChange={(e) => handleDatePresetChange(e.target.value as ReportDateRange['preset'])}
               >
                 <option value="this-month">This Month</option>
                 <option value="last-month">Last Month</option>

@@ -57,6 +57,7 @@ export const themeClasses = {
   cardHeader: "border-b border-border pb-4 mb-4",
   cardTitle: "text-lg font-medium text-card-foreground",
   cardContent: "space-y-4",
+  cardFooter: "flex items-center p-6 pt-0",
   cardHover: "bg-card text-card-foreground p-6 rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer",
 
   // Statistics Cards - Dashboard stats styling
@@ -74,6 +75,7 @@ export const themeClasses = {
   contentGrid: "grid grid-cols-1 lg:grid-cols-2 gap-6",
 
   // Form elements
+  label: "block text-sm font-medium text-card-foreground mb-2",
   input: "w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
   dateInput: "w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent [color-scheme:light] dark:[color-scheme:dark]",
   select: "px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",

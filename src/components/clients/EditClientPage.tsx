@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, User, Building, Mail, Phone, MapPin } from 'lucide-react';
 import { clientOperations } from '@/lib/database';
@@ -43,52 +43,60 @@ export const EditClientPage = () => {
   });
 
   useEffect(() => {
-    if (isEditing && id) {
-      const client = clientOperations.getById(parseInt(id));
-      if (client) {
-        // Use existing first_name and last_name if available, otherwise parse name field
-        const first_name = client.first_name || (client.name ? client.name.split(' ')[0] : '') || '';
-        const last_name = client.last_name || (client.name ? client.name.split(' ').slice(1).join(' ') : '') || '';
+    const loadClientData = async () => {
+      if (isEditing && id) {
+        try {
+          const client = await clientOperations.getById(parseInt(id));
+          if (client) {
+            // Use existing first_name and last_name if available, otherwise parse name field
+            const first_name = client.first_name || (client.name ? client.name.split(' ')[0] : '') || '';
+            const last_name = client.last_name || (client.name ? client.name.split(' ').slice(1).join(' ') : '') || '';
 
-        const clientData = {
-          name: client.name || '',
-          first_name,
-          last_name,
-          email: client.email,
-          phone: client.phone,
-          company: client.company,
+            const clientData = {
+              name: client.name || '',
+              first_name,
+              last_name,
+              email: client.email || '',
+              phone: client.phone || '',
+              company: client.company || '',
+              companyEmail: '',
+              companyPhone: '',
+              address: client.address || '',
+              address2: '',
+              city: client.city || '',
+              state: client.state || '',
+              zipCode: client.zipCode || '',
+              country: client.country || 'USA'
+            };
+            setFormData(clientData);
+            setOriginalFormData(clientData);
+          }
+        } catch (error) {
+          console.error('Error loading client data:', error);
+        }
+      } else {
+        // For new clients, set original data after initial load
+        const initialData = {
+          name: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          phone: '',
+          company: '',
           companyEmail: '',
           companyPhone: '',
-          address: client.address,
+          address: '',
           address2: '',
-          city: client.city,
-          state: client.state,
-          zipCode: client.zipCode,
-          country: client.country
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'USA'
         };
-        setFormData(clientData);
-        setOriginalFormData(clientData);
+        setOriginalFormData(initialData);
       }
-    } else {
-      // For new clients, set original data after initial load
-      const initialData = {
-        name: '',
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        company: '',
-        companyEmail: '',
-        companyPhone: '',
-        address: '',
-        address2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'USA'
-      };
-      setOriginalFormData(initialData);
-    }
+    };
+    
+    loadClientData();
   }, [id, isEditing]);
 
   const validateForm = () => {

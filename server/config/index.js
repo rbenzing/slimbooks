@@ -72,7 +72,7 @@ export const authConfig = {
   sessionSecret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
 
   // Token expiration (in milliseconds)
-  accessTokenExpiry: parseInt(process.env.ACCESS_TOKEN_EXPIRY) || 15 * 60 * 1000, // 15 minutes
+  accessTokenExpiry: parseInt(process.env.ACCESS_TOKEN_EXPIRY) || 2 * 60 * 60 * 1000, // 2 hours
   refreshTokenExpiry: parseInt(process.env.REFRESH_TOKEN_EXPIRY) || 7 * 24 * 60 * 60 * 1000, // 7 days
   emailTokenExpiry: parseInt(process.env.EMAIL_TOKEN_EXPIRY) || 24 * 60 * 60 * 1000, // 24 hours
   passwordResetExpiry: parseInt(process.env.PASSWORD_RESET_EXPIRY) || 60 * 60 * 1000, // 1 hour

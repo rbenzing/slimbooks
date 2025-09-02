@@ -1,9 +1,10 @@
 // Common types and interfaces used across the application
 
 // Generic API Response structure
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<TData = unknown, TResult = unknown> {
   success: boolean;
-  data?: T;
+  data?: TData;
+  result?: TResult;
   message?: string;
   error?: string;
   errors?: ValidationError[];
@@ -123,7 +124,8 @@ export interface AppSettings {
   category: string;
 }
 
-export interface ProjectSettings {
+// Individual project setting record
+export interface ProjectSettingRecord {
   key: string;
   value: string;
   enabled?: boolean;
@@ -131,8 +133,38 @@ export interface ProjectSettings {
   updated_at: string;
 }
 
+// Complete project configuration structure
+export interface ProjectSettings {
+  google_oauth: {
+    enabled: boolean;
+    client_id: string;
+    client_secret?: string; // Optional for client-side use
+    configured: boolean;
+  };
+  stripe: {
+    enabled: boolean;
+    publishable_key: string;
+    secret_key?: string; // Optional for client-side use
+    configured: boolean;
+  };
+  email: {
+    enabled: boolean;
+    smtp_host: string;
+    smtp_port: number;
+    smtp_user: string;
+    smtp_pass?: string; // Optional for client-side use
+    email_from: string;
+    configured: boolean;
+  };
+  security: {
+    require_email_verification: boolean;
+    max_failed_login_attempts: number;
+    account_lockout_duration: number;
+  };
+}
+
 // Report types
-export type ReportType = 'income' | 'expense' | 'profit_loss' | 'tax' | 'custom';
+export type ReportType = 'profit-loss' | 'expense' | 'invoice' | 'client';
 
 export interface Report {
   id: number;
@@ -140,7 +172,7 @@ export interface Report {
   type: ReportType;
   date_range_start: string;
   date_range_end: string;
-  data?: string; // JSON string of report data
+  data: any; // Report data object
   created_at: string;
 }
 
@@ -191,4 +223,29 @@ export interface ImportResult<T> {
     data: T;
     errors: string[];
   }>;
+}
+
+// PDF generation options
+export interface PDFGenerationOptions {
+  format?: 'A4' | 'Letter';
+  orientation?: 'portrait' | 'landscape';
+  margin?: {
+    top?: string;
+    right?: string;
+    bottom?: string;
+    left?: string;
+  };
+}
+
+// Company settings interface
+export interface CompanySettings {
+  companyName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  brandingImage: string;
 }

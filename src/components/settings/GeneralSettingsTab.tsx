@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, FileText, DollarSign, List } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import {
   getDateTimeSettings,
   saveDateTimeSettings,

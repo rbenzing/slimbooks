@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User, Plus } from 'lucide-react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 import { Client } from '@/types/client.types';
 
 interface ClientSelectorProps {

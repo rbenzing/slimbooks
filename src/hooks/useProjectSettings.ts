@@ -1,31 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sqliteService } from '@/services/sqlite.svc';
-
-interface ProjectSettings {
-  google_oauth: {
-    enabled: boolean;
-    client_id: string;
-    configured: boolean;
-  };
-  stripe: {
-    enabled: boolean;
-    publishable_key: string;
-    configured: boolean;
-  };
-  email: {
-    enabled: boolean;
-    smtp_host: string;
-    smtp_port: number;
-    smtp_user: string;
-    email_from: string;
-    configured: boolean;
-  };
-  security: {
-    require_email_verification: boolean;
-    max_failed_login_attempts: number;
-    account_lockout_duration: number;
-  };
-}
+import { ProjectSettings } from '@/types/common.types';
 
 export const useProjectSettings = () => {
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
@@ -40,7 +15,39 @@ export const useProjectSettings = () => {
         
         // Remove redundant initialization - getProjectSettings will handle it
         const projectSettings = await sqliteService.getProjectSettings();
-        setSettings(projectSettings);
+        
+        // Type-safe conversion from database result to ProjectSettings
+        if (projectSettings && typeof projectSettings === 'object') {
+          const typedSettings = projectSettings as Record<string, any>;
+          const convertedSettings: ProjectSettings = {
+            google_oauth: {
+              enabled: Boolean(typedSettings.google_oauth?.enabled),
+              client_id: String(typedSettings.google_oauth?.client_id || ''),
+              configured: Boolean(typedSettings.google_oauth?.configured)
+            },
+            stripe: {
+              enabled: Boolean(typedSettings.stripe?.enabled),
+              publishable_key: String(typedSettings.stripe?.publishable_key || ''),
+              configured: Boolean(typedSettings.stripe?.configured)
+            },
+            email: {
+              enabled: Boolean(typedSettings.email?.enabled),
+              smtp_host: String(typedSettings.email?.smtp_host || ''),
+              smtp_port: Number(typedSettings.email?.smtp_port) || 587,
+              smtp_user: String(typedSettings.email?.smtp_user || ''),
+              email_from: String(typedSettings.email?.email_from || ''),
+              configured: Boolean(typedSettings.email?.configured)
+            },
+            security: {
+              require_email_verification: Boolean(typedSettings.security?.require_email_verification ?? true),
+              max_failed_login_attempts: Number(typedSettings.security?.max_failed_login_attempts) || 5,
+              account_lockout_duration: Number(typedSettings.security?.account_lockout_duration) || 1800000
+            }
+          };
+          setSettings(convertedSettings);
+        } else {
+          throw new Error('Invalid project settings format');
+        }
       } catch (err) {
         console.error('Error loading project settings:', err);
         setError(err instanceof Error ? err.message : 'Failed to load project settings');
@@ -83,7 +90,39 @@ export const useProjectSettings = () => {
     try {
       // Remove redundant initialization - getProjectSettings will handle it
       const projectSettings = await sqliteService.getProjectSettings();
-      setSettings(projectSettings);
+      
+      // Type-safe conversion from database result to ProjectSettings
+      if (projectSettings && typeof projectSettings === 'object') {
+        const typedSettings = projectSettings as Record<string, any>;
+        const convertedSettings: ProjectSettings = {
+          google_oauth: {
+            enabled: Boolean(typedSettings.google_oauth?.enabled),
+            client_id: String(typedSettings.google_oauth?.client_id || ''),
+            configured: Boolean(typedSettings.google_oauth?.configured)
+          },
+          stripe: {
+            enabled: Boolean(typedSettings.stripe?.enabled),
+            publishable_key: String(typedSettings.stripe?.publishable_key || ''),
+            configured: Boolean(typedSettings.stripe?.configured)
+          },
+          email: {
+            enabled: Boolean(typedSettings.email?.enabled),
+            smtp_host: String(typedSettings.email?.smtp_host || ''),
+            smtp_port: Number(typedSettings.email?.smtp_port) || 587,
+            smtp_user: String(typedSettings.email?.smtp_user || ''),
+            email_from: String(typedSettings.email?.email_from || ''),
+            configured: Boolean(typedSettings.email?.configured)
+          },
+          security: {
+            require_email_verification: Boolean(typedSettings.security?.require_email_verification ?? true),
+            max_failed_login_attempts: Number(typedSettings.security?.max_failed_login_attempts) || 5,
+            account_lockout_duration: Number(typedSettings.security?.account_lockout_duration) || 1800000
+          }
+        };
+        setSettings(convertedSettings);
+      } else {
+        throw new Error('Invalid project settings format');
+      }
       setError(null);
     } catch (err) {
       console.error('Error refreshing project settings:', err);

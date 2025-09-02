@@ -5,7 +5,7 @@ import { clientOperations, invoiceOperations, templateOperations } from '@/lib/d
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 
 interface LineItem {
   id: string;

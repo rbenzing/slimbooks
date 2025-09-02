@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Download, DollarSign } from 'lucide-react';
-import { getStatusColor } from '@/lib/utils';
+import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';

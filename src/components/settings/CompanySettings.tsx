@@ -3,18 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
-
-export interface CompanySettings {
-  companyName: string;
-  ownerName: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  email: string;
-  phone: string;
-  brandingImage: string;
-}
+import { CompanySettings } from '@/types/common.types';
 
 export const CompanySettings = () => {
   const [settings, setSettings] = useState<CompanySettings>({
@@ -42,17 +31,19 @@ export const CompanySettings = () => {
         }
 
         const saved = await sqliteService.getSetting('company_settings');
-        if (saved) {
+        if (saved && typeof saved === 'object' && saved !== null) {
+          // Type guard to safely access properties from unknown type
+          const savedSettings = saved as Record<string, unknown>;
           setSettings({
-            companyName: saved.companyName || 'ClientBill Pro',
-            ownerName: saved.ownerName || '',
-            address: saved.address || '',
-            city: saved.city || '',
-            state: saved.state || '',
-            zipCode: saved.zipCode || '',
-            email: saved.email || '',
-            phone: saved.phone || '',
-            brandingImage: saved.brandingImage || ''
+            companyName: typeof savedSettings.companyName === 'string' ? savedSettings.companyName : 'ClientBill Pro',
+            ownerName: typeof savedSettings.ownerName === 'string' ? savedSettings.ownerName : '',
+            address: typeof savedSettings.address === 'string' ? savedSettings.address : '',
+            city: typeof savedSettings.city === 'string' ? savedSettings.city : '',
+            state: typeof savedSettings.state === 'string' ? savedSettings.state : '',
+            zipCode: typeof savedSettings.zipCode === 'string' ? savedSettings.zipCode : '',
+            email: typeof savedSettings.email === 'string' ? savedSettings.email : '',
+            phone: typeof savedSettings.phone === 'string' ? savedSettings.phone : '',
+            brandingImage: typeof savedSettings.brandingImage === 'string' ? savedSettings.brandingImage : ''
           });
         }
       } catch (error) {

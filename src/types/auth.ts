@@ -104,6 +104,7 @@ export interface EmailSettings {
   smtp_password: string;
   from_email: string;
   from_name: string;
+  isEnabled?: boolean;
 }
 
 export interface PasswordRequirements {

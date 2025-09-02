@@ -1,5 +1,5 @@
 import React from 'react';
-import { themeClasses } from '@/lib/utils';
+import { themeClasses } from '@/utils/themeUtils.util';
 
 interface AddressField {
   key: string;

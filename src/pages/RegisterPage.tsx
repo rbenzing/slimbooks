@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthUtils } from '@/lib/auth-utils';
+import { AuthUtils } from '@/utils/authUtils.util';
 import { DEFAULT_PASSWORD_REQUIREMENTS } from '@/types/auth';
 
 export const RegisterPage: React.FC = () => {

@@ -1,7 +1,7 @@
 // Authentication service for login, registration, and session management
 
 import { userOperations } from '@/lib/database';
-import { AuthUtils } from '@/lib/auth-utils';
+import { AuthUtils } from '@/utils/authUtils.util';
 import { envConfig } from '@/lib/env-config';
 import { 
   User, 
@@ -146,6 +146,15 @@ export class AuthService {
         this.sessionToken = result.data.token;
 
         await this.completeLogin(result.data.user);
+        
+        // Transform the response to match what AuthContext expects
+        return {
+          success: result.success,
+          user: result.data.user,
+          session_token: result.data.token, // Map token to session_token
+          message: result.message,
+          requires_email_verification: result.requires_email_verification
+        };
       }
 
       return result;

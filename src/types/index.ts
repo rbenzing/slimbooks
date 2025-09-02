@@ -6,6 +6,7 @@ export * from './invoice.types';
 export * from './client.types';
 export * from './expense.types';
 export * from './payment.types';
+export * from './stripe.types';
 export * from './common.types';
 export * from './ui.types';
 

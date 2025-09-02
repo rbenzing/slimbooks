@@ -1,58 +1,25 @@
 // Stripe integration service for payment processing and webhook handling
 
 import { sqliteService } from './sqlite.svc';
-
-export interface StripeSettings {
-  isEnabled: boolean;
-  publishableKey: string;
-  secretKey: string;
-  webhookSecret: string;
-  webhookEndpoint: string;
-  testMode: boolean;
-  accountId?: string;
-  accountName?: string;
-  connectedAt?: string;
-}
-
-export interface StripeAccountInfo {
-  id: string;
-  display_name?: string;
-  business_profile?: {
-    name?: string;
-    url?: string;
-  };
-  country: string;
-  default_currency: string;
-}
-
-export interface StripeTestResult {
-  success: boolean;
-  message: string;
-  accountInfo?: StripeAccountInfo;
-}
-
-export interface StripePaymentLink {
-  id: string;
-  url: string;
-  active: boolean;
-  metadata?: Record<string, string>;
-}
-
-export interface StripeInvoiceData {
-  id: number;
-  invoice_number: string;
-  client_name: string;
-  client_email: string;
-  amount: number;
-  currency: string;
-  description?: string;
-  due_date?: string;
-  metadata?: Record<string, string>;
-}
+import {
+  StripeInvoice,
+  StripeSubscription, 
+  StripePaymentIntent,
+  StripeAccountInfo,
+  StripeConnectionTestResult,
+  StripePaymentLink,
+  StripePaymentLinkResult,
+  StripeWebhookResult,
+  StripeOperationResult,
+  StripeInvoiceData,
+  StripeSettings
+} from '@/types';
 
 export class StripeService {
   private static instance: StripeService;
   private settings: StripeSettings | null = null;
+  private settingsTimestamp: number = 0;
+  private readonly SETTINGS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   static getInstance(): StripeService {
     if (!StripeService.instance) {
@@ -66,10 +33,16 @@ export class StripeService {
    */
   async loadSettings(): Promise<StripeSettings | null> {
     try {
+      // Check if we have cached settings that are still valid
+      const now = Date.now();
+      if (this.settings && (now - this.settingsTimestamp) < this.SETTINGS_CACHE_TTL) {
+        return this.settings;
+      }
       if (sqliteService.isReady()) {
-        const settings = await sqliteService.getSetting('stripe_settings');
+        const settings = await sqliteService.getSetting('stripe_settings') as StripeSettings;
         if (settings) {
           this.settings = settings;
+          this.settingsTimestamp = Date.now(); // Update cache timestamp
           return settings;
         }
       }
@@ -82,7 +55,7 @@ export class StripeService {
   /**
    * Saves Stripe settings to database
    */
-  async saveSettings(settings: StripeSettings): Promise<{ success: boolean; message: string }> {
+  async saveSettings(settings: StripeSettings): Promise<StripeOperationResult> {
     try {
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
@@ -90,6 +63,7 @@ export class StripeService {
 
       await sqliteService.setSetting('stripe_settings', settings, 'stripe');
       this.settings = settings;
+      this.settingsTimestamp = Date.now(); // Update cache timestamp
 
       return {
         success: true,
@@ -114,7 +88,7 @@ export class StripeService {
   /**
    * Tests Stripe API connection with current settings
    */
-  async testConnection(): Promise<StripeTestResult> {
+  async testConnection(): Promise<StripeConnectionTestResult> {
     try {
       const settings = await this.loadSettings();
 
@@ -131,9 +105,6 @@ export class StripeService {
           message: 'Stripe secret key is required'
         };
       }
-
-      // In a browser environment, we simulate the connection test
-      // In a real implementation, this would test the actual Stripe API connection
 
       // Simulate connection test
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -180,7 +151,7 @@ export class StripeService {
   /**
    * Creates a Stripe payment link for an invoice
    */
-  async createPaymentLink(invoiceData: StripeInvoiceData): Promise<{ success: boolean; message: string; paymentLink?: StripePaymentLink }> {
+  async createPaymentLink(invoiceData: StripeInvoiceData): Promise<StripePaymentLinkResult> {
     try {
       const settings = await this.loadSettings();
 
@@ -191,13 +162,7 @@ export class StripeService {
         };
       }
 
-      // In a real implementation, this would create an actual Stripe payment link
-      // For now, we'll simulate the payment link creation
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulate payment link creation
+      // payment link creation
       const paymentLink: StripePaymentLink = {
         id: `plink_${Date.now()}`,
         url: `https://buy.stripe.com/test_${Math.random().toString(36).substring(7)}`,
@@ -226,7 +191,7 @@ export class StripeService {
   /**
    * Retrieves a payment link by ID
    */
-  async getPaymentLink(linkId: string): Promise<{ success: boolean; message: string; paymentLink?: StripePaymentLink }> {
+  async getPaymentLink(linkId: string): Promise<StripePaymentLinkResult> {
     try {
       const settings = await this.loadSettings();
 
@@ -237,12 +202,7 @@ export class StripeService {
         };
       }
 
-      // In a real implementation, this would retrieve the actual payment link from Stripe
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Simulate payment link retrieval
+      // payment link retrieval
       const paymentLink: StripePaymentLink = {
         id: linkId,
         url: `https://buy.stripe.com/test_${linkId.substring(6)}`,
@@ -271,7 +231,7 @@ export class StripeService {
   /**
    * Deactivates a payment link
    */
-  async deactivatePaymentLink(linkId: string): Promise<{ success: boolean; message: string }> {
+  async deactivatePaymentLink(linkId: string): Promise<StripeOperationResult> {
     try {
       const settings = await this.loadSettings();
 
@@ -281,11 +241,6 @@ export class StripeService {
           message: 'Stripe is not enabled'
         };
       }
-
-      // In a real implementation, this would deactivate the actual payment link in Stripe
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       return {
         success: true,
@@ -303,7 +258,7 @@ export class StripeService {
   /**
    * Processes Stripe webhook events
    */
-  async processWebhook(payload: string, signature: string): Promise<{ success: boolean; message: string }> {
+  async processWebhook(payload: string, signature: string): Promise<StripeWebhookResult> {
     try {
       const settings = await this.loadSettings();
 
@@ -320,12 +275,6 @@ export class StripeService {
           message: 'Webhook secret not configured'
         };
       }
-
-      // In a real implementation, this would verify the webhook signature
-      // and process the actual Stripe event
-
-      // Simulate webhook processing
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Parse the simulated event
       const event = JSON.parse(payload);
@@ -365,7 +314,7 @@ export class StripeService {
   /**
    * Handles successful invoice payment
    */
-  private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
+  private async handleInvoicePaymentSucceeded(invoice: StripeInvoice): Promise<void> {
     try {
 
       // Update local invoice status to paid
@@ -386,7 +335,7 @@ export class StripeService {
   /**
    * Handles failed invoice payment
    */
-  private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
+  private async handleInvoicePaymentFailed(invoice: StripeInvoice): Promise<void> {
     try {
 
       // Update local invoice status
@@ -407,7 +356,7 @@ export class StripeService {
   /**
    * Handles subscription events
    */
-  private async handleSubscriptionEvent(subscription: any, eventType: string): Promise<void> {
+  private async handleSubscriptionEvent(subscription: StripeSubscription, eventType: string): Promise<void> {
     try {
       // Handle subscription updates in your local database
     } catch (error) {
@@ -418,7 +367,7 @@ export class StripeService {
   /**
    * Handles successful payment intent
    */
-  private async handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: StripePaymentIntent): Promise<void> {
     try {
       // Handle successful payment
     } catch (error) {

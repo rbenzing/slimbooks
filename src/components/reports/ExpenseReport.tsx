@@ -1,30 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
-import { DateRange, ReportType } from '../ReportsManagement';
 import { reportOperations } from '../../lib/database';
-import { themeClasses, getButtonClasses } from '../../lib/utils';
+import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';
-
-interface ExpenseReportData {
-  expenses: Expense[];
-  expensesByCategory: Record<string, number>;
-  expensesByStatus: Record<string, number>;
-  totalAmount: number;
-  totalCount: number;
-}
-
-interface ExpenseReportProps {
-  onBack: () => void;
-  onSave: (reportData: ExpenseReportData, reportType: ReportType, dateRange: DateRange) => void;
-}
+import { ExpenseReportData, ExpenseReportProps, ReportDateRange } from '@/types/reports.types';
 
 export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<ExpenseReportData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [dateRange, setDateRange] = useState<ReportDateRange>({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
     preset: 'this-month'
@@ -48,7 +35,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
     }
   };
 
-  const handleDatePresetChange = (preset: DateRange['preset']) => {
+  const handleDatePresetChange = (preset: ReportDateRange['preset']) => {
     const today = new Date();
     let start: Date;
     let end: Date;
@@ -174,7 +161,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
               <select
                 className={`w-full ${themeClasses.select}`}
                 value={dateRange.preset}
-                onChange={(e) => handleDatePresetChange(e.target.value as DateRange['preset'])}
+                onChange={(e) => handleDatePresetChange(e.target.value as ReportDateRange['preset'])}
               >
                 <option value="this-month">This Month</option>
                 <option value="last-month">Last Month</option>

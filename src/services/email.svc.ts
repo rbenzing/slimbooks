@@ -26,11 +26,16 @@ export class EmailService {
   /**
    * Gets email settings from storage
    */
-  private async getStoredEmailSettings(): Promise<any | null> {
+  private async getStoredEmailSettings(): Promise<EmailSettings | null> {
     try {
       const { sqliteService } = await import('./sqlite.svc');
       if (sqliteService.isReady()) {
-        return await sqliteService.getSetting('email_settings');
+        const settings = await sqliteService.getSetting('email_settings');
+        // Type guard to ensure we have a valid EmailSettings object
+        if (settings && typeof settings === 'object' && 
+            'smtp_host' in settings && 'smtp_port' in settings) {
+          return settings as EmailSettings;
+        }
       }
     } catch (error) {
       console.error('Error loading email settings:', error);
@@ -52,23 +57,17 @@ export class EmailService {
         };
       }
 
-      if (!settings.smtpHost || !settings.smtpUsername || !settings.smtpPassword) {
+      if (!settings.smtp_host || !settings.smtp_user || !settings.smtp_password) {
         return {
           success: false,
           message: 'Missing required SMTP configuration'
         };
       }
 
-      // In a browser environment, we simulate the connection test
-      // In a real implementation, this would test the actual SMTP connection
-
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       // Simulate success/failure based on basic validation
-      const isValidConfig = settings.smtpHost.includes('.') &&
-                           settings.smtpPort > 0 &&
-                           settings.smtpUsername.includes('@');
+      const isValidConfig = settings.smtp_host.includes('.') &&
+                           settings.smtp_port > 0 &&
+                           settings.smtp_user.includes('@');
 
       if (isValidConfig) {
         return {

@@ -4,7 +4,7 @@ import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-
 import { expenseOperations } from '@/lib/database';
 import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
-import { themeClasses, getIconColorClasses, getButtonClasses } from '@/lib/utils';
+import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
 
 interface ExpenseImportExportProps {
   onClose: () => void;
@@ -48,9 +48,9 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
   const [validationResults, setValidationResults] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const expenses = expenseOperations.getAll();
+      const expenses = await expenseOperations.getAll();
       if (expenses.length === 0) {
         toast.error('No expenses to export');
         return;
