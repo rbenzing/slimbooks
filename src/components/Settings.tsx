@@ -14,21 +14,33 @@ import { ProjectSettingsTab, ProjectSettingsRef } from './settings/ProjectSettin
 import { DatabaseBackupSection } from './settings/DatabaseBackupSection';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
+import { useProjectSettings } from '@/hooks/useProjectSettings';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const projectSettingsRef = useRef<ProjectSettingsRef>(null);
+  const { settings: projectSettings } = useProjectSettings();
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['company', 'general', 'tax', 'shipping', 'email', 'stripe', 'notifications', 'appearance', 'project', 'backup'].includes(hash)) {
+    const availableTabs = ['company', 'general', 'tax', 'shipping', 'email', 'notifications', 'appearance', 'project', 'backup'];
+    
+    // Add stripe tab only if the integration is enabled
+    if (projectSettings?.stripe?.enabled) {
+      availableTabs.push('stripe');
+    }
+    
+    if (hash && availableTabs.includes(hash)) {
       setActiveTab(hash);
+    } else if (hash === 'stripe' && !projectSettings?.stripe?.enabled) {
+      // If trying to access stripe tab but it's disabled, redirect to project settings
+      setActiveTab('project');
     } else {
       setActiveTab('company');
     }
-  }, [location.hash]);
+  }, [location.hash, projectSettings?.stripe?.enabled]);
 
   const handleSaveSettings = async () => {
     setIsLoading(true);
@@ -76,7 +88,7 @@ export const Settings = () => {
           {activeTab === 'tax' && <TaxSettings />}
           {activeTab === 'shipping' && <ShippingSettings />}
           {activeTab === 'email' && <EmailSettings />}
-          {activeTab === 'stripe' && <StripeSettingsTab />}
+          {activeTab === 'stripe' && projectSettings?.stripe?.enabled && <StripeSettingsTab />}
           {activeTab === 'notifications' && <NotificationSettingsTab />}
           {activeTab === 'appearance' && <AppearanceSettingsTab />}
           {activeTab === 'project' && <ProjectSettingsTab ref={projectSettingsRef} />}

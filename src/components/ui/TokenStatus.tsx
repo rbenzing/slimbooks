@@ -30,7 +30,7 @@ export const TokenStatus: React.FC<TokenStatusProps> = ({ className }) => {
   return (
     <div className={`text-xs text-muted-foreground ${className}`}>
       <span>Session: </span>
-      {tokenInfo.isValid ? (
+      {!tokenInfo.isExpired ? (
         <span className="text-green-600">
           Valid ({timeUntilExpiry ? formatTime(timeUntilExpiry) : 'Unknown'} remaining)
         </span>

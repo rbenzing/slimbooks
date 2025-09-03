@@ -29,8 +29,6 @@ export const initializeCompleteDatabase = async (includeSampleData = false) => {
       addSampleInvoices(db);
       addSamplePayments(db);
     }
-
-    console.log('✅ Database ready');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     throw error;

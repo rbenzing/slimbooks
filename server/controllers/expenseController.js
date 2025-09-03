@@ -1,7 +1,7 @@
 // Expense controller for Slimbooks
 // Handles all expense-related business logic
 
-import { db } from '../models/index.js';
+import { expenseService } from '../services/ExpenseService.js';
 import { 
   AppError, 
   NotFoundError, 
@@ -15,58 +15,12 @@ import {
 export const getAllExpenses = asyncHandler(async (req, res) => {
   const { status, category, date_from, date_to, limit = 50, offset = 0 } = req.query;
   
-  let query = 'SELECT * FROM expenses';
-  const conditions = [];
-  const params = [];
-  
-  if (status) {
-    conditions.push('status = ?');
-    params.push(status);
-  }
-  
-  if (category) {
-    conditions.push('category = ?');
-    params.push(category);
-  }
-  
-  if (date_from) {
-    conditions.push('date >= ?');
-    params.push(date_from);
-  }
-  
-  if (date_to) {
-    conditions.push('date <= ?');
-    params.push(date_to);
-  }
-  
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-  
-  query += ' ORDER BY date DESC, created_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), parseInt(offset));
-  
-  const expenses = db.prepare(query).all(...params);
-  
-  // Get total count for pagination
-  let countQuery = 'SELECT COUNT(*) as count FROM expenses';
-  if (conditions.length > 0) {
-    countQuery += ' WHERE ' + conditions.join(' AND ');
-  }
-  
-  const totalCount = db.prepare(countQuery).get(...params.slice(0, -2));
+  const filters = { status, category, date_from, date_to };
+  const results = await expenseService.getAllExpenses(filters, limit, offset);
   
   res.json({ 
     success: true, 
-    data: {
-      expenses,
-      pagination: {
-        total: totalCount.count,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: totalCount.count > parseInt(offset) + parseInt(limit)
-      }
-    }
+    data: results
   });
 });
 
@@ -76,7 +30,7 @@ export const getAllExpenses = asyncHandler(async (req, res) => {
 export const getExpenseById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
-  const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+  const expense = await expenseService.getExpenseById(id);
 
   if (!expense) {
     throw new NotFoundError('Expense');
@@ -91,44 +45,21 @@ export const getExpenseById = asyncHandler(async (req, res) => {
 export const createExpense = asyncHandler(async (req, res) => {
   const { expenseData } = req.body;
 
-  if (!expenseData || !expenseData.date || !expenseData.merchant || !expenseData.category || !expenseData.amount) {
-    throw new ValidationError('Invalid expense data - date, merchant, category, and amount are required');
+  if (!expenseData) {
+    throw new ValidationError('Expense data is required');
   }
 
-  // Validate amount is positive
-  if (expenseData.amount <= 0) {
-    throw new ValidationError('Amount must be positive');
+  try {
+    const expenseId = await expenseService.createExpense(expenseData);
+    
+    res.status(201).json({ 
+      success: true, 
+      data: { id: expenseId },
+      message: 'Expense created successfully'
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  // Get next ID
-  const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('expenses');
-  const nextId = (counterResult?.value || 0) + 1;
-  db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'expenses');
-
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`
-    INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const result = stmt.run(
-    nextId,
-    expenseData.date,
-    expenseData.merchant,
-    expenseData.category,
-    expenseData.amount,
-    expenseData.description || '',
-    expenseData.receipt_url || null,
-    expenseData.status || 'pending',
-    now,
-    now
-  );
-
-  res.status(201).json({ 
-    success: true, 
-    data: { id: nextId },
-    message: 'Expense created successfully'
-  });
 });
 
 /**
@@ -142,43 +73,20 @@ export const updateExpense = asyncHandler(async (req, res) => {
     throw new ValidationError('Invalid parameters');
   }
 
-  // Check if expense exists
-  const existingExpense = db.prepare('SELECT id FROM expenses WHERE id = ?').get(id);
-  if (!existingExpense) {
-    throw new NotFoundError('Expense');
-  }
-
-  // Validate amount if provided
-  if (expenseData.amount !== undefined && expenseData.amount <= 0) {
-    throw new ValidationError('Amount must be positive');
-  }
-
-  // Build dynamic update query
-  const updateFields = [];
-  const values = [];
-  
-  Object.keys(expenseData).forEach(key => {
-    if (expenseData[key] !== undefined) {
-      updateFields.push(`${key} = ?`);
-      values.push(expenseData[key]);
+  try {
+    const changes = await expenseService.updateExpense(id, expenseData);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: 'Expense updated successfully'
+    });
+  } catch (error) {
+    if (error.message === 'Expense not found') {
+      throw new NotFoundError('Expense');
     }
-  });
-  
-  if (updateFields.length === 0) {
-    throw new ValidationError('No fields to update');
+    throw new ValidationError(error.message);
   }
-  
-  updateFields.push('updated_at = datetime("now")');
-  values.push(id);
-
-  const stmt = db.prepare(`UPDATE expenses SET ${updateFields.join(', ')} WHERE id = ?`);
-  const result = stmt.run(values);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: 'Expense updated successfully'
-  });
 });
 
 /**
@@ -187,20 +95,20 @@ export const updateExpense = asyncHandler(async (req, res) => {
 export const deleteExpense = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
-  // Check if expense exists
-  const existingExpense = db.prepare('SELECT id FROM expenses WHERE id = ?').get(id);
-  if (!existingExpense) {
-    throw new NotFoundError('Expense');
+  try {
+    const changes = await expenseService.deleteExpense(id);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: 'Expense deleted successfully'
+    });
+  } catch (error) {
+    if (error.message === 'Expense not found') {
+      throw new NotFoundError('Expense');
+    }
+    throw new AppError(error.message, 500);
   }
-  
-  const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
-  const result = stmt.run(id);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: 'Expense deleted successfully'
-  });
 });
 
 /**
@@ -209,63 +117,11 @@ export const deleteExpense = asyncHandler(async (req, res) => {
 export const getExpenseStats = asyncHandler(async (req, res) => {
   const { year, month } = req.query;
   
-  let dateFilter = '';
-  const params = [];
-  
-  if (year) {
-    if (month) {
-      dateFilter = "WHERE strftime('%Y-%m', date) = ?";
-      params.push(`${year}-${month.padStart(2, '0')}`);
-    } else {
-      dateFilter = "WHERE strftime('%Y', date) = ?";
-      params.push(year);
-    }
-  }
-  
-  const stats = db.prepare(`
-    SELECT 
-      COUNT(*) as total_expenses,
-      SUM(amount) as total_amount,
-      AVG(amount) as average_amount,
-      COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count,
-      COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
-      COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count,
-      SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) as approved_amount,
-      SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount
-    FROM expenses ${dateFilter}
-  `).get(...params);
-  
-  // Get category breakdown
-  const categoryStats = db.prepare(`
-    SELECT 
-      category,
-      COUNT(*) as count,
-      SUM(amount) as total_amount,
-      AVG(amount) as average_amount
-    FROM expenses ${dateFilter}
-    GROUP BY category
-    ORDER BY total_amount DESC
-  `).all(...params);
-  
-  // Get monthly trends (last 12 months)
-  const monthlyTrends = db.prepare(`
-    SELECT 
-      strftime('%Y-%m', date) as month,
-      COUNT(*) as count,
-      SUM(amount) as total_amount
-    FROM expenses
-    WHERE date >= date('now', '-12 months')
-    GROUP BY strftime('%Y-%m', date)
-    ORDER BY month ASC
-  `).all();
+  const stats = await expenseService.getExpenseStats(year, month);
 
   res.json({ 
     success: true, 
-    data: {
-      summary: stats,
-      categories: categoryStats,
-      monthlyTrends
-    }
+    data: stats
   });
 });
 
@@ -273,17 +129,7 @@ export const getExpenseStats = asyncHandler(async (req, res) => {
  * Get expense categories
  */
 export const getExpenseCategories = asyncHandler(async (req, res) => {
-  const categories = db.prepare(`
-    SELECT 
-      category,
-      COUNT(*) as count,
-      SUM(amount) as total_amount,
-      MAX(date) as last_used
-    FROM expenses
-    GROUP BY category
-    ORDER BY count DESC
-  `).all();
-
+  const categories = await expenseService.getExpenseCategories();
   res.json({ success: true, data: categories });
 });
 
@@ -294,29 +140,20 @@ export const updateExpenseStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-    throw new ValidationError('Invalid status. Must be pending, approved, or rejected');
+  try {
+    const changes = await expenseService.updateExpenseStatus(id, status);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: `Expense status updated to ${status}`
+    });
+  } catch (error) {
+    if (error.message === 'Expense not found') {
+      throw new NotFoundError('Expense');
+    }
+    throw new ValidationError(error.message);
   }
-
-  // Check if expense exists
-  const existingExpense = db.prepare('SELECT id FROM expenses WHERE id = ?').get(id);
-  if (!existingExpense) {
-    throw new NotFoundError('Expense');
-  }
-
-  const stmt = db.prepare(`
-    UPDATE expenses 
-    SET status = ?, updated_at = datetime('now')
-    WHERE id = ?
-  `);
-  
-  const result = stmt.run(status, id);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: `Expense status updated to ${status}`
-  });
 });
 
 /**
@@ -325,36 +162,17 @@ export const updateExpenseStatus = asyncHandler(async (req, res) => {
 export const bulkUpdateExpenseStatus = asyncHandler(async (req, res) => {
   const { expense_ids, status } = req.body;
 
-  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
-    throw new ValidationError('expense_ids must be a non-empty array');
+  try {
+    const changes = await expenseService.bulkUpdateExpenseStatus(expense_ids, status);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: `${changes} expenses updated to ${status}`
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-    throw new ValidationError('Invalid status. Must be pending, approved, or rejected');
-  }
-
-  // Validate all expense IDs exist
-  const placeholders = expense_ids.map(() => '?').join(',');
-  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
-  
-  if (existingExpenses.length !== expense_ids.length) {
-    throw new ValidationError('One or more expense IDs not found');
-  }
-
-  // Update all expenses
-  const stmt = db.prepare(`
-    UPDATE expenses 
-    SET status = ?, updated_at = datetime('now')
-    WHERE id IN (${placeholders})
-  `);
-  
-  const result = stmt.run(status, ...expense_ids);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: `${result.changes} expenses updated to ${status}`
-  });
 });
 
 /**
@@ -363,32 +181,15 @@ export const bulkUpdateExpenseStatus = asyncHandler(async (req, res) => {
 export const getExpensesByDateRange = asyncHandler(async (req, res) => {
   const { start_date, end_date } = req.query;
 
-  if (!start_date || !end_date) {
-    throw new ValidationError('start_date and end_date are required');
+  try {
+    const results = await expenseService.getExpensesByDateRange(start_date, end_date);
+    res.json({ 
+      success: true, 
+      data: results
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  const expenses = db.prepare(`
-    SELECT * FROM expenses
-    WHERE date BETWEEN ? AND ?
-    ORDER BY date DESC, created_at DESC
-  `).all(start_date, end_date);
-
-  const summary = db.prepare(`
-    SELECT 
-      COUNT(*) as count,
-      SUM(amount) as total_amount,
-      AVG(amount) as average_amount
-    FROM expenses
-    WHERE date BETWEEN ? AND ?
-  `).get(start_date, end_date);
-
-  res.json({ 
-    success: true, 
-    data: {
-      expenses,
-      summary
-    }
-  });
 });
 
 /**
@@ -397,147 +198,20 @@ export const getExpensesByDateRange = asyncHandler(async (req, res) => {
 export const bulkImportExpenses = asyncHandler(async (req, res) => {
   const { expenses: expenseList } = req.body;
 
-  if (!expenseList || !Array.isArray(expenseList) || expenseList.length === 0) {
-    throw new ValidationError('expenses must be a non-empty array');
-  }
-
-  if (expenseList.length > 1000) {
-    throw new ValidationError('Maximum 1000 expenses can be imported at once');
-  }
-
-  const results = {
-    imported: 0,
-    failed: 0,
-    errors: []
-  };
-
-  // Helper function to convert date formats to ISO 8601
-  const convertToISODate = (dateStr) => {
-    if (!dateStr) return null;
-    
-    // If already in ISO format, return as is
-    if (dateStr.match(/^\d{4}-\d{2}-\d{2}T/)) {
-      return dateStr;
-    }
-    
-    // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS.sssZ
-    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return dateStr + 'T00:00:00.000Z';
-    }
-    
-    // Try to parse other date formats
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return null;
-    }
-    
-    return date.toISOString();
-  };
-
-  // Start transaction for bulk insert
-  const insertStmt = db.prepare(`
-    INSERT INTO expenses (id, date, merchant, category, amount, description, receipt_url, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const getCounterStmt = db.prepare('SELECT value FROM counters WHERE name = ?');
-  const updateCounterStmt = db.prepare('UPDATE counters SET value = ? WHERE name = ?');
-
-  // Get starting counter value
-  const counterResult = getCounterStmt.get('expenses');
-  let nextId = (counterResult?.value || 0) + 1;
-
-  const transaction = db.transaction(() => {
-    for (const expense of expenseList) {
-      try {
-        // Validate required fields
-        if (!expense.date || !expense.merchant || !expense.category || !expense.amount) {
-          results.failed++;
-          results.errors.push({
-            expense,
-            error: 'Missing required fields: date, merchant, category, and amount are required'
-          });
-          continue;
-        }
-
-        // Convert and validate date
-        const isoDate = convertToISODate(expense.date);
-        if (!isoDate) {
-          results.failed++;
-          results.errors.push({
-            expense,
-            error: `Invalid date format: ${expense.date}`
-          });
-          continue;
-        }
-
-        // Validate amount is positive
-        const amount = parseFloat(expense.amount);
-        if (isNaN(amount) || amount <= 0) {
-          results.failed++;
-          results.errors.push({
-            expense,
-            error: `Invalid amount: must be a positive number, got ${expense.amount}`
-          });
-          continue;
-        }
-
-        // Set defaults
-        const merchant = expense.merchant || expense.description || 'Unknown Merchant';
-        let category = expense.category || 'Other';
-        const description = expense.description || '';
-        const status = expense.status || 'pending';
-
-        // Auto-create category if it doesn't exist (just use the provided category)
-        // The database will accept any category name up to 50 characters
-        if (category && category.length <= 50) {
-          // Category is valid, use as-is
-        } else {
-          category = 'Other'; // Fallback for invalid categories
-        }
-
-        const now = new Date().toISOString();
-
-        // Insert expense
-        insertStmt.run(
-          nextId,
-          isoDate,
-          merchant.slice(0, 100), // Ensure length constraint
-          category.slice(0, 50),   // Ensure length constraint
-          amount,
-          description.slice(0, 500), // Reasonable description limit
-          null, // receipt_url
-          status,
-          now,
-          now
-        );
-
-        results.imported++;
-        nextId++;
-      } catch (error) {
-        results.failed++;
-        results.errors.push({
-          expense,
-          error: error.message
-        });
-      }
-    }
-
-    // Update the counter
-    updateCounterStmt.run(nextId - 1, 'expenses');
-  });
-
   try {
-    transaction();
+    const results = await expenseService.bulkImportExpenses(expenseList);
+    
+    res.json({
+      success: true,
+      data: results,
+      message: `Bulk import completed: ${results.imported} imported, ${results.failed} failed`
+    });
   } catch (error) {
-    throw new AppError(`Bulk import failed: ${error.message}`, 500);
+    if (error.message.includes('Bulk import failed')) {
+      throw new AppError(error.message, 500);
+    }
+    throw new ValidationError(error.message);
   }
-
-  res.json({
-    success: true,
-    data: results,
-    message: `Bulk import completed: ${results.imported} imported, ${results.failed} failed`
-  });
 });
 
 /**
@@ -546,31 +220,17 @@ export const bulkImportExpenses = asyncHandler(async (req, res) => {
 export const bulkDeleteExpenses = asyncHandler(async (req, res) => {
   const { expense_ids } = req.body;
 
-  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
-    throw new ValidationError('expense_ids must be a non-empty array');
+  try {
+    const changes = await expenseService.bulkDeleteExpenses(expense_ids);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: `${changes} expenses deleted successfully`
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  if (expense_ids.length > 500) {
-    throw new ValidationError('Maximum 500 expenses can be deleted at once');
-  }
-
-  // Validate all expense IDs exist
-  const placeholders = expense_ids.map(() => '?').join(',');
-  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
-  
-  if (existingExpenses.length !== expense_ids.length) {
-    throw new ValidationError('One or more expense IDs not found');
-  }
-
-  // Delete all expenses
-  const stmt = db.prepare(`DELETE FROM expenses WHERE id IN (${placeholders})`);
-  const result = stmt.run(...expense_ids);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: `${result.changes} expenses deleted successfully`
-  });
 });
 
 /**
@@ -579,44 +239,17 @@ export const bulkDeleteExpenses = asyncHandler(async (req, res) => {
 export const bulkUpdateExpenseCategory = asyncHandler(async (req, res) => {
   const { expense_ids, category } = req.body;
 
-  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
-    throw new ValidationError('expense_ids must be a non-empty array');
+  try {
+    const changes = await expenseService.bulkUpdateExpenseCategory(expense_ids, category);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: `${changes} expenses updated to category "${category}"`
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  if (!category || typeof category !== 'string' || category.trim().length === 0) {
-    throw new ValidationError('category must be a non-empty string');
-  }
-
-  if (category.length > 50) {
-    throw new ValidationError('category must be 50 characters or less');
-  }
-
-  if (expense_ids.length > 500) {
-    throw new ValidationError('Maximum 500 expenses can be updated at once');
-  }
-
-  // Validate all expense IDs exist
-  const placeholders = expense_ids.map(() => '?').join(',');
-  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
-  
-  if (existingExpenses.length !== expense_ids.length) {
-    throw new ValidationError('One or more expense IDs not found');
-  }
-
-  // Update all expenses
-  const stmt = db.prepare(`
-    UPDATE expenses 
-    SET category = ?, updated_at = datetime('now')
-    WHERE id IN (${placeholders})
-  `);
-  
-  const result = stmt.run(category.trim(), ...expense_ids);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: `${result.changes} expenses updated to category "${category}"`
-  });
 });
 
 /**
@@ -625,42 +258,15 @@ export const bulkUpdateExpenseCategory = asyncHandler(async (req, res) => {
 export const bulkUpdateExpenseMerchant = asyncHandler(async (req, res) => {
   const { expense_ids, merchant } = req.body;
 
-  if (!expense_ids || !Array.isArray(expense_ids) || expense_ids.length === 0) {
-    throw new ValidationError('expense_ids must be a non-empty array');
+  try {
+    const changes = await expenseService.bulkUpdateExpenseMerchant(expense_ids, merchant);
+    
+    res.json({ 
+      success: true, 
+      data: { changes },
+      message: `${changes} expenses updated to merchant "${merchant}"`
+    });
+  } catch (error) {
+    throw new ValidationError(error.message);
   }
-
-  if (!merchant || typeof merchant !== 'string' || merchant.trim().length === 0) {
-    throw new ValidationError('merchant must be a non-empty string');
-  }
-
-  if (merchant.length > 100) {
-    throw new ValidationError('merchant must be 100 characters or less');
-  }
-
-  if (expense_ids.length > 500) {
-    throw new ValidationError('Maximum 500 expenses can be updated at once');
-  }
-
-  // Validate all expense IDs exist
-  const placeholders = expense_ids.map(() => '?').join(',');
-  const existingExpenses = db.prepare(`SELECT id FROM expenses WHERE id IN (${placeholders})`).all(...expense_ids);
-  
-  if (existingExpenses.length !== expense_ids.length) {
-    throw new ValidationError('One or more expense IDs not found');
-  }
-
-  // Update all expenses
-  const stmt = db.prepare(`
-    UPDATE expenses 
-    SET merchant = ?, updated_at = datetime('now')
-    WHERE id IN (${placeholders})
-  `);
-  
-  const result = stmt.run(merchant.trim(), ...expense_ids);
-
-  res.json({ 
-    success: true, 
-    data: { changes: result.changes },
-    message: `${result.changes} expenses updated to merchant "${merchant}"`
-  });
 });

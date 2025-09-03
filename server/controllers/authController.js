@@ -2,18 +2,17 @@
 // Handles login, registration, password reset, and email verification
 
 import bcrypt from 'bcryptjs';
-import { db } from '../models/index.js';
 import { authConfig } from '../config/index.js';
+import { authService } from '../services/AuthService.js';
 import { 
   AppError, 
   NotFoundError, 
   ValidationError,
   AuthenticationError,
   asyncHandler,
-  generateToken,
-  updateLoginAttempts,
-  isAccountLocked
+  generateToken
 } from '../middleware/index.js';
+
 
 /**
  * User login
@@ -25,15 +24,15 @@ export const login = asyncHandler(async (req, res) => {
     throw new ValidationError('Email and password are required');
   }
 
-  // Get user by email
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  // Get user for authentication
+  const user = await authService.getUserForAuthentication(email);
   
   if (!user) {
     throw new AuthenticationError('Invalid email or password');
   }
 
   // Check if account is locked
-  if (isAccountLocked(user)) {
+  if (authService.isAccountLocked(user)) {
     throw new AuthenticationError('Account is temporarily locked due to too many failed login attempts');
   }
 
@@ -42,12 +41,23 @@ export const login = asyncHandler(async (req, res) => {
   
   if (!isValidPassword) {
     // Update failed login attempts
-    updateLoginAttempts(user.id, false);
+    await authService.updateLoginAttempts(user.id, false);
     throw new AuthenticationError('Invalid email or password');
   }
 
   // Reset failed login attempts and update last login
-  updateLoginAttempts(user.id, true);
+  await authService.updateLoginAttempts(user.id, true);
+
+  // Check if email verification is required
+  const requireEmailVerification = await authService.isEmailVerificationRequired();
+  if (requireEmailVerification && !user.email_verified) {
+    return res.status(403).json({
+      success: false,
+      error: 'Email verification required',
+      requires_email_verification: true,
+      message: 'Please verify your email address before logging in'
+    });
+  }
 
   // Generate JWT token
   const token = generateToken(user);
@@ -61,7 +71,7 @@ export const login = asyncHandler(async (req, res) => {
       user: userResponse,
       token
     },
-    requires_email_verification: false, // Email verification is handled separately
+    requires_email_verification: false,
     message: 'Login successful'
   });
 });
@@ -76,44 +86,20 @@ export const register = asyncHandler(async (req, res) => {
     throw new ValidationError('Name, email, and password are required');
   }
 
-  // Check if user already exists
-  const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-  if (existingUser) {
-    throw new ValidationError('User with this email already exists');
-  }
-
   // Hash password
   const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
 
-  // Get next user ID
-  const counterResult = db.prepare('SELECT value FROM counters WHERE name = ?').get('users');
-  const nextId = (counterResult?.value || 0) + 1;
-  db.prepare('UPDATE counters SET value = ? WHERE name = ?').run(nextId, 'users');
-
-  // Create user
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`
-    INSERT INTO users (
-      id, name, email, username, password_hash, role, email_verified,
-      failed_login_attempts, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    nextId,
+  // Create user using service
+  const userId = await authService.createUser({
     name,
     email,
-    email, // Use email as username by default
-    hashedPassword,
-    'user', // Default role
-    0, // Email not verified by default
-    0, // No failed attempts
-    now,
-    now
-  );
+    password_hash: hashedPassword,
+    role: 'user',
+    email_verified: 0
+  });
 
-  // Generate JWT token
-  const newUser = db.prepare('SELECT id, name, email, username, role, email_verified FROM users WHERE id = ?').get(nextId);
+  // Get the new user for response
+  const newUser = await authService.getUserById(userId);
   const token = generateToken(newUser);
 
   res.status(201).json({

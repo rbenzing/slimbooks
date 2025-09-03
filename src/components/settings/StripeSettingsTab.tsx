@@ -6,12 +6,12 @@ import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 
 interface StripeSettings {
-  isEnabled: boolean;
-  publishableKey: string;
-  secretKey: string;
   webhookSecret: string;
   webhookEndpoint: string;
   testMode: boolean;
+  publishableKey: string;
+  secretKey: string;
+  isEnabled: boolean;
   accountId?: string;
   accountName?: string;
   connectedAt?: string;
@@ -19,12 +19,12 @@ interface StripeSettings {
 
 export const StripeSettingsTab = () => {
   const [settings, setSettings] = useState<StripeSettings>({
-    isEnabled: false,
-    publishableKey: '',
-    secretKey: '',
     webhookSecret: '',
     webhookEndpoint: '',
     testMode: true,
+    publishableKey: '',
+    secretKey: '',
+    isEnabled: false,
     accountId: '',
     accountName: '',
     connectedAt: ''
@@ -32,8 +32,8 @@ export const StripeSettingsTab = () => {
 
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'success' | 'error'>('unknown');
-  const [showSecretKey, setShowSecretKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -48,15 +48,15 @@ export const StripeSettingsTab = () => {
         await sqliteService.initialize();
       }
 
-      const saved = await sqliteService.getSetting('stripe_settings');
+      const saved = await sqliteService.getSetting('stripe_settings') as StripeSettings | null;
       if (saved) {
         setSettings({
-          isEnabled: saved.isEnabled || false,
-          publishableKey: saved.publishableKey || '',
-          secretKey: saved.secretKey || '',
           webhookSecret: saved.webhookSecret || '',
           webhookEndpoint: saved.webhookEndpoint || `${window.location.origin}/api/webhooks/stripe`,
           testMode: saved.testMode ?? true,
+          publishableKey: saved.publishableKey || '',
+          secretKey: saved.secretKey || '',
+          isEnabled: saved.isEnabled ?? false,
           accountId: saved.accountId || '',
           accountName: saved.accountName || '',
           connectedAt: saved.connectedAt || ''

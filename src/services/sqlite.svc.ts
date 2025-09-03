@@ -10,8 +10,10 @@ import {
   Report,
   ImportResult,
   ValidationError,
-  ApiResponse
+  ApiResponse,
+  ProjectSettings
 } from '@/types';
+import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/schemas/projectSettings.schema';
 class SQLiteService {
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -545,16 +547,49 @@ class SQLiteService {
   }
 
   // ===== PROJECT SETTINGS API METHODS =====
-  async getProjectSettings(): Promise<Record<string, unknown>> {
+  async getProjectSettings(): Promise<ProjectSettings> {
     if (!this.isReady()) {
       await this.initialize();
     }
-    const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/project-settings');
-    return result.data?.settings || {};
+    const result = await this.apiCall<{ settings?: unknown }>('/project-settings');
+    return parseProjectSettingsWithDefaults(result.data?.settings);
   }
 
-  async updateProjectSettings(settings: Record<string, unknown>): Promise<void> {
+  async updateProjectSettings(settings: ProjectSettings): Promise<void> {
+    // Validate settings before sending to server
+    validateProjectSettings(settings);
     await this.apiCall('/project-settings', 'PUT', { settings });
+  }
+
+  private getDefaultProjectSettings(): ProjectSettings {
+    return {
+      google_oauth: {
+        enabled: false,
+        client_id: '',
+        client_secret: '',
+        configured: false
+      },
+      stripe: {
+        enabled: false,
+        publishable_key: '',
+        secret_key: '',
+        configured: false
+      },
+      email: {
+        enabled: false,
+        smtp_host: '',
+        smtp_port: 587,
+        smtp_user: '',
+        smtp_pass: '',
+        email_from: '',
+        configured: false
+      },
+      security: {
+        require_email_verification: true,
+        max_failed_login_attempts: 5,
+        account_lockout_duration: 1800000
+      }
+    };
   }
 
   // Utility method to check if database is ready

@@ -3,7 +3,7 @@
 
 import jwt from 'jsonwebtoken';
 import { authConfig } from '../config/index.js';
-import { db } from '../models/index.js';
+import { authService } from '../services/AuthService.js';
 
 /**
  * Middleware to require authentication
@@ -25,8 +25,8 @@ export const requireAuth = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, authConfig.jwtSecret);
 
-      // Get user from database
-      const user = db.prepare('SELECT id, name, email, username, role, email_verified FROM users WHERE id = ?').get(decoded.userId);
+      // Get user from database via service
+      const user = await authService.getUserById(decoded.userId);
 
       if (!user) {
         return res.status(401).json({
@@ -41,6 +41,22 @@ export const requireAuth = async (req, res, next) => {
           success: false,
           error: 'Account is temporarily locked'
         });
+      }
+      
+      // Check if email verification is required
+      try {
+        const requireEmailVerification = await authService.isEmailVerificationRequired();
+        
+        if (requireEmailVerification && !user.email_verified) {
+          return res.status(403).json({
+            success: false,
+            error: 'Email verification required',
+            requires_email_verification: true
+          });
+        }
+      } catch (error) {
+        console.error('Error checking email verification setting:', error);
+        // Continue with default behavior if setting check fails
       }
       
       // Attach user to request
@@ -200,6 +216,29 @@ export const isAccountLocked = (user) => {
 };
 
 /**
+ * Get account lockout settings from project settings
+ */
+const getAccountLockoutSettings = () => {
+  try {
+    // Get settings from project_settings table
+    const maxAttemptsSetting = db.prepare('SELECT value FROM project_settings WHERE key = ?').get('security.max_failed_login_attempts');
+    const lockoutDurationSetting = db.prepare('SELECT value FROM project_settings WHERE key = ?').get('security.account_lockout_duration');
+    
+    const maxAttempts = maxAttemptsSetting ? JSON.parse(maxAttemptsSetting.value) : (parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPTS) || 5);
+    const lockoutDuration = lockoutDurationSetting ? JSON.parse(lockoutDurationSetting.value) : (parseInt(process.env.ACCOUNT_LOCKOUT_DURATION) || 1800000);
+    
+    return { maxAttempts, lockoutDuration };
+  } catch (error) {
+    console.error('Error getting lockout settings:', error);
+    // Return defaults if settings cannot be retrieved
+    return { 
+      maxAttempts: authConfig.maxLoginAttempts, 
+      lockoutDuration: authConfig.lockoutDuration 
+    };
+  }
+};
+
+/**
  * Update user login attempts and lock account if necessary
  * @param {number} userId - User ID
  * @param {boolean} success - Whether login was successful
@@ -219,9 +258,12 @@ export const updateLoginAttempts = (userId, success = false) => {
       const user = db.prepare('SELECT failed_login_attempts FROM users WHERE id = ?').get(userId);
       const newAttempts = (user?.failed_login_attempts || 0) + 1;
       
+      // Get current lockout settings
+      const { maxAttempts, lockoutDuration } = getAccountLockoutSettings();
+      
       let lockedUntil = null;
-      if (newAttempts >= authConfig.maxLoginAttempts) {
-        lockedUntil = new Date(Date.now() + authConfig.lockoutDuration).toISOString();
+      if (newAttempts >= maxAttempts) {
+        lockedUntil = new Date(Date.now() + lockoutDuration).toISOString();
       }
       
       const stmt = db.prepare(`
