@@ -53,12 +53,12 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
       const response = await authenticatedFetch('/api/expenses');
       const data = await response.json();
       
-      if (!data.success || !data.data.expenses) {
+      if (!data.success || !data.data?.data) {
         toast.error('Failed to fetch expenses for export');
         return;
       }
 
-      const expenses = data.data.expenses;
+      const expenses = data.data.data;
       
       if (expenses.length === 0) {
         toast.error('No expenses to export');

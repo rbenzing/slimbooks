@@ -58,7 +58,7 @@ export const ExpenseManagement: React.FC = () => {
       const response = await authenticatedFetch('/api/expenses');
       if (response.ok) {
         const data = await response.json();
-        const allExpenses = data.expenses || [];
+        const allExpenses = data.data?.data || [];
         // Ensure all expenses have required fields
         const validExpenses = allExpenses.filter((expense: Expense) =>
           expense &&

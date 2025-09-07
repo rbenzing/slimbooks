@@ -4,10 +4,10 @@ import { sqliteService } from '@/services/sqlite.svc';
 import { EmailService } from '@/services/email.svc';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-import { EmailSettings, isEmailSettings } from '@/types';
+import { EmailSettings as EmailSettingsType, isEmailSettings } from '@/types';
 
 export const EmailSettings = () => {
-  const [settings, setSettings] = useState<EmailSettings>({
+  const [settings, setSettings] = useState<EmailSettingsType>({
     smtpHost: '',
     smtpPort: 587,
     smtpUsername: '',

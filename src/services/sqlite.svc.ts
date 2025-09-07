@@ -581,7 +581,7 @@ class SQLiteService {
       await this.initialize();
     }
     const result = await this.apiCall<{ settings?: unknown }>('/project-settings');
-    return parseProjectSettingsWithDefaults(result.data?.settings);
+    return parseProjectSettingsWithDefaults(result.data?.settings || {});
   }
 
   async updateProjectSettings(settings: ProjectSettings): Promise<void> {

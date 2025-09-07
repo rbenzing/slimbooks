@@ -38,7 +38,8 @@ export const InvoicesTab = () => {
       const response = await authenticatedFetch('/api/invoices');
       if (response.ok) {
         const data = await response.json();
-        setInvoices(data.invoices || []);
+        // Invoice service returns { invoices: [...], pagination: {...} }
+        setInvoices(data.data?.invoices || []);
       } else {
         console.error('Failed to load invoices');
         setInvoices([]);

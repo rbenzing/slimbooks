@@ -28,7 +28,7 @@ export const TemplatesTab = () => {
       const response = await authenticatedFetch('/api/templates');
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.templates || []);
+        setTemplates(data.data || []);
       } else {
         console.error('Failed to load templates');
         setTemplates([]);

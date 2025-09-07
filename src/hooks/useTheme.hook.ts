@@ -55,6 +55,24 @@ export const useTheme = () => {
       
       initializationPromise = (async () => {
         try {
+          // Check if user is authenticated before trying to load from database
+          const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          
+          if (!authToken) {
+            console.log('useTheme: No auth token found, using localStorage fallback');
+            // Use localStorage immediately if not authenticated
+            const localTheme = (localStorage.getItem('theme') as ThemeType) || 'system';
+            console.log('useTheme: LocalStorage theme:', localTheme);
+            
+            globalTheme = localTheme;
+            setTheme(localTheme);
+            applyTheme(localTheme);
+            isThemeInitialized = true;
+            console.log('useTheme: Theme initialization completed with localStorage fallback');
+            return;
+          }
+          
+          console.log('useTheme: Auth token found, loading from database');
           const { sqliteService } = await import('@/services/sqlite.svc');
           await sqliteService.initialize();
           
@@ -65,7 +83,7 @@ export const useTheme = () => {
           setTheme(dbTheme);
           applyTheme(dbTheme);
           isThemeInitialized = true;
-          console.log('useTheme: Theme initialization completed successfully');
+          console.log('useTheme: Theme initialization completed successfully from database');
         } catch (error) {
           console.error('useTheme: Failed to load theme from database:', error);
           console.error('useTheme: Database error details:', {

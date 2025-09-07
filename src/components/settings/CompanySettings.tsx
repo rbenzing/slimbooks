@@ -3,10 +3,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
-import { CompanySettings } from '@/types';
+import { CompanySettings as CompanySettingsType } from '@/types';
 
 export const CompanySettings = () => {
-  const [settings, setSettings] = useState<CompanySettings>({
+  const [settings, setSettings] = useState<CompanySettingsType>({
     companyName: 'ClientBill Pro',
     ownerName: '',
     address: '',

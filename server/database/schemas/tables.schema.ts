@@ -49,6 +49,7 @@ const clientsSchema: TableSchema = {
     { name: 'notes', type: 'TEXT' },
     { name: 'stripe_customer_id', type: 'TEXT' },
     { name: 'is_active', type: 'INTEGER', constraints: ['DEFAULT 1'] },
+    { name: 'deleted_at', type: 'TEXT' },
     { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] },
     { name: 'updated_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
   ]
@@ -191,6 +192,37 @@ const settingsSchema: TableSchema = {
 };
 
 /**
+ * Project-specific settings table
+ */
+const projectSettingsSchema: TableSchema = {
+  name: 'project_settings',
+  columns: [
+    { name: 'id', type: 'INTEGER', constraints: ['PRIMARY KEY AUTOINCREMENT'] },
+    { name: 'key', type: 'TEXT', constraints: ['UNIQUE NOT NULL'] },
+    { name: 'value', type: 'TEXT' },
+    { name: 'enabled', type: 'INTEGER', constraints: ['DEFAULT 1'] },
+    { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] },
+    { name: 'updated_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
+  ]
+};
+
+/**
+ * Reports table for storing generated reports
+ */
+const reportsSchema: TableSchema = {
+  name: 'reports',
+  columns: [
+    { name: 'id', type: 'INTEGER', constraints: ['PRIMARY KEY AUTOINCREMENT'] },
+    { name: 'name', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'type', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'date_range_start', type: 'TEXT' },
+    { name: 'date_range_end', type: 'TEXT' },
+    { name: 'data', type: 'TEXT' },
+    { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
+  ]
+};
+
+/**
  * Counters for generating sequential numbers
  */
 const countersSchema: TableSchema = {
@@ -213,7 +245,9 @@ export const tableSchemas: TableSchema[] = [
   invoiceItemsSchema,
   paymentsSchema,
   expensesSchema,
+  reportsSchema,
   settingsSchema,
+  projectSettingsSchema,
   countersSchema
 ];
 

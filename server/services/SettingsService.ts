@@ -10,20 +10,21 @@ import { Setting, ProjectSettings } from '../types/index.js';
  */
 export class SettingsService {
   /**
-   * Get all settings by category
+   * Get all settings by category (using key prefix since table doesn't have category column)
    */
   async getAllSettings(category?: string): Promise<Record<string, any>> {
-    let query = 'SELECT key, value, category FROM settings';
+    let query = 'SELECT key, value FROM settings';
     const params: any[] = [];
 
     if (category) {
-      query += ' WHERE category = ?';
-      params.push(category);
+      // Use key prefix to simulate category filtering
+      query += ' WHERE key LIKE ?';
+      params.push(`${category}.%`);
     }
 
-    query += ' ORDER BY category, key';
+    query += ' ORDER BY key';
 
-    const results = databaseService.getMany<Setting>(query, params);
+    const results = databaseService.getMany<{key: string, value: string}>(query, params);
     
     const settings: Record<string, any> = {};
 
@@ -67,15 +68,14 @@ export class SettingsService {
       throw new Error('Setting key is required');
     }
 
-    if (!category || typeof category !== 'string') {
-      throw new Error('Setting category is required');
-    }
+    // Include category in the key if not already present
+    const settingKey = key.includes('.') ? key : `${category}.${key}`;
     
     const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
     
     databaseService.executeQuery(
-      'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)',
-      [key, jsonValue, category]
+      'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)',
+      [settingKey, jsonValue, 'string']
     );
     
     return true;
@@ -97,8 +97,8 @@ export class SettingsService {
         const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
         
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', 
-          [key, jsonValue, formatCategory]
+          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
+          [key, jsonValue, 'string']
         );
       }
     };
@@ -125,11 +125,12 @@ export class SettingsService {
         }
 
         const { value, category = 'general' } = data;
+        const settingKey = key.includes('.') ? key : `${category}.${key}`;
         const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
         
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', 
-          [key, jsonValue, category]
+          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
+          [settingKey, jsonValue, 'string']
         );
       }
     };
@@ -142,42 +143,76 @@ export class SettingsService {
    * Get project settings with environment defaults
    */
   async getProjectSettings(): Promise<ProjectSettings> {
-    // Get all project settings from database
-    const dbSettings = databaseService.getMany<ProjectSettings>(
-      'SELECT key, value, enabled FROM project_settings'
-    );
+    try {
+      // Get all project settings from database using settings table
+      const dbSettings = databaseService.getMany<{key: string, value: string}>(
+        'SELECT key, value FROM settings WHERE key LIKE ? OR key LIKE ? OR key LIKE ? OR key LIKE ?',
+        ['google_oauth.%', 'stripe.%', 'email.%', 'security.%']
+      );
 
-    // Create settings object with .env defaults
-    const projectSettings: ProjectSettings = {
-      google_oauth: {
-        enabled: false,
-        client_id: process.env.GOOGLE_CLIENT_ID || '',
-        ...(process.env.GOOGLE_CLIENT_SECRET && { client_secret: process.env.GOOGLE_CLIENT_SECRET }),
-        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-      },
-      stripe: {
-        enabled: false,
-        publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || '',
-        ...(process.env.STRIPE_SECRET_KEY && { secret_key: process.env.STRIPE_SECRET_KEY }),
-        configured: !!(process.env.STRIPE_PUBLISHABLE_KEY && process.env.STRIPE_SECRET_KEY)
-      },
-      email: {
-        enabled: false,
-        smtp_host: process.env.SMTP_HOST || '',
-        smtp_port: parseInt(process.env.SMTP_PORT || '587') || 587,
-        smtp_user: process.env.SMTP_USER || '',
-        ...(process.env.SMTP_PASS && { smtp_pass: process.env.SMTP_PASS }),
-        email_from: process.env.EMAIL_FROM || '',
-        configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.EMAIL_FROM)
-      },
-      security: {
-        require_email_verification: process.env.REQUIRE_EMAIL_VERIFICATION === 'true',
-        max_failed_login_attempts: parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPTS || '5') || 5,
-        account_lockout_duration: parseInt(process.env.ACCOUNT_LOCKOUT_DURATION || '1800000') || 1800000
-      }
-    };
+      // Convert database settings to a map for easy lookup
+      const settingsMap: Record<string, string> = {};
+      dbSettings.forEach(setting => {
+        settingsMap[setting.key] = setting.value;
+      });
 
-    return projectSettings;
+      // Create settings object with .env defaults and database overrides
+      const projectSettings: ProjectSettings = {
+        google_oauth: {
+          enabled: settingsMap['google_oauth.enabled'] === 'true' || false,
+          client_id: settingsMap['google_oauth.client_id'] || process.env.GOOGLE_CLIENT_ID || '',
+          ...(settingsMap['google_oauth.client_secret'] && { client_secret: settingsMap['google_oauth.client_secret'] }),
+          ...(process.env.GOOGLE_CLIENT_SECRET && { client_secret: process.env.GOOGLE_CLIENT_SECRET }),
+          configured: !!(
+            (settingsMap['google_oauth.client_id'] || process.env.GOOGLE_CLIENT_ID) && 
+            (settingsMap['google_oauth.client_secret'] || process.env.GOOGLE_CLIENT_SECRET)
+          )
+        },
+        stripe: {
+          enabled: settingsMap['stripe.enabled'] === 'true' || false,
+          publishable_key: settingsMap['stripe.publishable_key'] || process.env.STRIPE_PUBLISHABLE_KEY || '',
+          ...(settingsMap['stripe.secret_key'] && { secret_key: settingsMap['stripe.secret_key'] }),
+          ...(process.env.STRIPE_SECRET_KEY && { secret_key: process.env.STRIPE_SECRET_KEY }),
+          configured: !!(
+            (settingsMap['stripe.publishable_key'] || process.env.STRIPE_PUBLISHABLE_KEY) && 
+            (settingsMap['stripe.secret_key'] || process.env.STRIPE_SECRET_KEY)
+          )
+        },
+        email: {
+          enabled: settingsMap['email.enabled'] === 'true' || false,
+          smtp_host: settingsMap['email.smtp_host'] || process.env.SMTP_HOST || '',
+          smtp_port: parseInt(settingsMap['email.smtp_port'] || process.env.SMTP_PORT || '587') || 587,
+          smtp_user: settingsMap['email.smtp_user'] || process.env.SMTP_USER || '',
+          ...(settingsMap['email.smtp_pass'] && { smtp_pass: settingsMap['email.smtp_pass'] }),
+          ...(process.env.SMTP_PASS && { smtp_pass: process.env.SMTP_PASS }),
+          email_from: settingsMap['email.email_from'] || process.env.EMAIL_FROM || '',
+          configured: !!(
+            (settingsMap['email.smtp_host'] || process.env.SMTP_HOST) && 
+            (settingsMap['email.smtp_user'] || process.env.SMTP_USER) && 
+            (settingsMap['email.email_from'] || process.env.EMAIL_FROM)
+          )
+        },
+        security: {
+          jwt_secret: process.env.JWT_SECRET || '',
+          session_secret: process.env.SESSION_SECRET || '',
+          require_email_verification: settingsMap['security.require_email_verification'] === 'true' || process.env.REQUIRE_EMAIL_VERIFICATION === 'true',
+          max_failed_login_attempts: parseInt(settingsMap['security.max_failed_login_attempts'] || process.env.MAX_FAILED_LOGIN_ATTEMPTS || '5') || 5,
+          account_lockout_duration: parseInt(settingsMap['security.account_lockout_duration'] || process.env.ACCOUNT_LOCKOUT_DURATION || '1800000') || 1800000,
+          password_policy: {
+            min_length: parseInt(settingsMap['security.password_policy.min_length'] || '8') || 8,
+            require_uppercase: settingsMap['security.password_policy.require_uppercase'] === 'true' || false,
+            require_lowercase: settingsMap['security.password_policy.require_lowercase'] === 'true' || false,
+            require_numbers: settingsMap['security.password_policy.require_numbers'] === 'true' || false,
+            require_special: settingsMap['security.password_policy.require_special'] === 'true' || false
+          }
+        }
+      };
+
+      return projectSettings;
+    } catch (error) {
+      console.error('SettingsService.getProjectSettings error:', error);
+      throw new Error(`Failed to get project settings: ${(error as Error).message}`);
+    }
   }
 
   /**
@@ -223,8 +258,8 @@ export class SettingsService {
     const operations = () => {
       for (const setting of flatSettings) {
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO project_settings (key, value, enabled) VALUES (?, ?, ?)', 
-          [setting.key, setting.value, setting.enabled]
+          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
+          [setting.key, setting.value, 'string']
         );
       }
     };
@@ -242,7 +277,7 @@ export class SettingsService {
     }
 
     const setting = databaseService.getOne<{value: string}>(
-      'SELECT value FROM project_settings WHERE key = ?', 
+      'SELECT value FROM settings WHERE key = ?', 
       [`security.${settingName}`]
     );
     
@@ -280,26 +315,35 @@ export class SettingsService {
   }
 
   /**
-   * Delete settings by category
+   * Delete settings by category (using key prefix)
    */
   async deleteSettingsByCategory(category: string): Promise<number> {
     if (!category || typeof category !== 'string') {
       throw new Error('Valid category is required');
     }
 
-    const result = databaseService.executeQuery('DELETE FROM settings WHERE category = ?', [category]);
+    const result = databaseService.executeQuery('DELETE FROM settings WHERE key LIKE ?', [`${category}.%`]);
     return result.changes;
   }
 
   /**
-   * Get all categories
+   * Get all categories (extracted from key prefixes)
    */
   async getCategories(): Promise<string[]> {
-    const results = databaseService.getMany<{category: string}>(
-      'SELECT DISTINCT category FROM settings ORDER BY category'
+    const results = databaseService.getMany<{key: string}>(
+      'SELECT DISTINCT key FROM settings WHERE key LIKE "%.%" ORDER BY key'
     );
     
-    return results.map(row => row.category);
+    // Extract categories from keys (everything before the first dot)
+    const categories = new Set<string>();
+    results.forEach(row => {
+      const category = row.key.split('.')[0];
+      if (category) {
+        categories.add(category);
+      }
+    });
+    
+    return Array.from(categories).sort();
   }
 
   /**
@@ -314,15 +358,15 @@ export class SettingsService {
   }
 
   /**
-   * Get settings count by category
+   * Get settings count by category (using key prefix)
    */
   async getSettingsCount(category?: string): Promise<number> {
     let query = 'SELECT COUNT(*) as count FROM settings';
     const params: any[] = [];
 
     if (category) {
-      query += ' WHERE category = ?';
-      params.push(category);
+      query += ' WHERE key LIKE ?';
+      params.push(`${category}.%`);
     }
 
     const result = databaseService.getOne<{count: number}>(query, params);
@@ -330,15 +374,15 @@ export class SettingsService {
   }
 
   /**
-   * Reset settings to defaults
+   * Reset settings to defaults (using key prefix for category)
    */
   async resetSettings(category?: string): Promise<boolean> {
     let query = 'DELETE FROM settings';
     const params: any[] = [];
 
     if (category) {
-      query += ' WHERE category = ?';
-      params.push(category);
+      query += ' WHERE key LIKE ?';
+      params.push(`${category}.%`);
     }
 
     databaseService.executeQuery(query, params);

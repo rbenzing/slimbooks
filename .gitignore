@@ -38,3 +38,5 @@ package-lock.json
 CLAUDE.md
 certs/*
 .gitignore
+
+server/database/migrations/*

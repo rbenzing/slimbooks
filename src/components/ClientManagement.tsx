@@ -28,7 +28,7 @@ export const ClientManagement: React.FC = () => {
       const response = await authenticatedFetch('/api/clients');
       if (response.ok) {
         const data = await response.json();
-        setClients(data.clients || []);
+        setClients(data.data || []);
       } else {
         throw new Error('Failed to load clients');
       }

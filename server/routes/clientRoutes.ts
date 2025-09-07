@@ -68,8 +68,7 @@ router.delete('/:id',
 
 // Bulk import clients
 router.post('/bulk-import',
-  // TODO: Add validation for bulk import
-  // validateRequest,
+  requireAuth,
   async (req: any, res: any) => {
     try {
       const { clients } = req.body;
@@ -85,26 +84,19 @@ router.post('/bulk-import',
       let errorCount = 0;
       const errors: string[] = [];
 
+      // Import the client service
+      const { clientService } = await import('../services/ClientService.js');
+
       for (let i = 0; i < clients.length; i++) {
         const clientData = clients[i];
         try {
-          await createClient({
-            body: { clientData },
-            user: req.user
-          } as any, {
-            status: () => ({ json: () => {} }),
-            json: (data: any) => {
-              if (data.success) {
-                successCount++;
-              } else {
-                errorCount++;
-                errors.push(`Client ${i + 1}: ${data.message || 'Failed to create'}`);
-              }
-            }
-          } as any, () => {});
+          // Use the client service directly instead of the controller
+          await clientService.createClient(clientData);
+          successCount++;
         } catch (error) {
           errorCount++;
-          errors.push(`Client ${i + 1}: ${error}`);
+          const errorMessage = (error as Error).message;
+          errors.push(`Client ${i + 1}: ${errorMessage}`);
         }
       }
 
@@ -114,7 +106,8 @@ router.post('/bulk-import',
           imported: successCount,
           failed: errorCount,
           errors
-        }
+        },
+        message: `Import completed: ${successCount} clients imported, ${errorCount} failed`
       });
     } catch (error) {
       console.error('Bulk import error:', error);

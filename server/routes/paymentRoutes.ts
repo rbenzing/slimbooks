@@ -44,8 +44,7 @@ router.post('/bulk-delete',
 
 // POST /api/payments/bulk-import - Bulk import payments
 router.post('/bulk-import',
-  // TODO: Add validation for bulk import
-  // validateRequest,
+  requireAuth,
   async (req: any, res: any) => {
     try {
       const { payments } = req.body;
@@ -61,26 +60,19 @@ router.post('/bulk-import',
       let errorCount = 0;
       const errors: string[] = [];
 
+      // Import the payment service
+      const { paymentService } = await import('../services/PaymentService.js');
+
       for (let i = 0; i < payments.length; i++) {
         const paymentData = payments[i];
         try {
-          await createPayment({
-            body: { paymentData },
-            user: req.user
-          } as any, {
-            status: () => ({ json: () => {} }),
-            json: (data: any) => {
-              if (data.success) {
-                successCount++;
-              } else {
-                errorCount++;
-                errors.push(`Payment ${i + 1}: ${data.message || 'Failed to create'}`);
-              }
-            }
-          } as any, () => {});
+          // Use the payment service directly instead of the controller
+          await paymentService.createPayment(paymentData);
+          successCount++;
         } catch (error) {
           errorCount++;
-          errors.push(`Payment ${i + 1}: ${error}`);
+          const errorMessage = (error as Error).message;
+          errors.push(`Payment ${i + 1}: ${errorMessage}`);
         }
       }
 
@@ -90,7 +82,8 @@ router.post('/bulk-import',
           imported: successCount,
           failed: errorCount,
           errors
-        }
+        },
+        message: `Import completed: ${successCount} payments imported, ${errorCount} failed`
       });
     } catch (error) {
       console.error('Bulk import error:', error);

@@ -5,6 +5,7 @@ import { database, SQLiteDatabase } from './SQLiteDatabase.js';
 import { createTables } from './schemas/tables.schema.js';
 import { initializeAllSeeds } from './seeds/initial.seed.js';
 import { getDatabaseConfig } from './config/sqlite.config.js';
+import { runMigrations } from './migrations/index.js';
 import type { IDatabase } from '../types/database.types.js';
 
 /**
@@ -34,6 +35,10 @@ export const initializeDatabase = async (includeSampleData = false): Promise<voi
     // Create all tables
     createTables(db);
     console.log('✓ Database tables created');
+
+    // Run migrations
+    runMigrations(db);
+    console.log('✓ Database migrations completed');
 
     // Initialize seed data
     await initializeAllSeeds(db, includeSampleData);

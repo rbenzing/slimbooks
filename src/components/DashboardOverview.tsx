@@ -43,13 +43,13 @@ export const DashboardOverview = () => {
         authenticatedFetch('/api/expenses')
       ]);
       
-      const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { invoices: [] };
-      const clientsData = clientsResponse.ok ? await clientsResponse.json() : { clients: [] };
-      const expensesData = expensesResponse.ok ? await expensesResponse.json() : { expenses: [] };
+      const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { data: { invoices: [] } };
+      const clientsData = clientsResponse.ok ? await clientsResponse.json() : { data: [] };
+      const expensesData = expensesResponse.ok ? await expensesResponse.json() : { data: { data: [] } };
       
-      const invoices = invoicesData.invoices || [];
-      const clients = clientsData.clients || [];
-      const expenses = expensesData.expenses || [];
+      const invoices = invoicesData.data?.invoices || [];
+      const clients = clientsData.data || [];
+      const expenses = expensesData.data?.data || [];
 
       setStats(prevStats => ({
         ...prevStats,

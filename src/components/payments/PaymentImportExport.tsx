@@ -47,7 +47,7 @@ export const PaymentImportExport: React.FC<PaymentImportExportProps> = ({ onClos
       const response = await authenticatedFetch('/api/payments');
       const data = await response.json();
       
-      if (!data.success || !data.data.payments) {
+      if (!data.success || !data.data?.payments) {
         toast.error('Failed to fetch payments for export');
         return;
       }

@@ -65,8 +65,7 @@ router.delete('/:id',
 
 // Bulk import expenses
 router.post('/bulk-import',
-  // TODO: Add validation for bulk import
-  // validateRequest,
+  requireAuth,
   async (req: any, res: any) => {
     try {
       const { expenses } = req.body;
@@ -82,26 +81,19 @@ router.post('/bulk-import',
       let errorCount = 0;
       const errors: string[] = [];
 
+      // Import the expense service
+      const { expenseService } = await import('../services/ExpenseService.js');
+
       for (let i = 0; i < expenses.length; i++) {
         const expenseData = expenses[i];
         try {
-          await createExpense({
-            body: { expenseData },
-            user: req.user
-          } as any, {
-            status: () => ({ json: () => {} }),
-            json: (data: any) => {
-              if (data.success) {
-                successCount++;
-              } else {
-                errorCount++;
-                errors.push(`Expense ${i + 1}: ${data.message || 'Failed to create'}`);
-              }
-            }
-          } as any, () => {});
+          // Use the expense service directly instead of the controller
+          await expenseService.createExpense(expenseData);
+          successCount++;
         } catch (error) {
           errorCount++;
-          errors.push(`Expense ${i + 1}: ${error}`);
+          const errorMessage = (error as Error).message;
+          errors.push(`Expense ${i + 1}: ${errorMessage}`);
         }
       }
 
@@ -111,7 +103,8 @@ router.post('/bulk-import',
           imported: successCount,
           failed: errorCount,
           errors
-        }
+        },
+        message: `Import completed: ${successCount} expenses imported, ${errorCount} failed`
       });
     } catch (error) {
       console.error('Bulk import error:', error);

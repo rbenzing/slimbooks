@@ -62,7 +62,7 @@ export const PaymentManagement: React.FC = () => {
       
       
       if (data.success) {
-        setPayments(data.data.payments || []);
+        setPayments(data.data?.payments || []);
       } else {
         console.error('API returned success: false. Message:', data.message);
         console.error('Full API response:', data);

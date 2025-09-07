@@ -15,6 +15,7 @@ import counterRoutes from './counterRoutes.js';
 import reportRoutes from './reportRoutes.js';
 import pdfRoutes from './pdfRoutes.js';
 import cronRoutes from './cronRoutes.js';
+import templateRoutes from './templateRoutes.js';
 
 const router: Router = Router();
 
@@ -31,6 +32,7 @@ router.use('/api/counters', counterRoutes);
 router.use('/api/reports', reportRoutes);
 router.use('/api/pdf', pdfRoutes);
 router.use('/api/cron', cronRoutes);
+router.use('/api/templates', templateRoutes);
 
 // Health check routes
 router.use('/api/health', healthRoutes);
