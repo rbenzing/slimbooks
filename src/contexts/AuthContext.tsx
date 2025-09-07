@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { User, AuthResponse } from '@/types/auth';
+import { User, AuthResponse } from '@/types';
 import { AuthService } from '@/services/auth.svc';
 import { TokenManagerService } from '@/services/tokenManager.svc';
 import { toast } from 'sonner';
@@ -67,9 +67,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setLoading(true);
-
-      // Initialize admin user
-      await authService.initializeAdminUser();
 
       // Check for existing session with simple expiry check
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');

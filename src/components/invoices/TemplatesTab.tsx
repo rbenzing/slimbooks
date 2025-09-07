@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Calendar, DollarSign, Search, LayoutGrid, Table, FileText, TrendingUp, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { templateOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { TemplateForm } from './TemplateForm';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '@/utils/themeUtils.util';
@@ -25,10 +25,17 @@ export const TemplatesTab = () => {
 
   const loadTemplates = async () => {
     try {
-      const allTemplates = await templateOperations.getAll();
-      setTemplates(allTemplates);
+      const response = await authenticatedFetch('/api/templates');
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.templates || []);
+      } else {
+        console.error('Failed to load templates');
+        setTemplates([]);
+      }
     } catch (error) {
       console.error('Error loading templates:', error);
+      setTemplates([]);
     }
   };
 
@@ -79,9 +86,19 @@ export const TemplatesTab = () => {
   const handleSave = async (templateData: any) => {
     try {
       if (editingTemplate) {
-        await templateOperations.update(editingTemplate.id, templateData);
+        const response = await authenticatedFetch(`/api/templates/${editingTemplate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(templateData)
+        });
+        if (!response.ok) throw new Error('Failed to update template');
       } else {
-        await templateOperations.create(templateData);
+        const response = await authenticatedFetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(templateData)
+        });
+        if (!response.ok) throw new Error('Failed to create template');
       }
       await loadTemplates();
       setIsFormOpen(false);
@@ -94,7 +111,10 @@ export const TemplatesTab = () => {
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this template?')) {
       try {
-        await templateOperations.delete(id);
+        const response = await authenticatedFetch(`/api/templates/${id}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete template');
         await loadTemplates();
       } catch (error) {
         console.error('Error deleting template:', error);

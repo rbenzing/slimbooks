@@ -6,7 +6,7 @@ import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
-import { ProfitLossReportProps, ProfitLossReportData, ReportDateRange, AccountingMethod, BreakdownPeriod } from '@/types/reports.types';
+import { ProfitLossReportProps, ProfitLossReportData, ReportDateRange, AccountingMethod, BreakdownPeriod } from '@/types';
 
 export const ProfitLossReport: React.FC<ProfitLossReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<ProfitLossReportData | null>(null);

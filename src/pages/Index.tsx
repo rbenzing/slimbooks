@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { ClientManagement } from '@/components/ClientManagement';

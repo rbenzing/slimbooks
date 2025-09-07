@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { expenseOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
@@ -50,7 +50,16 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
 
   const handleExport = async () => {
     try {
-      const expenses = await expenseOperations.getAll();
+      const response = await authenticatedFetch('/api/expenses');
+      const data = await response.json();
+      
+      if (!data.success || !data.data.expenses) {
+        toast.error('Failed to fetch expenses for export');
+        return;
+      }
+
+      const expenses = data.data.expenses;
+      
       if (expenses.length === 0) {
         toast.error('No expenses to export');
         return;
@@ -216,14 +225,26 @@ export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClos
       }
 
       // Use bulk import endpoint
-      const result = await expenseOperations.bulkImport(validExpenses);
+      const response = await authenticatedFetch('/api/expenses/bulk-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ expenses: validExpenses })
+      });
       
-      toast.success(`Import completed: ${result.imported} expenses imported${result.failed > 0 ? `, ${result.failed} failed` : ''}`);
+      const result = await response.json();
       
-      // Show detailed errors if any
-      if (result.failed > 0 && result.errors.length > 0) {
-        console.warn('Import errors:', result.errors);
-        toast.warning(`${result.failed} expenses failed to import. Check console for details.`);
+      if (result.success) {
+        toast.success(`Import completed: ${result.data.imported} expenses imported${result.data.failed > 0 ? `, ${result.data.failed} failed` : ''}`);
+        
+        // Show detailed errors if any
+        if (result.data.failed > 0 && result.data.errors.length > 0) {
+          console.warn('Import errors:', result.data.errors);
+          toast.warning(`${result.data.failed} expenses failed to import. Check console for details.`);
+        }
+      } else {
+        throw new Error(result.error || 'Import failed');
       }
 
       onImportComplete();

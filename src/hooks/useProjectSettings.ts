@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sqliteService } from '@/services/sqlite.svc';
-import { ProjectSettings } from '@/types/common.types';
+import { ProjectSettings } from '@/types';
 
 export const useProjectSettings = () => {
   const [settings, setSettings] = useState<ProjectSettings | null>(null);

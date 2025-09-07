@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { invoiceOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
 import { PaginationControls } from '../ui/PaginationControls';
+import { DateRangeFilter } from '../ui/DateRangeFilter';
 import { usePagination } from '@/hooks/usePagination';
 import { getStatusColor } from '@/utils/themeUtils.util';
+import { filterByDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { createPaymentForInvoice } from '@/utils/paymentHelpers';
 import { toast } from 'sonner';
+import { TimePeriod, DateRange } from '@/types';
 
 export const InvoicesTab = () => {
   const navigate = useNavigate();
@@ -22,6 +25,8 @@ export const InvoicesTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<TimePeriod>('this-month');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [viewMode, setViewMode] = useState<'panel' | 'table'>('panel');
 
   useEffect(() => {
@@ -30,10 +35,17 @@ export const InvoicesTab = () => {
 
   const loadInvoices = async () => {
     try {
-      const allInvoices = await invoiceOperations.getAll();
-      setInvoices(allInvoices);
+      const response = await authenticatedFetch('/api/invoices');
+      if (response.ok) {
+        const data = await response.json();
+        setInvoices(data.invoices || []);
+      } else {
+        console.error('Failed to load invoices');
+        setInvoices([]);
+      }
     } catch (error) {
       console.error('Error loading invoices:', error);
+      setInvoices([]);
     }
   };
 
@@ -46,23 +58,38 @@ export const InvoicesTab = () => {
     return matchesSearch && matchesStatus && matchesClient;
   });
 
+  // Apply date filtering
+  const dateFilteredInvoices = (() => {
+    if (dateFilter === 'custom' && customDateRange) {
+      return filterByDateRange(filteredInvoices, customDateRange, 'created_at');
+    } else {
+      const dateRange = getDateRangeForPeriod(dateFilter);
+      return filterByDateRange(filteredInvoices, dateRange, 'created_at');
+    }
+  })();
+
   const uniqueClients = [...new Set(invoices.map(invoice => invoice.client_name))];
 
   // Use pagination hook
   const pagination = usePagination({
-    data: filteredInvoices,
+    data: dateFilteredInvoices,
     searchTerm,
-    filters: { statusFilter, clientFilter }
+    filters: { statusFilter, clientFilter, dateFilter }
   });
 
-  const totalInvoices = filteredInvoices.length;
-  const totalAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const paidAmount = filteredInvoices
+  const totalInvoices = dateFilteredInvoices.length;
+  const totalAmount = dateFilteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const paidAmount = dateFilteredInvoices
     .filter(invoice => invoice.status === 'paid')
     .reduce((sum, invoice) => sum + invoice.amount, 0);
-  const pendingAmount = filteredInvoices
+  const pendingAmount = dateFilteredInvoices
     .filter(invoice => invoice.status === 'sent')
     .reduce((sum, invoice) => sum + invoice.amount, 0);
+
+  const handleDateFilterChange = (period: TimePeriod, customRange?: DateRange) => {
+    setDateFilter(period);
+    setCustomDateRange(customRange);
+  };
 
   const handleSave = async (invoiceData: any) => {
     try {
@@ -306,9 +333,9 @@ export const InvoicesTab = () => {
 
       {/* Search, Filters and View Toggle */}
       <div className="bg-card p-6 rounded-lg shadow-sm border border-border mb-6">
-        <div className="flex items-center space-x-4">
-          {/* Left column - Search and Filters (80%) */}
-          <div className="flex-1 flex space-x-4">
+        <div className="flex justify-between items-center">
+          {/* Left section - Search and Filters (80%) */}
+          <div className="flex space-x-4 flex-1 mr-6">
             <div className="flex-1 relative max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -339,9 +366,15 @@ export const InvoicesTab = () => {
                 <option key={client} value={client}>{client}</option>
               ))}
             </select>
+            <DateRangeFilter
+              value={dateFilter}
+              customRange={customDateRange}
+              onChange={handleDateFilterChange}
+              className="max-w-xs"
+            />
           </div>
           
-          {/* Right column - View Toggle (20%) */}
+          {/* Right section - View Toggle (20%) */}
           <div className="flex space-x-2">
             <button
               onClick={() => setViewMode('panel')}
@@ -392,17 +425,17 @@ export const InvoicesTab = () => {
         itemType="invoices"
       />
 
-      {filteredInvoices.length === 0 && (
+      {dateFilteredInvoices.length === 0 && (
         <div className="col-span-full text-center py-12">
           <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">No invoices found</h3>
           <p className="text-muted-foreground mb-4">
-            {searchTerm || statusFilter !== 'all' || clientFilter !== 'all'
+            {searchTerm || statusFilter !== 'all' || clientFilter !== 'all' || dateFilter !== 'this-month'
               ? 'Try adjusting your search or filters'
               : 'Create your first invoice to get started'
             }
           </p>
-          {!searchTerm && statusFilter === 'all' && clientFilter === 'all' && (
+          {!searchTerm && statusFilter === 'all' && clientFilter === 'all' && dateFilter === 'this-month' && (
             <button
               onClick={handleCreateNew}
               className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"

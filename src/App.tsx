@@ -1,9 +1,10 @@
 
 import { useEffect } from 'react';
+import { useTheme } from './hooks/useTheme.hook';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth, ProtectedRoute } from './contexts/AuthContext';
-import { Sidebar } from './components/Sidebar';
+import { ResponsiveLayout } from './components/ResponsiveLayout';
 import { DashboardOverview } from './components/DashboardOverview';
 import { ClientManagement } from './components/ClientManagement';
 import { EditClientPage } from './components/clients/EditClientPage';
@@ -14,7 +15,7 @@ import { CreateRecurringInvoicePage } from './components/invoices/CreateRecurrin
 import { ExpenseManagement } from './components/ExpenseManagement';
 import { PaymentManagement } from './components/PaymentManagement';
 import { ReportsManagement } from './components/ReportsManagement';
-import { Settings } from './components/Settings';
+import { ResponsiveSettings } from './components/ResponsiveSettings';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -31,6 +32,9 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
+  
+  // Initialize theme system
+  useTheme();
 
   // Connection monitoring - only start when authenticated
   const {
@@ -47,18 +51,6 @@ const App = () => {
     maxRetries: 30, // Max 30 retries (10 minutes)
   });
 
-  // Apply theme on app load
-  useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'system';
-    const root = document.documentElement;
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.toggle('dark', systemTheme === 'dark');
-    } else {
-      root.classList.toggle('dark', theme === 'dark');
-    }
-  }, []);
 
   // Start/stop connection monitoring based on authentication
   useEffect(() => {
@@ -104,170 +96,105 @@ const App = () => {
           {/* Protected routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <DashboardOverview />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <DashboardOverview />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/clients" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <ClientManagement />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <ClientManagement />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/clients/new" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <EditClientPage />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <EditClientPage />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/clients/edit/:id" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <EditClientPage />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <EditClientPage />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/invoices" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <InvoiceManagement />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <InvoiceManagement />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/invoices/create" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <CreateInvoicePage onBack={() => window.history.back()} />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <CreateInvoicePage onBack={() => window.history.back()} />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/invoices/edit/:id" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <EditInvoicePage />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <EditInvoicePage />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/recurring-invoices/create" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <CreateRecurringInvoicePage onBack={() => window.history.back()} />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <CreateRecurringInvoicePage onBack={() => window.history.back()} />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/recurring-invoices/edit/:id" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <CreateRecurringInvoicePage onBack={() => window.history.back()} />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <CreateRecurringInvoicePage onBack={() => window.history.back()} />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/expenses" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <ExpenseManagement />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <ExpenseManagement />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/payments" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <PaymentManagement />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <PaymentManagement />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/reports" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <ReportsManagement />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <ReportsManagement />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/settings" element={
             <ProtectedRoute>
-              <div className="h-screen w-full flex bg-background overflow-hidden">
-                <div className="w-[14%] min-w-[200px]">
-                  <Sidebar />
-                </div>
-                <main className="w-[86%] h-full overflow-y-auto bg-background">
-                  <Settings />
-                </main>
-              </div>
+              <ResponsiveLayout>
+                <ResponsiveSettings />
+              </ResponsiveLayout>
             </ProtectedRoute>
           } />
 

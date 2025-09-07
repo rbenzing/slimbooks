@@ -1,6 +1,6 @@
 // Invoice validation utilities for ensuring invoices are ready to send
 
-import { Client } from '@/types/client.types';
+import { Client } from '@/types';
 
 interface LineItem {
   id: string;

@@ -5,6 +5,7 @@ import {
   ExpenseImportData, 
   ExpenseValidationResult 
 } from '@/types';
+import { PaymentMethod, PaymentStatus } from '@/types';
 
 // CSV utility types
 interface CSVRecord {
@@ -128,6 +129,64 @@ export const validateExpenseData = (data: CSVRecord): ExpenseValidationResult =>
   
   if (!data.category || data.category.toString().trim() === '') {
     errors.push('Category is required');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+export interface PaymentImportData {
+  date: string;
+  client_name: string;
+  amount: number;
+  method: PaymentMethod;
+  reference?: string;
+  description?: string;
+  status: PaymentStatus;
+}
+
+export interface PaymentValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+export const validatePaymentData = (data: CSVRecord): PaymentValidationResult => {
+  const errors: string[] = [];
+  
+  // Required fields validation
+  if (!data.client_name || data.client_name.toString().trim() === '') {
+    errors.push('Client name is required');
+  }
+  
+  if (!data.amount || isNaN(parseFloat(data.amount.toString()))) {
+    errors.push('Valid amount is required');
+  } else if (parseFloat(data.amount.toString()) <= 0) {
+    errors.push('Amount must be greater than 0');
+  }
+  
+  if (!data.date) {
+    errors.push('Date is required');
+  } else {
+    // Try to parse the date to ensure it's valid
+    const dateStr = data.date.toString();
+    const parsedDate = new Date(dateStr);
+    if (isNaN(parsedDate.getTime())) {
+      errors.push('Invalid date format');
+    }
+  }
+  
+  // Validate payment method
+  const validMethods: PaymentMethod[] = ['cash', 'check', 'bank_transfer', 'credit_card', 'paypal', 'other'];
+  if (data.method && !validMethods.includes(data.method as PaymentMethod)) {
+    errors.push(`Invalid payment method. Valid methods: ${validMethods.join(', ')}`);
+  }
+  
+  // Validate payment status
+  const validStatuses: PaymentStatus[] = ['received', 'pending', 'failed', 'refunded'];
+  if (data.status && !validStatuses.includes(data.status as PaymentStatus)) {
+    errors.push(`Invalid payment status. Valid statuses: ${validStatuses.join(', ')}`);
   }
   
   return {

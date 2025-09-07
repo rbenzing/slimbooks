@@ -343,26 +343,55 @@ class SQLiteService {
 
   // Bulk settings operations
   async getAllSettings(category?: string): Promise<Record<string, unknown>> {
-    // Map categories to new section-based routes
-    if (category === 'appearance') {
-      const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/appearance');
+    console.log('sqliteService: getAllSettings called with category:', category);
+    try {
+      // Map categories to new section-based routes
+      if (category === 'appearance') {
+        const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/appearance');
+        console.log('sqliteService: Appearance settings loaded from API:', result.data?.settings);
+        return result.data?.settings || {};
+      }
+      if (category === 'general') {
+        const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/general');
+        console.log('sqliteService: General settings loaded from API:', result.data?.settings);
+        return result.data?.settings || {};
+      }
+      
+      // Fall back to original query parameter route for other categories
+      const params = category ? { category } : {};
+      const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings', 'GET', params);
+      console.log('sqliteService: Settings loaded from API:', result.data?.settings);
       return result.data?.settings || {};
+    } catch (error) {
+      console.error('sqliteService: Failed to load settings:', error);
+      throw error;
     }
-    if (category === 'general') {
-      const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/general');
-      return result.data?.settings || {};
-    }
-    
-    // Fall back to original query parameter route for other categories
-    const params = category ? { category } : {};
-    const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings', 'GET', params);
-    return result.data?.settings || {};
   }
 
   async setMultipleSettings(settings: Record<string, { value: unknown; category?: string }>): Promise<void> {
-    await this.apiCall('/settings', 'PUT', { settings });
-    // Clear cache for all updated settings to ensure fresh data
-    Object.keys(settings).forEach(key => this.clearSettingsCache(key));
+    console.log('sqliteService: setMultipleSettings called with:', settings);
+    try {
+      // Check if all settings are appearance-related
+      const settingsArray = Object.entries(settings);
+      const appearanceSettings = ['theme', 'invoice_template_preference', 'pdf_format_preference'];
+      const isAllAppearanceSettings = settingsArray.every(([key]) => appearanceSettings.includes(key));
+      
+      let endpoint = '/settings';
+      if (isAllAppearanceSettings) {
+        endpoint = '/settings/appearance';
+        console.log('sqliteService: Using appearance-specific endpoint for user settings');
+      } else {
+        console.log('sqliteService: Using general settings endpoint (admin required)');
+      }
+      
+      const result = await this.apiCall(endpoint, 'PUT', { settings });
+      console.log('sqliteService: Settings saved successfully, API response:', result);
+      // Clear cache for all updated settings to ensure fresh data
+      Object.keys(settings).forEach(key => this.clearSettingsCache(key));
+    } catch (error) {
+      console.error('sqliteService: Failed to save settings:', error);
+      throw error;
+    }
   }
 
   // ===== INVOICE API METHODS =====
@@ -559,37 +588,6 @@ class SQLiteService {
     // Validate settings before sending to server
     validateProjectSettings(settings);
     await this.apiCall('/project-settings', 'PUT', { settings });
-  }
-
-  private getDefaultProjectSettings(): ProjectSettings {
-    return {
-      google_oauth: {
-        enabled: false,
-        client_id: '',
-        client_secret: '',
-        configured: false
-      },
-      stripe: {
-        enabled: false,
-        publishable_key: '',
-        secret_key: '',
-        configured: false
-      },
-      email: {
-        enabled: false,
-        smtp_host: '',
-        smtp_port: 587,
-        smtp_user: '',
-        smtp_pass: '',
-        email_from: '',
-        configured: false
-      },
-      security: {
-        require_email_verification: true,
-        max_failed_login_attempts: 5,
-        account_lockout_duration: 1800000
-      }
-    };
   }
 
   // Utility method to check if database is ready

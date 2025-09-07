@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthUtils } from '@/utils/authUtils.util';
-import { DEFAULT_PASSWORD_REQUIREMENTS } from '@/types/auth';
+import { DEFAULT_PASSWORD_REQUIREMENTS } from '@/types';
 
 export const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({

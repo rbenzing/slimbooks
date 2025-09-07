@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { TaxRate, validateTaxRateArray } from '@/types/settings.types';
+import { TaxRate, validateTaxRateArray } from '@/types';
 
 export const TaxSettings = () => {
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);

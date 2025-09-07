@@ -1,30 +1,55 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { themeClasses } from '@/utils/themeUtils.util';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/hooks/useTheme.hook';
 
 export const AppearanceSettingsTab = () => {
-  const [theme, setTheme] = useState('system');
+  const { isAdmin, user } = useAuth();
+  const { theme, setTheme: setGlobalTheme } = useTheme();
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern-blue');
   const [pdfFormat, setPdfFormat] = useState('A4');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [saveError, setSaveError] = useState<string>('');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debounced save function to batch multiple setting changes
   const debouncedSave = useCallback(async () => {
     if (!isLoaded) return;
+    
+    // Clear any previous error
+    setSaveError('');
+    
+    // Check if user has admin privileges before attempting save
+    if (!isAdmin) {
+      const error = 'Admin privileges required to save settings. Contact your administrator.';
+      setSaveError(error);
+      console.error('Settings save blocked:', error, 'User role:', user?.role);
+      return;
+    }
 
     try {
       const { sqliteService } = await import('@/services/sqlite.svc');
       
       await sqliteService.setMultipleSettings({
-        'theme': { value: theme, category: 'appearance' },
         'invoice_template': { value: invoiceTemplate, category: 'appearance' },
         'pdf_format': { value: { format: pdfFormat }, category: 'appearance' }
       });
+      
+      setSaveError(''); // Clear any previous errors on success
     } catch (error) {
       console.error('Error saving appearance settings:', error);
+      
+      // Set user-friendly error message
+      if (error.message?.includes('Authentication required')) {
+        setSaveError('Authentication failed. Please try logging in again.');
+      } else if (error.message?.includes('Admin access required') || error.message?.includes('Insufficient permissions')) {
+        setSaveError('Admin privileges required to save settings.');
+      } else {
+        setSaveError(`Failed to save settings: ${error.message}`);
+      }
     }
-  }, [theme, invoiceTemplate, pdfFormat, isLoaded]);
+  }, [invoiceTemplate, pdfFormat, isLoaded, isAdmin, user?.role]);
 
   // Load settings from database on component mount
   useEffect(() => {
@@ -43,25 +68,20 @@ export const AppearanceSettingsTab = () => {
         if (!settings || (!settings.theme && !settings.invoice_template)) {
           const localTheme = localStorage.getItem('theme') || 'system';
           const localTemplate = localStorage.getItem('invoiceTemplate') || 'modern-blue';
-
-          setTheme(localTheme);
           setInvoiceTemplate(localTemplate);
           setPdfFormat('A4'); // Default PDF format
 
           // Save to database and clear localStorage
           await sqliteService.setMultipleSettings({
-            'theme': { value: localTheme, category: 'appearance' },
             'invoice_template': { value: localTemplate, category: 'appearance' },
             'pdf_format': { value: { format: 'A4' }, category: 'appearance' }
           });
-
-          localStorage.removeItem('theme');
+          
+          // Let useTheme hook handle theme migration
           localStorage.removeItem('invoiceTemplate');
         } else {
           // Use database settings with proper type checking
-          if (settings?.theme && typeof settings.theme === 'string') {
-            setTheme(settings.theme);
-          }
+          // Theme is already handled by useTheme hook
           if (settings?.invoice_template && typeof settings.invoice_template === 'string') {
             setInvoiceTemplate(settings.invoice_template);
           }
@@ -85,30 +105,7 @@ export const AppearanceSettingsTab = () => {
     loadSettings();
   }, []);
 
-  // Apply theme changes (visual only)
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const applyTheme = (selectedTheme: string) => {
-      const root = document.documentElement;
-
-      if (selectedTheme === 'system') {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        root.classList.toggle('dark', systemTheme === 'dark');
-      } else {
-        root.classList.toggle('dark', selectedTheme === 'dark');
-      }
-    };
-
-    applyTheme(theme);
-
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme('system');
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [theme, isLoaded]);
+  // Theme changes are now handled by useTheme hook
 
   // Debounced save all settings changes
   useEffect(() => {
@@ -130,10 +127,10 @@ export const AppearanceSettingsTab = () => {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [theme, invoiceTemplate, pdfFormat, isLoaded, debouncedSave]);
+  }, [invoiceTemplate, pdfFormat, isLoaded, debouncedSave]);
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
+    setGlobalTheme(newTheme as 'light' | 'dark' | 'system');
   };
 
   const handleInvoiceTemplateChange = (newTemplate: string) => {
@@ -142,14 +139,29 @@ export const AppearanceSettingsTab = () => {
 
   return (
     <div className="bg-card rounded-lg shadow-sm border border-border p-6">
-      <h3 className="text-lg font-medium text-card-foreground mb-6">Appearance</h3>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium text-card-foreground">Appearance</h3>
+        {!isAdmin && (
+          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+            Read Only - Admin access required
+          </span>
+        )}
+      </div>
+      
+      {saveError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">{saveError}</p>
+        </div>
+      )}
+      
       <div className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-muted-foreground mb-2">Theme</label>
           <select
             value={theme}
             onChange={(e) => handleThemeChange(e.target.value)}
-            className={`w-full ${themeClasses.select}`}
+            disabled={!isAdmin}
+            className={`w-full ${themeClasses.select} ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <option value="system">System</option>
             <option value="light">Light</option>
@@ -161,7 +173,8 @@ export const AppearanceSettingsTab = () => {
           <select
             value={invoiceTemplate}
             onChange={(e) => handleInvoiceTemplateChange(e.target.value)}
-            className={`w-full ${themeClasses.select}`}
+            disabled={!isAdmin}
+            className={`w-full ${themeClasses.select} ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <option value="modern-blue">Modern Blue</option>
             <option value="classic-white">Classic White</option>
@@ -174,7 +187,8 @@ export const AppearanceSettingsTab = () => {
           <select
             value={pdfFormat}
             onChange={(e) => setPdfFormat(e.target.value)}
-            className={`w-full ${themeClasses.select}`}
+            disabled={!isAdmin}
+            className={`w-full ${themeClasses.select} ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <option value="A4">A4 (210 × 297 mm)</option>
             <option value="Letter">Letter (8.5 × 11 in)</option>

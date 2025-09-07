@@ -9,7 +9,7 @@ import {
   RegisterData, 
   AuthResponse, 
   DEFAULT_SECURITY_SETTINGS 
-} from '@/types/auth';
+} from '@/types';
 
 export class AuthService {
   private static instance: AuthService;
@@ -24,29 +24,6 @@ export class AuthService {
     return AuthService.instance;
   }
 
-  // Initialize admin user if it doesn't exist
-  async initializeAdminUser(): Promise<void> {
-    try {
-      const adminUser = await userOperations.getByEmail('admin@slimbooks.app');
-
-      if (!adminUser) {
-        const hashedPassword = await AuthUtils.hashPassword('password');
-        await userOperations.create({
-          name: 'Administrator',
-          email: 'admin@slimbooks.app',
-          username: 'admin@slimbooks.app',
-          password_hash: hashedPassword,
-          role: 'admin',
-          email_verified: 1,
-          two_factor_enabled: 0,
-          backup_codes: "",
-          failed_login_attempts: 0
-        });
-      }
-    } catch (error) {
-      console.error('Error initializing admin user:', error);
-    }
-  }
 
   // User registration
   async register(data: RegisterData): Promise<AuthResponse> {

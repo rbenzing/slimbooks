@@ -156,6 +156,78 @@ export class TokenManagerService {
   }
 
   /**
+   * Refresh the current token using the refresh token
+   */
+  async refreshToken(): Promise<boolean> {
+    try {
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) {
+        console.warn('No refresh token available');
+        return false;
+      }
+
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshToken}`
+        }
+      });
+
+      if (!response.ok) {
+        console.warn('Token refresh failed:', response.status);
+        return false;
+      }
+
+      const result = await response.json();
+      if (result.success && result.data?.token) {
+        // Update the access token
+        this.setToken(result.data.token);
+        if (result.data.refreshToken) {
+          this.setRefreshToken(result.data.refreshToken);
+        }
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get the current refresh token
+   */
+  private getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+  }
+
+  /**
+   * Set the access token
+   */
+  private setToken(token: string): void {
+    // Check where the current token is stored and update accordingly
+    if (localStorage.getItem('auth_token')) {
+      localStorage.setItem('auth_token', token);
+    } else if (sessionStorage.getItem('auth_token')) {
+      sessionStorage.setItem('auth_token', token);
+    }
+  }
+
+  /**
+   * Set the refresh token
+   */
+  private setRefreshToken(refreshToken: string): void {
+    // Check where the current refresh token is stored and update accordingly
+    if (localStorage.getItem('refresh_token')) {
+      localStorage.setItem('refresh_token', refreshToken);
+    } else if (sessionStorage.getItem('refresh_token')) {
+      sessionStorage.setItem('refresh_token', refreshToken);
+    }
+  }
+
+  /**
    * Get token information for debugging - simple version
    */
   getTokenInfo(): {

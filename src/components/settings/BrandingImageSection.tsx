@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Upload, Edit2 } from 'lucide-react';
-import { CompanySettings } from '@/types/common.types';
+import { CompanySettings } from '@/types';
 
 interface BrandingImageSectionProps {
   settings: CompanySettings;

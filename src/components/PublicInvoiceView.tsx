@@ -6,7 +6,7 @@ import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { envConfig } from '@/lib/env-config';
-import { InvoiceItem } from '@/types/invoice.types';
+import { InvoiceItem } from '@/types';
 
 export const PublicInvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();

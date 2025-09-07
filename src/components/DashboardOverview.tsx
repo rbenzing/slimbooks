@@ -2,10 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
-import { invoiceOperations, clientOperations, expenseOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { themeClasses, getIconColorClasses, getStatusColor } from '@/utils/themeUtils.util';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { TimePeriod } from '@/types/common.types';
+import { TimePeriod } from '@/types';
 
 export const DashboardOverview = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
@@ -37,9 +37,19 @@ export const DashboardOverview = () => {
 
   const loadDashboardData = async () => {
     try {
-      const invoices = await invoiceOperations.getAll();
-      const clients = await clientOperations.getAll();
-      const expenses = await expenseOperations.getAll();
+      const [invoicesResponse, clientsResponse, expensesResponse] = await Promise.all([
+        authenticatedFetch('/api/invoices'),
+        authenticatedFetch('/api/clients'),
+        authenticatedFetch('/api/expenses')
+      ]);
+      
+      const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { invoices: [] };
+      const clientsData = clientsResponse.ok ? await clientsResponse.json() : { clients: [] };
+      const expensesData = expensesResponse.ok ? await expensesResponse.json() : { expenses: [] };
+      
+      const invoices = invoicesData.invoices || [];
+      const clients = clientsData.clients || [];
+      const expenses = expensesData.expenses || [];
 
       setStats(prevStats => ({
         ...prevStats,

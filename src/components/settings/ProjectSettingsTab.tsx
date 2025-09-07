@@ -3,7 +3,7 @@ import { Globe, CreditCard, Shield, AlertTriangle, CheckCircle, Eye, EyeOff } fr
 import { themeClasses } from '@/utils/themeUtils.util';
 // Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
-import { ProjectSettings } from '@/types/common.types';
+import { ProjectSettings } from '@/types';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 
 export interface ProjectSettingsRef {

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
-import { CompanySettings } from '@/types/common.types';
+import { CompanySettings } from '@/types';
 
 interface CompanyHeaderProps {
   companyLogo: string;

@@ -3,7 +3,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto-js';
 import QRCode from 'qrcode';
-import { PasswordRequirements } from '@/types/auth';
+import { PasswordRequirements } from '@/types';
 
 // Import environment configuration
 import { securityConfig } from '@/lib/env-config';

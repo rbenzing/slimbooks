@@ -127,7 +127,7 @@ export class StripeWebhookHandler {
   /**
    * Gets recent webhook logs for debugging
    */
-  async getWebhookLogs(limit: number = 20): Promise<any[]> {
+  async getWebhookLogs(limit: number = 20): Promise<unknown[]> {
     try {
       const { sqliteService } = await import('@/services/sqlite.svc');
       

@@ -1,14 +1,14 @@
 // Server-side recurring invoice processor
 // Handles processing of recurring invoices from templates
 
-import { db } from '../models/index.js';
+import { databaseService } from '../core/DatabaseService.js';
 
 const processRecurringInvoices = async () => {
   try {
     console.log('Starting recurring invoice processing...');
     
     // Get all templates
-    const templates = db.prepare('SELECT * FROM invoice_templates').all();
+    const templates = databaseService.getMany('SELECT * FROM invoice_templates');
     
     if (!templates || templates.length === 0) {
       console.log('No recurring invoice templates found');
@@ -41,14 +41,15 @@ const processRecurringInvoices = async () => {
           console.log(`Creating recurring invoice for template: ${template.name}`);
 
           // Get client information
-          const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(template.client_id);
+          const client = databaseService.getOne('SELECT * FROM clients WHERE id = ?', [template.client_id]);
           if (!client) {
             console.error(`Client not found for template ${template.name}`);
             continue;
           }
 
           // Generate invoice number
-          const invoiceCount = db.prepare('SELECT COUNT(*) as count FROM invoices').get().count;
+          const invoiceCountResult = databaseService.getOne('SELECT COUNT(*) as count FROM invoices');
+          const invoiceCount = invoiceCountResult ? invoiceCountResult.count : 0;
           const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(4, '0')}`;
 
           // Create the invoice
@@ -88,16 +89,14 @@ const processRecurringInvoices = async () => {
           }
 
           // Insert invoice into database
-          const insertStmt = db.prepare(`
+          const insertResult = databaseService.executeQuery(`
             INSERT INTO invoices (
               client_id, template_id, amount, status, invoice_number, due_date, issue_date,
               description, type, client_name, client_email, client_phone, client_address,
               line_items, tax_amount, tax_rate_id, shipping_amount, shipping_rate_id,
               notes, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `);
-          
-          insertStmt.run(
+          `, [
             invoiceData.client_id,
             invoiceData.template_id,
             invoiceData.amount,
@@ -119,14 +118,16 @@ const processRecurringInvoices = async () => {
             invoiceData.notes,
             invoiceData.created_at,
             invoiceData.updated_at
-          );
+          ]);
 
           // Calculate next invoice date based on frequency
           const nextDate = calculateNextInvoiceDate(nextInvoiceDate, template.frequency);
 
           // Update the template with the new next invoice date
-          const updateStmt = db.prepare('UPDATE invoice_templates SET next_invoice_date = ? WHERE id = ?');
-          updateStmt.run(nextDate.toISOString().split('T')[0], template.id);
+          databaseService.executeQuery(
+            'UPDATE invoice_templates SET next_invoice_date = ? WHERE id = ?',
+            [nextDate.toISOString().split('T')[0], template.id]
+          );
 
           console.log(`Next invoice for ${template.name} scheduled for: ${nextDate.toISOString().split('T')[0]}`);
           processedCount++;

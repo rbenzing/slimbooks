@@ -3,7 +3,7 @@ import { X, Calendar, DollarSign, FileText, Tag, Receipt, Clock } from 'lucide-r
 import { getStatusColor, themeClasses } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { Expense } from '@/types/expense.types';
+import { Expense } from '@/types';
 
 interface ExpenseViewModalProps {
   expense: Expense | null;

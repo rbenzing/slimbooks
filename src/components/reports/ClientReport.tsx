@@ -5,7 +5,7 @@ import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { ClientReportData, ClientReportProps, ReportDateRange } from '@/types/reports.types';
+import { ClientReportData, ClientReportProps, ReportDateRange } from '@/types';
 
 export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<ClientReportData | null>(null);

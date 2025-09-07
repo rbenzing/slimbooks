@@ -11,12 +11,15 @@ import {
   Table, 
   Eye, 
   Edit, 
-  Trash2 
+  Trash2,
+  FileSpreadsheet 
 } from 'lucide-react';
 import { PaymentsList } from './payments/PaymentsList';
 import { PaymentForm } from './payments/PaymentForm';
 import { PaymentViewModal } from './payments/PaymentViewModal';
+import { PaymentImportExport } from './payments/PaymentImportExport';
 import { PaginationControls } from './ui/PaginationControls';
+import { DateRangeFilter } from './ui/DateRangeFilter';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { 
@@ -25,10 +28,12 @@ import {
   getButtonClasses, 
   getStatusColor 
 } from '@/utils/themeUtils.util';
+import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
 import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { Payment } from '@/types/payment.types';
+import { Payment } from '@/types';
+import { TimePeriod, DateRange } from '@/types';
 
 export const PaymentManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -36,11 +41,14 @@ export const PaymentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [methodFilter, setMethodFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<TimePeriod>('this-month');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [viewingPayment, setViewingPayment] = useState<Payment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'panel' | 'table'>('table');
   const [loading, setLoading] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
 
   useEffect(() => {
     loadPayments();
@@ -88,17 +96,32 @@ export const PaymentManagement: React.FC = () => {
     return matchesSearch && matchesMethod && matchesStatus;
   });
 
+  // Apply date filtering
+  const dateFilteredPayments = (() => {
+    if (dateFilter === 'custom' && customDateRange) {
+      return filterByDateRange(filteredPayments, customDateRange, 'date');
+    } else {
+      const dateRange = getDateRangeForPeriod(dateFilter);
+      return filterByDateRange(filteredPayments, dateRange, 'date');
+    }
+  })();
+
   // Use pagination hook
   const pagination = usePagination({
-    data: filteredPayments,
+    data: dateFilteredPayments,
     searchTerm,
-    filters: { methodFilter, statusFilter }
+    filters: { methodFilter, statusFilter, dateFilter }
   });
 
-  const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const receivedCount = filteredPayments.filter(p => p.status === 'received').length;
-  const pendingCount = filteredPayments.filter(p => p.status === 'pending').length;
-  const failedCount = filteredPayments.filter(p => p.status === 'failed').length;
+  const totalAmount = dateFilteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const receivedCount = dateFilteredPayments.filter(p => p.status === 'received').length;
+  const pendingCount = dateFilteredPayments.filter(p => p.status === 'pending').length;
+  const failedCount = dateFilteredPayments.filter(p => p.status === 'failed').length;
+
+  const handleDateFilterChange = (period: TimePeriod, customRange?: DateRange) => {
+    setDateFilter(period);
+    setCustomDateRange(customRange);
+  };
 
   const handleCreatePayment = () => {
     setEditingPayment(null);
@@ -328,6 +351,13 @@ export const PaymentManagement: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <button
+              onClick={() => setShowImportExport(true)}
+              className={getButtonClasses('secondary')}
+            >
+              <FileSpreadsheet className={themeClasses.iconButton} />
+              Import/Export
+            </button>
+            <button
               onClick={handleCreatePayment}
               className={getButtonClasses('primary')}
             >
@@ -418,6 +448,12 @@ export const PaymentManagement: React.FC = () => {
                 <option value="failed">Failed</option>
                 <option value="refunded">Refunded</option>
               </select>
+              <DateRangeFilter
+                value={dateFilter}
+                customRange={customDateRange}
+                onChange={handleDateFilterChange}
+                className="max-w-xs"
+              />
             </div>
 
             {/* Right section - View Toggle (20%) */}
@@ -489,13 +525,13 @@ export const PaymentManagement: React.FC = () => {
         />
 
         {/* Empty State */}
-        {!loading && filteredPayments.length === 0 && (
+        {!loading && dateFilteredPayments.length === 0 && (
           <div className="bg-card rounded-lg shadow-sm border border-border p-12">
             <div className="text-center">
               <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No payments found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || methodFilter !== 'all' || statusFilter !== 'all'
+                {searchTerm || methodFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'this-month'
                   ? 'Try adjusting your search or filters'
                   : 'Add your first payment to get started'
                 }
@@ -513,6 +549,14 @@ export const PaymentManagement: React.FC = () => {
             setViewingPayment(null);
           }}
         />
+
+        {/* Import/Export Modal */}
+        {showImportExport && (
+          <PaymentImportExport
+            onClose={() => setShowImportExport(false)}
+            onImportComplete={loadPayments}
+          />
+        )}
       </div>
     </div>
   );

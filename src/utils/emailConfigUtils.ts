@@ -1,7 +1,7 @@
 // Email configuration utilities
 
 import { sqliteService } from '@/services/sqlite.svc';
-import { EmailSettings, EmailConfigStatus } from '@/types/settings.types';
+import { EmailSettings, EmailConfigStatus } from '@/types';
 
 /**
  * Checks if email settings are properly configured and enabled

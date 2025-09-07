@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { ShippingRate, validateShippingRateArray } from '@/types/settings.types';
+import { ShippingRate, validateShippingRateArray } from '@/types';
 // Use dynamic import to avoid circular dependencies
 
 export const ShippingSettings = () => {

@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, User, Building, Mail, Phone, MapPin } from 'lucide-react';
-import { clientOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { InternationalAddressForm } from '@/components/ui/InternationalAddressForm';
-import { ClientFormData } from '@/types/client.types';
+import { ClientFormData } from '@/types';
 
 export const EditClientPage = () => {
   const navigate = useNavigate();
@@ -46,7 +46,9 @@ export const EditClientPage = () => {
     const loadClientData = async () => {
       if (isEditing && id) {
         try {
-          const client = await clientOperations.getById(parseInt(id));
+          const response = await authenticatedFetch(`/api/clients/${id}`);
+          const data = response.ok ? await response.json() : null;
+          const client = data?.client;
           if (client) {
             // Use existing first_name and last_name if available, otherwise parse name field
             const first_name = client.first_name || (client.name ? client.name.split(' ')[0] : '') || '';
@@ -136,9 +138,19 @@ export const EditClientPage = () => {
       };
 
       if (isEditing && id) {
-        clientOperations.update(parseInt(id), clientData);
+        const response = await authenticatedFetch(`/api/clients/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientData)
+        });
+        if (!response.ok) throw new Error('Failed to update client');
       } else {
-        clientOperations.create(clientData);
+        const response = await authenticatedFetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientData)
+        });
+        if (!response.ok) throw new Error('Failed to create client');
       }
       
       navigate('/clients');

@@ -5,7 +5,7 @@ import { getStatusColor, themeClasses, getButtonClasses } from '@/utils/themeUti
 import { reportOperations } from '../../lib/database';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
-import { InvoiceReportData, InvoiceReportProps, ReportDateRange } from '@/types/reports.types';
+import { InvoiceReportData, InvoiceReportProps, ReportDateRange } from '@/types';
 
 export const InvoiceReport: React.FC<InvoiceReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<InvoiceReportData | null>(null);

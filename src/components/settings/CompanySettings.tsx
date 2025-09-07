@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
-import { CompanySettings } from '@/types/common.types';
+import { CompanySettings } from '@/types';
 
 export const CompanySettings = () => {
   const [settings, setSettings] = useState<CompanySettings>({

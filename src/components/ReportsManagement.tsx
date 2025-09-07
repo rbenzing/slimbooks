@@ -9,8 +9,8 @@ import { reportOperations } from '../lib/database';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
-import { Report, ReportType } from '@/types/common.types';
-import { ReportDateRange } from '@/types/reports.types';
+import { Report, ReportType } from '@/types';
+import { ReportDateRange } from '@/types';
 
 export type { ReportType };
 export type { ReportDateRange as DateRange }; // Re-export for backward compatibility

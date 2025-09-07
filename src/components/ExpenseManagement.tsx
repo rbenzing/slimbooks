@@ -19,7 +19,8 @@ import { ExpensesList } from './expenses/ExpensesList';
 import { ExpenseImportExport } from './expenses/ExpenseImportExport';
 import { ExpenseViewModal } from './expenses/ExpenseViewModal';
 import { PaginationControls } from './ui/PaginationControls';
-import { expenseOperations } from '../lib/database';
+import { DateRangeFilter } from './ui/DateRangeFilter';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { 
@@ -28,9 +29,11 @@ import {
   getButtonClasses, 
   getStatusColor 
 } from '@/utils/themeUtils.util';
+import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { Expense } from '@/types/expense.types';
+import { Expense } from '@/types';
+import { TimePeriod, DateRange } from '@/types';
 
 export const ExpenseManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -38,6 +41,8 @@ export const ExpenseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<TimePeriod>('this-month');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showImportExport, setShowImportExport] = useState(false);
   const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
@@ -50,14 +55,20 @@ export const ExpenseManagement: React.FC = () => {
 
   const loadExpenses = async () => {
     try {
-      const allExpenses = await expenseOperations.getAll();
-      // Ensure all expenses have required fields
-      const validExpenses = allExpenses.filter(expense =>
-        expense &&
-        typeof expense.merchant === 'string' &&
-        typeof expense.description === 'string'
-      );
-      setExpenses(validExpenses);
+      const response = await authenticatedFetch('/api/expenses');
+      if (response.ok) {
+        const data = await response.json();
+        const allExpenses = data.expenses || [];
+        // Ensure all expenses have required fields
+        const validExpenses = allExpenses.filter((expense: Expense) =>
+          expense &&
+          typeof expense.merchant === 'string' &&
+          typeof expense.description === 'string'
+        );
+        setExpenses(validExpenses);
+      } else {
+        throw new Error('Failed to load expenses');
+      }
     } catch (error) {
       console.error('Error loading expenses:', error);
       toast.error('Failed to load expenses');
@@ -81,17 +92,32 @@ export const ExpenseManagement: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  // Apply date filtering
+  const dateFilteredExpenses = (() => {
+    if (dateFilter === 'custom' && customDateRange) {
+      return filterByDateRange(filteredExpenses, customDateRange, 'date');
+    } else {
+      const dateRange = getDateRangeForPeriod(dateFilter);
+      return filterByDateRange(filteredExpenses, dateRange, 'date');
+    }
+  })();
+
   // Use pagination hook
   const pagination = usePagination({
-    data: filteredExpenses,
+    data: dateFilteredExpenses,
     searchTerm,
-    filters: { categoryFilter, statusFilter }
+    filters: { categoryFilter, statusFilter, dateFilter }
   });
 
-  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const pendingCount = filteredExpenses.filter(exp => exp.status === 'pending').length;
-  const approvedCount = filteredExpenses.filter(exp => exp.status === 'approved').length;
-  const reimbursedCount = filteredExpenses.filter(exp => exp.status === 'reimbursed').length;
+  const totalExpenses = dateFilteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const pendingCount = dateFilteredExpenses.filter(exp => exp.status === 'pending').length;
+  const approvedCount = dateFilteredExpenses.filter(exp => exp.status === 'approved').length;
+  const reimbursedCount = dateFilteredExpenses.filter(exp => exp.status === 'reimbursed').length;
+
+  const handleDateFilterChange = (period: TimePeriod, customRange?: DateRange) => {
+    setDateFilter(period);
+    setCustomDateRange(customRange);
+  };
 
   const handleCreateExpense = () => {
     setEditingExpense(null);
@@ -364,6 +390,12 @@ export const ExpenseManagement: React.FC = () => {
                 <option value="approved">Approved</option>
                 <option value="reimbursed">Reimbursed</option>
               </select>
+              <DateRangeFilter
+                value={dateFilter}
+                customRange={customDateRange}
+                onChange={handleDateFilterChange}
+                className="max-w-xs"
+              />
             </div>
 
             {/* Right section - View Toggle (20%) */}
@@ -431,13 +463,13 @@ export const ExpenseManagement: React.FC = () => {
         />
 
         {/* Empty State */}
-        {filteredExpenses.length === 0 && (
+        {dateFilteredExpenses.length === 0 && (
           <div className="bg-card rounded-lg shadow-sm border border-border p-12">
             <div className="text-center">
               <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No expenses found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
+                {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'this-month'
                   ? 'Try adjusting your search or filters'
                   : 'Add your first expense to get started'
                 }

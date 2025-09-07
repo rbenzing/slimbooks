@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, X, Receipt } from 'lucide-react';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
-import { Expense, ExpenseFormData } from '@/types/expense.types';
+import { Expense, ExpenseFormData } from '@/types';
 
 interface ExpenseFormProps {
   expense?: Expense | null;

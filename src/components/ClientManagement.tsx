@@ -4,12 +4,12 @@ import { Plus, Search, Users, Building, Mail, Phone, LayoutGrid, Table, Edit, Tr
 import { ClientForm } from './ClientForm';
 import { ClientImportExport } from './clients/ClientImportExport';
 import { PaginationControls } from './ui/PaginationControls';
-import { clientOperations } from '../lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '@/utils/themeUtils.util';
-import { Client, ClientFormData } from '@/types/client.types';
+import { Client, ClientFormData } from '@/types';
 
 export const ClientManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -25,8 +25,13 @@ export const ClientManagement: React.FC = () => {
 
   const loadClients = async () => {
     try {
-      const allClients = await clientOperations.getAll();
-      setClients(allClients);
+      const response = await authenticatedFetch('/api/clients');
+      if (response.ok) {
+        const data = await response.json();
+        setClients(data.clients || []);
+      } else {
+        throw new Error('Failed to load clients');
+      }
     } catch (error) {
       console.error('Error loading clients:', error);
       toast.error('Failed to load clients');
@@ -58,12 +63,29 @@ export const ClientManagement: React.FC = () => {
 
   const handleSaveClient = async (clientData: ClientFormData) => {
     try {
+      let response;
       if (editingClient) {
-        await clientOperations.update(editingClient.id, clientData);
-        toast.success('Client updated successfully');
+        response = await authenticatedFetch(`/api/clients/${editingClient.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientData)
+        });
+        if (response.ok) {
+          toast.success('Client updated successfully');
+        } else {
+          throw new Error('Failed to update client');
+        }
       } else {
-        await clientOperations.create(clientData);
-        toast.success('Client created successfully');
+        response = await authenticatedFetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientData)
+        });
+        if (response.ok) {
+          toast.success('Client created successfully');
+        } else {
+          throw new Error('Failed to create client');
+        }
       }
       await loadClients();
       setShowCreateForm(false);
@@ -76,9 +98,15 @@ export const ClientManagement: React.FC = () => {
 
   const handleDeleteClient = async (id: number) => {
     try {
-      await clientOperations.delete(id);
-      toast.success('Client deleted successfully');
-      await loadClients();
+      const response = await authenticatedFetch(`/api/clients/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        toast.success('Client deleted successfully');
+        await loadClients();
+      } else {
+        throw new Error('Failed to delete client');
+      }
     } catch (error) {
       toast.error('Failed to delete client');
       console.error('Error deleting client:', error);

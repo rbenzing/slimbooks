@@ -1,6 +1,6 @@
 # Slimbooks Server Architecture
 
-This document describes the refactored, modular architecture of the Slimbooks Node.js API server.
+This document describes the refactored, modular architecture of the Slimbooks Node.js API server with full TypeScript support.
 
 ## Overview
 
@@ -10,41 +10,66 @@ The server has been completely refactored from a single monolithic `index.js` fi
 
 ```
 server/
-├── index.js                 # Main entry point (minimal)
-├── app.js                   # Application setup and configuration
+├── index.ts                 # Main entry point (minimal)
+├── app.ts                   # Application setup and configuration
+├── tsconfig.json           # TypeScript configuration
 ├── config/                  # Configuration management
-│   ├── index.js            # Main configuration exports
-│   └── database.js         # Database configuration
+│   ├── index.ts            # Main configuration exports
+│   └── database.ts         # Database configuration
 ├── controllers/             # Business logic controllers
-│   ├── index.js            # Controller exports
-│   ├── authController.js   # Authentication logic
-│   ├── userController.js   # User management
-│   ├── clientController.js # Client management
-│   ├── invoiceController.js# Invoice management
-│   └── expenseController.js# Expense management
+│   ├── index.ts            # Controller exports
+│   ├── authController.ts   # Authentication logic
+│   ├── userController.ts   # User management
+│   ├── clientController.ts # Client management
+│   ├── invoiceController.ts# Invoice management
+│   ├── expenseController.ts# Expense management
+│   ├── paymentController.ts# Payment management
+│   ├── settingsController.ts# Settings management
+│   └── cronController.ts   # Cron job management
+├── core/                    # Core services
+│   ├── DatabaseService.ts  # Abstract database service layer
+│   └── Settings.ts         # Settings service
 ├── middleware/              # Express middleware
-│   ├── index.js            # Middleware exports
-│   ├── auth.js             # Authentication middleware
-│   ├── validation.js       # Input validation
-│   ├── errorHandler.js     # Error handling
-│   ├── logging.js          # Request logging
-│   └── security.js         # Security middleware
-├── models/                  # Database models and schema
-│   ├── index.js            # Database instance and initialization
-│   ├── schema.js           # Table definitions
-│   ├── sqlite-optimized-schema.sql # Production-ready optimized schema
-│   └── seedData.js         # Sample data initialization
+│   ├── index.ts            # Middleware exports and error classes
+│   ├── auth.ts             # Authentication middleware
+│   ├── validation.ts       # Input validation
+│   └── security.ts         # Security middleware
+├── database/                # Database layer (centralized)
+│   ├── index.ts            # Main database module exports
+│   ├── SQLiteDatabase.ts   # SQLite implementation with abstract interface
+│   ├── config/             # Database configuration
+│   │   └── sqlite.config.ts # SQLite-specific configuration
+│   ├── schemas/            # Database schema definitions
+│   │   └── tables.schema.ts # TypeScript table schema definitions
+│   └── seeds/              # Database seed data
+│       └── initial.seed.ts # Initial application data
+├── models/                  # Legacy database files (deprecated)
+│   ├── index.ts            # Legacy database initialization
+│   ├── schema.js           # Legacy JavaScript schema
+│   └── seedData.js         # Legacy JavaScript seed data
 ├── routes/                  # API route definitions
-│   ├── index.js            # Route setup and exports
 │   ├── authRoutes.js       # Authentication endpoints
 │   ├── userRoutes.js       # User management endpoints
 │   ├── clientRoutes.js     # Client management endpoints
 │   ├── invoiceRoutes.js    # Invoice management endpoints
 │   ├── expenseRoutes.js    # Expense management endpoints
+│   ├── paymentRoutes.js    # Payment management endpoints
+│   ├── settingsRoutes.js   # Settings management endpoints
 │   └── healthRoutes.js     # Health check endpoints
-└── utils/                   # Utility functions
-    ├── index.js            # Utility exports
-    └── helpers.js          # Common helper functions
+├── services/                # Domain services
+│   ├── AuthService.ts      # Authentication service
+│   ├── UserService.ts      # User management service
+│   ├── ClientService.ts    # Client management service
+│   ├── InvoiceService.ts   # Invoice management service
+│   ├── ExpenseService.ts   # Expense management service
+│   ├── PaymentService.ts   # Payment management service
+│   ├── PdfService.ts       # PDF generation service
+│   └── DatabaseHealthService.ts # Database health monitoring
+└── types/                   # Server-specific TypeScript types
+    ├── index.ts            # Consolidated type exports  
+    ├── api.types.ts        # API request/response types
+    ├── database.types.ts   # Database interfaces and types
+    └── invoice.types.ts    # Invoice-specific server types
 ```
 
 ## Key Features
@@ -54,6 +79,14 @@ server/
 - **Clean Dependencies**: Clear import/export structure
 - **Maintainable**: Easy to understand, modify, and extend
 
+### 📝 TypeScript Implementation
+- **Full Type Safety**: Complete TypeScript coverage with strict type checking
+- **Type Definitions**: Comprehensive types for all API requests/responses
+- **Database Types**: Strongly typed database models and query results
+- **Interface Conformance**: Server types align with UI types for consistency
+- **Strict Configuration**: exactOptionalPropertyTypes enabled for robust type checking
+- **Path Aliases**: Clean import paths using TypeScript path mapping
+
 ### 🔒 Security
 - **Rate Limiting**: Configurable rate limits for different endpoints
 - **Input Validation**: Comprehensive validation using express-validator
@@ -61,12 +94,12 @@ server/
 - **Authentication**: JWT-based authentication with role-based access control
 
 ### 📊 Database Management
-- **Optimized Schema**: Production-ready SQLite schema with proper constraints
-- **Data Validation**: Database-level validation with CHECK constraints
-- **Performance Indexes**: Optimized indexes for common query patterns
-- **Seed Data**: Development sample data initialization
-- **Connection Management**: Proper database connection handling
-- **Error Handling**: Robust database error handling
+- **Abstract Interface**: Database-agnostic interface with SQLite implementation
+- **Modular Architecture**: Centralized database layer with clear separation of concerns
+- **TypeScript Schema**: Type-safe schema definitions with comprehensive validation
+- **Organized Structure**: Separate configuration, schemas, and seed data modules
+- **Connection Management**: Optimized SQLite connection with WAL mode and pragmas
+- **Error Handling**: Robust error handling with transaction support
 
 ### 🛠️ Developer Experience
 - **Error Handling**: Centralized error handling with detailed logging
@@ -143,17 +176,24 @@ The server uses a centralized configuration system located in `server/config/`:
 6. **Route Handlers**: Business logic controllers
 7. **Error Handling**: Centralized error handling
 
-## Database
+## Database Architecture
 
-The application uses SQLite with the following features:
+The application uses a centralized, modular database architecture with SQLite implementation:
 
+### Architecture Features
+- **Abstract Interface**: `IDatabase` interface for database-agnostic operations
+- **SQLite Implementation**: Optimized SQLite adapter with WAL mode and performance pragmas
+- **Type Safety**: Comprehensive TypeScript types for all database operations
+- **Modular Design**: Separate modules for configuration, schemas, and seed data
+- **Service Layer**: `DatabaseService` class providing common database operations
+
+### Database Features
 - **WAL Mode**: Write-Ahead Logging for better concurrency
-- **Foreign Keys**: Enabled for data integrity
-- **Optimized Schema**: Production-ready schema with proper field types
-- **Data Validation**: CHECK constraints for data integrity
-- **Performance Indexes**: Optimized for common query patterns
-- **Automatic Triggers**: Timestamp updates and data consistency
-- **Seed Data**: Sample data for development
+- **Foreign Keys**: Enabled for referential integrity
+- **Transaction Support**: Full transaction support with rollback capability
+- **Connection Pooling**: Optimized connection management with health monitoring
+- **Performance Optimization**: Strategic indexes and SQLite pragma settings
+- **Automated Seeding**: TypeScript-based seed data management
 
 ### Database Schema
 
@@ -186,10 +226,36 @@ The server includes comprehensive error handling:
 
 ## Development
 
-### Starting the Server
+### Building and Running the Server
+
+The server is written in TypeScript and needs to be compiled before running:
+
 ```bash
-npm run dev
+# Type check without emitting files
+npx tsc --noEmit
+
+# Build the TypeScript code
+npm run build
+
+# Start the server in development mode (with auto-restart)
+npm run server
+
+# Start both UI and server concurrently
+npm run start
 ```
+
+### TypeScript Configuration
+
+The server uses a strict TypeScript configuration (`tsconfig.json`) with the following key settings:
+
+- **Target**: ES2022 with modern JavaScript features
+- **Module**: ESNext with ES module interop
+- **Strict Mode**: Full strict type checking enabled
+- **exactOptionalPropertyTypes**: Strict optional property handling
+- **Path Mapping**: Clean imports with `@/server/*` aliases
+- **Source Maps**: Full debugging support with declaration maps
+
+The server uses its own type definitions in `server/types/` while maintaining compatibility with the centralized frontend type system for shared interfaces.
 
 ### Environment Variables
 
@@ -246,16 +312,3 @@ Key environment variables:
 2. **Controllers**: Add business logic in `server/controllers/`
 3. **Middleware**: Add reusable middleware in `server/middleware/`
 4. **Models**: Add database operations in `server/models/`
-
-## Migration from Legacy
-
-The refactoring maintains 100% API compatibility with the previous monolithic structure while providing:
-
-- ✅ Better code organization
-- ✅ Improved maintainability
-- ✅ Enhanced error handling
-- ✅ Better security practices
-- ✅ Comprehensive logging
-- ✅ Modular architecture
-
-All existing endpoints continue to work exactly as before, ensuring no breaking changes for the frontend application.

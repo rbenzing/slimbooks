@@ -1,4 +1,11 @@
 // SQLite-based database operations for Slimbooks application
+// 
+// ⚠️  DEPRECATED: This file contains direct database operations that bypass authentication
+// ⚠️  Components should use authenticated API calls via @/utils/apiUtils.util instead
+// ⚠️  Server-side code should use @/core/Database.ts (databaseService) for all database operations
+// 
+// This file is kept for backward compatibility with complex report generation functions
+// but new code should NOT import from this file.
 import { sqliteService } from '@/services/sqlite.svc';
 import { 
   User,
@@ -7,7 +14,7 @@ import {
   Expense,
   InvoiceTemplate,
   Report,
-  ValidationError
+  ImportResult
 } from '@/types';
 
 // Initialize database
@@ -40,6 +47,7 @@ export const initDatabase = async () => {
 // Client operations
 export const clientOperations = {
   getAll: async (): Promise<Client[]> => {
+    console.warn('⚠️  DEPRECATED: clientOperations.getAll() bypasses authentication. Use authenticatedFetch("/api/clients") instead.');
     await ensureInitialized();
     return await sqliteService.getClients();
   },
@@ -79,6 +87,7 @@ export const clientOperations = {
 // Invoice operations
 export const invoiceOperations = {
   getAll: async (): Promise<(Invoice & { client_name: string; client_email?: string; client_phone?: string; client_address?: string })[]> => {
+    console.warn('⚠️  DEPRECATED: invoiceOperations.getAll() bypasses authentication. Use authenticatedFetch("/api/invoices") instead.');
     await ensureInitialized();
     return await sqliteService.getInvoices();
   },
@@ -108,6 +117,7 @@ export const invoiceOperations = {
 // Template operations
 export const templateOperations = {
   getAll: async (): Promise<(InvoiceTemplate & { client_name: string })[]> => {
+    console.warn('⚠️  DEPRECATED: templateOperations.getAll() bypasses authentication. Use authenticatedFetch("/api/templates") instead.');
     await ensureInitialized();
     return await sqliteService.getTemplates();
   },
@@ -134,9 +144,10 @@ export const templateOperations = {
   }
 };
 
-// Expense operations
+// Expense operations  
 export const expenseOperations = {
   getAll: async (): Promise<Expense[]> => {
+    console.warn('⚠️  DEPRECATED: expenseOperations.getAll() bypasses authentication. Use authenticatedFetch("/api/expenses") instead.');
     await ensureInitialized();
     return await sqliteService.getExpenses();
   },
@@ -156,7 +167,7 @@ export const expenseOperations = {
     await ensureInitialized();
     return await sqliteService.createExpense(expenseData);
   },
-  bulkImport: async (expenses: any[]): Promise<{ imported: number; failed: number; errors: any[] }> => {
+  bulkImport: async (expenses: any[]): Promise<ImportResult<any>> => {
     await ensureInitialized();
     return await sqliteService.bulkImportExpenses(expenses);
   },
@@ -239,11 +250,21 @@ export const reportOperations = {
 
     // Get all invoices and filter by date range
     const allInvoices = await sqliteService.getInvoices();
-    const invoices = allInvoices.filter((invoice: any) => {
+    const invoices = allInvoices.filter((invoice: Invoice & { client_name: string }) => {
       const invoiceDate = new Date(invoice.created_at);
+      
+      // Create start date at beginning of day (local timezone)
       const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      // Create end date at END of day (local timezone) - this is crucial!
       const end = new Date(endDate);
-      return invoiceDate >= start && invoiceDate <= end;
+      end.setHours(23, 59, 59, 999);
+      
+      // Normalize invoice date to local timezone for comparison
+      const invoiceLocalDate = new Date(invoiceDate.getTime());
+      
+      return invoiceLocalDate >= start && invoiceLocalDate <= end;
     });
 
     // Get expenses in date range using the API
@@ -283,32 +304,72 @@ export const reportOperations = {
           }
 
           // Filter data for this period
-          const periodInvoices = invoices.filter((invoice: any) => {
+          const periodInvoices = invoices.filter((invoice: Invoice & { client_name: string }) => {
             const invoiceDate = new Date(invoice.created_at);
-            return invoiceDate >= periodStart && invoiceDate <= periodEnd;
+            // Normalize to date-only comparison to avoid time zone issues
+            const invoiceYear = invoiceDate.getFullYear();
+            const invoiceMonth = invoiceDate.getMonth();
+            const invoiceDay = invoiceDate.getDate();
+            const periodStartYear = periodStart.getFullYear();
+            const periodStartMonth = periodStart.getMonth();
+            const periodEndYear = periodEnd.getFullYear();
+            const periodEndMonth = periodEnd.getMonth();
+            const periodEndDay = periodEnd.getDate();
+            
+            // For quarterly/monthly breakdown, check if the invoice falls within the period
+            const invoiceInPeriod = (
+              (invoiceYear > periodStartYear) ||
+              (invoiceYear === periodStartYear && invoiceMonth >= periodStartMonth)
+            ) && (
+              (invoiceYear < periodEndYear) ||
+              (invoiceYear === periodEndYear && invoiceMonth <= periodEndMonth) ||
+              (invoiceYear === periodEndYear && invoiceMonth === periodEndMonth && invoiceDay <= periodEndDay)
+            );
+            
+            return invoiceInPeriod;
           });
 
-          const periodExpenses = expenses.filter((expense: any) => {
+          const periodExpenses = expenses.filter((expense: Expense) => {
             const expenseDate = new Date(expense.date);
-            return expenseDate >= periodStart && expenseDate <= periodEnd;
+            // Normalize to date-only comparison
+            const expenseYear = expenseDate.getFullYear();
+            const expenseMonth = expenseDate.getMonth();
+            const expenseDay = expenseDate.getDate();
+            const periodStartYear = periodStart.getFullYear();
+            const periodStartMonth = periodStart.getMonth();
+            const periodEndYear = periodEnd.getFullYear();
+            const periodEndMonth = periodEnd.getMonth();
+            const periodEndDay = periodEnd.getDate();
+            
+            // For quarterly/monthly breakdown, check if the expense falls within the period
+            const expenseInPeriod = (
+              (expenseYear > periodStartYear) ||
+              (expenseYear === periodStartYear && expenseMonth >= periodStartMonth)
+            ) && (
+              (expenseYear < periodEndYear) ||
+              (expenseYear === periodEndYear && expenseMonth <= periodEndMonth) ||
+              (expenseYear === periodEndYear && expenseMonth === periodEndMonth && expenseDay <= periodEndDay)
+            );
+            
+            return expenseInPeriod;
           });
 
           // Calculate revenue for this period
-          const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+          const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
           const periodPaidRevenue = periodInvoices
-            .filter((invoice: any) => invoice.status === 'paid')
-            .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+            .filter((invoice: Invoice & { client_name: string }) => invoice.status === 'paid')
+            .reduce((sum: number, invoice: Invoice & { client_name: string }) => sum + toNumber(invoice.amount), 0);
           
           const periodRecognizedRevenue = accountingMethod === 'cash' ? periodPaidRevenue : periodInvoiceRevenue;
 
           // Calculate expenses by category for this period
-          const periodExpensesByCategory = periodExpenses.reduce((acc: any, expense: any) => {
+          const periodExpensesByCategory = periodExpenses.reduce((acc: Record<string, number>, expense: Expense) => {
             const category = expense.category || 'Uncategorized';
             acc[category] = (acc[category] || 0) + toNumber(expense.amount);
             return acc;
-          }, {});
+          }, {} as Record<string, number>);
 
-          const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
+          const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
 
           columns.push({
             label: periodLabel,
@@ -343,13 +404,15 @@ export const reportOperations = {
         const actualPeriodEnd = new Date(Math.min(currentPeriodEnd.getTime(), endDateObj.getTime()));
 
         // Filter data for this period
-        const periodInvoices = invoices.filter((invoice: any) => {
+        const periodInvoices = invoices.filter((invoice: Invoice & { client_name: string }) => {
           const invoiceDate = new Date(invoice.created_at);
+          // Use date-only comparison to avoid time zone issues
           return invoiceDate >= actualPeriodStart && invoiceDate <= actualPeriodEnd;
         });
 
-        const periodExpenses = expenses.filter((expense: any) => {
+        const periodExpenses = expenses.filter((expense: Expense) => {
           const expenseDate = new Date(expense.date);
+          // Use date-only comparison to avoid time zone issues  
           return expenseDate >= actualPeriodStart && expenseDate <= actualPeriodEnd;
         });
 
@@ -400,12 +463,16 @@ export const reportOperations = {
     const totalRevenue = recognizedRevenue + otherIncome;
 
     // Calculate expenses with proper type conversion
-    const totalExpenses = expenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
-    const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
+    const totalExpenses = expenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
+    const expensesByCategory = expenses.reduce((acc: Record<string, number>, expense: Expense) => {
       const category = expense.category || 'Uncategorized';
-      acc[category] = (acc[category] || 0) + toNumber(expense.amount);
+      const categoryAmount = (acc[category] || 0) + toNumber(expense.amount);
+      // Only include categories with amounts > 0
+      if (categoryAmount > 0) {
+        acc[category] = categoryAmount;
+      }
       return acc;
-    }, {});
+    }, {} as Record<string, number>);
 
     // Calculate profit/loss based on recognized revenue
     const netProfit = recognizedRevenue - totalExpenses;

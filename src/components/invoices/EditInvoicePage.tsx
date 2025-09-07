@@ -10,11 +10,11 @@ import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
-import { EmailConfigStatus } from '@/types/settings.types';
+import { EmailConfigStatus } from '@/types';
 import { toast } from 'sonner';
-import { InvoiceItem, Invoice, InvoiceStatus } from '@/types/invoice.types';
-import { Client } from '@/types/client.types';
-import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types/settings.types';
+import { InvoiceItem, Invoice, InvoiceStatus } from '@/types';
+import { Client } from '@/types';
+import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();

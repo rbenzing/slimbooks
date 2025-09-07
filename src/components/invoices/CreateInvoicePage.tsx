@@ -11,11 +11,11 @@ import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
-import { EmailConfigStatus } from '@/types/settings.types';
+import { EmailConfigStatus } from '@/types';
 import { toast } from 'sonner';
-import { InvoiceType } from '@/types/invoice.types';
-import { Client } from '@/types/client.types';
-import { TaxRate, ShippingRate } from '@/types/settings.types';
+import { InvoiceType } from '@/types';
+import { Client } from '@/types';
+import { TaxRate, ShippingRate } from '@/types';
 
 interface LineItem {
   id: string;

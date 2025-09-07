@@ -1,6 +1,6 @@
 // Email service for browser environment (simulation for development)
 
-import { EmailSettings, EmailTemplate } from '@/types/auth';
+import { EmailSettings, EmailTemplate } from '@/types';
 
 export class EmailService {
   private static instance: EmailService;

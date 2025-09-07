@@ -6,7 +6,7 @@ import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';
-import { ExpenseReportData, ExpenseReportProps, ReportDateRange } from '@/types/reports.types';
+import { ExpenseReportData, ExpenseReportProps, ReportDateRange } from '@/types';
 
 export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) => {
   const [reportData, setReportData] = useState<ExpenseReportData | null>(null);

@@ -4,7 +4,7 @@ import { Edit, Receipt, Eye, Trash2, Delete, Tag, Building } from 'lucide-react'
 import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { Expense } from '@/types/expense.types';
+import { Expense } from '@/types';
 
 interface ExpensesListProps {
   expenses: Expense[];

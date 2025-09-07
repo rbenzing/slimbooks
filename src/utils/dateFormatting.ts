@@ -47,6 +47,18 @@ export const getDateTimeSettings = async (): Promise<DateTimeSettings> => {
   return DEFAULT_DATE_TIME_SETTINGS;
 };
 
+// Type guard to check if settings object has the expected structure
+const isDateTimeSettings = (settings: unknown): settings is DateTimeSettings => {
+  return (
+    typeof settings === 'object' &&
+    settings !== null &&
+    'dateFormat' in settings &&
+    'timeFormat' in settings &&
+    typeof (settings as DateTimeSettings).dateFormat === 'string' &&
+    typeof (settings as DateTimeSettings).timeFormat === 'string'
+  );
+};
+
 // Async version for components that can handle async operations
 export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
   try {
@@ -54,7 +66,7 @@ export const getDateTimeSettingsAsync = async (): Promise<DateTimeSettings> => {
 
     if (sqliteService.isReady()) {
       const settings = await sqliteService.getSetting('date_time_settings');
-      if (settings) {
+      if (settings && isDateTimeSettings(settings)) {
         return {
           dateFormat: settings.dateFormat || DEFAULT_DATE_TIME_SETTINGS.dateFormat,
           timeFormat: settings.timeFormat || DEFAULT_DATE_TIME_SETTINGS.timeFormat

@@ -1,5 +1,5 @@
 // Currency formatting utilities with user settings support
-import { CurrencySettings } from '@/types/settings.types';
+import { CurrencySettings } from '@/types';
 import { DEFAULT_CURRENCY_SETTINGS, CURRENCY_OPTIONS, SYMBOL_POSITION_OPTIONS, DECIMAL_PLACES_OPTIONS, THOUSANDS_SEPARATOR_OPTIONS, DECIMAL_SEPARATOR_OPTIONS } from '@/lib/constants';
 
 // Re-export constants for backward compatibility (can be removed in future refactor)

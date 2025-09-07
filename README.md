@@ -91,7 +91,6 @@ CORS_ORIGIN=http://localhost:8080
 PORT=3002
 
 # Features
-ENABLE_2FA=true
 ENABLE_DEBUG_ENDPOINTS=false
 ```
 

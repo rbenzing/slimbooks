@@ -5,6 +5,15 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* Responsive Design Utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

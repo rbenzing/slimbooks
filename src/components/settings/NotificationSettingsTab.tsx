@@ -4,7 +4,7 @@ import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
 // Use dynamic import to avoid circular dependencies
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-import { NotificationSettings, isNotificationSettings } from '@/types/settings.types';
+import { NotificationSettings, isNotificationSettings } from '@/types';
 
 export const NotificationSettingsTab = () => {
   const [settings, setSettings] = useState<NotificationSettings>({

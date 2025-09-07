@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { clientOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { exportToCSV, parseCSV, validateClientData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
@@ -46,7 +46,16 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
 
   const handleExport = async () => {
     try {
-      const clients = await clientOperations.getAll();
+      const response = await authenticatedFetch('/api/clients');
+      const data = await response.json();
+      
+      if (!data.success || !data.data.clients) {
+        toast.error('Failed to fetch clients for export');
+        return;
+      }
+
+      const clients = data.data.clients;
+      
       if (clients.length === 0) {
         toast.error('No clients to export');
         return;
@@ -143,9 +152,8 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
     setIsProcessing(true);
     
     try {
-      let successCount = 0;
-      let errorCount = 0;
-
+      const validClients = [];
+      
       for (const row of csvData) {
         const mappedRow: any = {};
         fieldMappings.forEach(mapping => {
@@ -174,19 +182,39 @@ export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose,
 
         const validation = validateClientData(mappedRow);
         if (validation.isValid) {
-          try {
-            await clientOperations.create(mappedRow);
-            successCount++;
-          } catch (error) {
-            console.error('Error creating client:', error);
-            errorCount++;
-          }
-        } else {
-          errorCount++;
+          validClients.push(mappedRow);
         }
       }
 
-      toast.success(`Import completed: ${successCount} clients imported, ${errorCount} errors`);
+      if (validClients.length === 0) {
+        toast.error('No valid clients to import');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Use bulk import endpoint
+      const response = await authenticatedFetch('/api/clients/bulk-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clients: validClients })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`Import completed: ${result.data.imported} clients imported${result.data.failed > 0 ? `, ${result.data.failed} failed` : ''}`);
+        
+        // Show detailed errors if any
+        if (result.data.failed > 0 && result.data.errors.length > 0) {
+          console.warn('Import errors:', result.data.errors);
+          toast.warning(`${result.data.failed} clients failed to import. Check console for details.`);
+        }
+      } else {
+        throw new Error(result.error || 'Import failed');
+      }
+
       onImportComplete();
       onClose();
     } catch (error) {
