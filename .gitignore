@@ -40,3 +40,4 @@ certs/*
 .gitignore
 
 server/database/migrations/*
+nul
