@@ -598,11 +598,19 @@ class SQLiteService {
   // Export database to file
   async exportToFile(): Promise<Blob> {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/octet-stream'
+      };
+
+      // Add authorization header if token is available
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${this.baseUrl}/db/export`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/octet-stream'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -622,8 +630,17 @@ class SQLiteService {
       const formData = new FormData();
       formData.append('database', file);
 
+      const headers: Record<string, string> = {};
+
+      // Add authorization header if token is available
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${this.baseUrl}/db/import`, {
         method: 'POST',
+        headers,
         body: formData
       });
 

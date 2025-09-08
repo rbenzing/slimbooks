@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/apiUtils.util';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
 import { PaginationControls } from '../ui/PaginationControls';
@@ -95,30 +95,43 @@ export const InvoicesTab = () => {
   const handleSave = async (invoiceData: any) => {
     try {
       if (editingInvoice) {
-        await invoiceOperations.update(editingInvoice.id, invoiceData);
+        const response = await apiPut(`/api/invoices/${editingInvoice.id}`, { invoiceData });
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to update invoice');
+        }
       } else {
         // Generate invoice number if not provided
         if (!invoiceData.invoice_number) {
           const invoiceCount = invoices.length + 1;
           invoiceData.invoice_number = `INV-${String(invoiceCount).padStart(4, '0')}`;
         }
-        await invoiceOperations.create(invoiceData);
+        const response = await apiPost('/api/invoices', { invoiceData });
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to create invoice');
+        }
       }
       await loadInvoices();
       setIsFormOpen(false);
       setEditingInvoice(null);
     } catch (error) {
       console.error('Error saving invoice:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save invoice');
     }
   };
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
-        await invoiceOperations.delete(id);
-        await loadInvoices();
+        const response = await apiDelete(`/api/invoices/${id}`);
+        if (response.success) {
+          await loadInvoices();
+          toast.success('Invoice deleted successfully');
+        } else {
+          throw new Error(response.error || 'Failed to delete invoice');
+        }
       } catch (error) {
         console.error('Error deleting invoice:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to delete invoice');
       }
     }
   };

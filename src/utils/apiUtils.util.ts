@@ -39,6 +39,12 @@ export const authenticatedFetch = async (
   url: string, 
   options: RequestInit = {}
 ): Promise<Response> => {
+  // Register API call as user activity (unless it's auth-related)
+  if (!url.includes('/auth/')) {
+    const tokenManager = TokenManagerService.getInstance();
+    tokenManager.registerActivity();
+  }
+  
   const authHeaders = getAuthHeaders();
   
   return fetch(url, {
@@ -79,6 +85,11 @@ export const enhancedFetch = async <T = unknown>(
   const tokenManager = TokenManagerService.getInstance();
   
   try {
+    // Register API call as user activity (unless it's auth-related)
+    if (!options.skipAuth && !url.includes('/auth/')) {
+      tokenManager.registerActivity();
+    }
+    
     // Skip token validation for login/register endpoints
     if (!options.skipAuth) {
       // Check if token is expired
@@ -119,6 +130,9 @@ export const enhancedFetch = async <T = unknown>(
       // Try to refresh token once
       const refreshed = await tokenManager.refreshToken();
       if (refreshed) {
+        // Register activity for successful token refresh
+        tokenManager.registerActivity();
+        
         // Retry the request with new token
         const newToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         if (newToken) {

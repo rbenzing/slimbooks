@@ -159,59 +159,111 @@ export const validationSets = {
   
   // Client validation sets
   createClient: [
-    validationRules.clientName,
-    validationRules.clientEmail,
-    body('phone').optional().trim().escape(),
-    body('company').optional().trim().isLength({ max: 100 }).escape(),
-    body('address').optional().trim().isLength({ max: 200 }).escape()
+    body('clientData.name')
+      .trim()
+      .isLength({ min: 1, max: validationConfig.maxFieldLengths.name })
+      .withMessage(`Client name must be between 1 and ${validationConfig.maxFieldLengths.name} characters`)
+      .escape(),
+    body('clientData.email')
+      .optional()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Must be a valid email address'),
+    body('clientData.phone').optional().trim().escape(),
+    body('clientData.company').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.address').optional().trim().isLength({ max: 200 }).escape(),
+    body('clientData.city').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.state').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.zip').optional().trim().isLength({ max: 20 }).escape(),
+    body('clientData.country').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.tax_id').optional().trim().isLength({ max: 50 }).escape(),
+    body('clientData.notes').optional().trim().isLength({ max: 1000 }).escape(),
+    body('clientData.is_active').optional().isBoolean()
   ] as ValidationChain[],
   
   updateClient: [
     validationRules.id,
-    body('name').optional().trim().isLength({ min: 1, max: 100 }).escape(),
-    body('email').optional().isEmail().normalizeEmail(),
-    body('phone').optional().trim().escape(),
-    body('company').optional().trim().isLength({ max: 100 }).escape()
+    body('clientData.name').optional().trim().isLength({ min: 1, max: 100 }).escape(),
+    body('clientData.email').optional().isEmail().normalizeEmail(),
+    body('clientData.phone').optional().trim().escape(),
+    body('clientData.company').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.address').optional().trim().isLength({ max: 200 }).escape(),
+    body('clientData.city').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.state').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.zip').optional().trim().isLength({ max: 20 }).escape(),
+    body('clientData.country').optional().trim().isLength({ max: 100 }).escape(),
+    body('clientData.tax_id').optional().trim().isLength({ max: 50 }).escape(),
+    body('clientData.notes').optional().trim().isLength({ max: 1000 }).escape(),
+    body('clientData.is_active').optional().isBoolean()
   ] as ValidationChain[],
   
   // Invoice validation sets
   createInvoice: [
-    validationRules.invoiceNumber,
-    body('client_id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
-    validationRules.amount,
-    body('tax_amount').optional().isFloat({ min: 0 }).withMessage('Tax amount must be positive'),
-    body('due_date').isISO8601().withMessage('Due date must be in ISO 8601 format'),
-    body('issue_date').isISO8601().withMessage('Issue date must be in ISO 8601 format'),
-    validationRules.description,
-    validationRules.status
+    body('invoiceData.invoice_number')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Invoice number must be between 1 and 50 characters')
+      .escape(),
+    body('invoiceData.client_id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+    body('invoiceData.amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+    body('invoiceData.tax_amount').optional().isFloat({ min: 0 }).withMessage('Tax amount must be positive'),
+    body('invoiceData.due_date').isISO8601().withMessage('Due date must be in ISO 8601 format'),
+    body('invoiceData.issue_date').isISO8601().withMessage('Issue date must be in ISO 8601 format'),
+    body('invoiceData.description')
+      .optional()
+      .trim()
+      .isLength({ max: validationConfig.maxFieldLengths.description })
+      .withMessage(`Description must be less than ${validationConfig.maxFieldLengths.description} characters`)
+      .escape(),
+    body('invoiceData.status')
+      .isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
+      .withMessage('Status must be one of: draft, sent, paid, overdue, cancelled')
   ] as ValidationChain[],
   
   updateInvoice: [
     validationRules.id,
-    body('amount').optional().isFloat({ min: 0 }),
-    body('tax_amount').optional().isFloat({ min: 0 }),
-    body('due_date').optional().isISO8601(),
-    body('issue_date').optional().isISO8601(),
-    body('status').optional().isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
+    body('invoiceData.invoice_number').optional().trim().isLength({ min: 1, max: 50 }).escape(),
+    body('invoiceData.client_id').optional().isInt({ min: 1 }),
+    body('invoiceData.amount').optional().isFloat({ min: 0 }),
+    body('invoiceData.tax_amount').optional().isFloat({ min: 0 }),
+    body('invoiceData.due_date').optional().isISO8601(),
+    body('invoiceData.issue_date').optional().isISO8601(),
+    body('invoiceData.description').optional().trim().isLength({ max: validationConfig.maxFieldLengths.description }).escape(),
+    body('invoiceData.status').optional().isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
   ] as ValidationChain[],
   
   // Expense validation sets
   createExpense: [
-    validationRules.date,
-    validationRules.merchant,
-    validationRules.category,
-    validationRules.amount,
-    validationRules.description,
-    body('status').optional().isIn(['pending', 'approved', 'rejected'])
+    body('expenseData.date').isISO8601().withMessage('Date must be in ISO 8601 format'),
+    body('expenseData.vendor')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Vendor must be between 1 and 100 characters')
+      .escape(),
+    body('expenseData.category')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Category must be between 1 and 50 characters')
+      .escape(),
+    body('expenseData.amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+    body('expenseData.description')
+      .optional()
+      .trim()
+      .isLength({ max: validationConfig.maxFieldLengths.description })
+      .withMessage(`Description must be less than ${validationConfig.maxFieldLengths.description} characters`)
+      .escape(),
+    body('expenseData.status').optional().isIn(['pending', 'approved', 'rejected'])
   ] as ValidationChain[],
   
   updateExpense: [
     validationRules.id,
-    body('date').optional().isISO8601(),
-    body('merchant').optional().trim().isLength({ min: 1, max: 100 }).escape(),
-    body('category').optional().trim().isLength({ min: 1, max: 50 }).escape(),
-    body('amount').optional().isFloat({ min: 0 }),
-    body('status').optional().isIn(['pending', 'approved', 'rejected'])
+    body('expenseData.date').optional().isISO8601(),
+    body('expenseData.vendor').optional().trim().isLength({ min: 1, max: 100 }).escape(),
+    body('expenseData.category').optional().trim().isLength({ min: 1, max: 50 }).escape(),
+    body('expenseData.amount').optional().isFloat({ min: 0 }),
+    body('expenseData.description').optional().trim().isLength({ max: validationConfig.maxFieldLengths.description }).escape(),
+    body('expenseData.status').optional().isIn(['pending', 'approved', 'rejected'])
   ] as ValidationChain[],
   
   // Payment validation sets

@@ -32,13 +32,41 @@ export const SecuritySchema = z.object({
 });
 
 export const ProjectSettingsSchema = z.object({
-  google_oauth: GoogleOAuthSchema,
-  stripe: StripeSchema,
-  email: EmailSchema,
-  security: SecuritySchema
+  google_oauth: GoogleOAuthSchema.optional(),
+  stripe: StripeSchema.optional(),
+  email: EmailSchema.optional(),
+  security: SecuritySchema.optional()
 });
 
-export type ProjectSettingsType = z.infer<typeof ProjectSettingsSchema>;
+// Define the complete type with all required fields for runtime use
+export type ProjectSettingsType = {
+  google_oauth: {
+    enabled: boolean;
+    client_id: string;
+    client_secret?: string;
+    configured: boolean;
+  };
+  stripe: {
+    enabled: boolean;
+    publishable_key: string;
+    secret_key?: string;
+    configured: boolean;
+  };
+  email: {
+    enabled: boolean;
+    smtp_host: string;
+    smtp_port: number;
+    smtp_user: string;
+    smtp_pass?: string;
+    email_from: string;
+    configured: boolean;
+  };
+  security: {
+    require_email_verification: boolean;
+    max_failed_login_attempts: number;
+    account_lockout_duration: number;
+  };
+};
 
 // Helper function to validate and parse project settings
 export function validateProjectSettings(data: unknown): ProjectSettingsType {
@@ -52,7 +80,7 @@ export function validateProjectSettings(data: unknown): ProjectSettingsType {
 
 // Helper function for safe parsing with defaults
 export function parseProjectSettingsWithDefaults(data: unknown): ProjectSettingsType {
-  const defaultSettings: ProjectSettingsType = {
+  const defaultSettings = {
     google_oauth: {
       enabled: false,
       client_id: '',
@@ -82,7 +110,14 @@ export function parseProjectSettingsWithDefaults(data: unknown): ProjectSettings
   };
 
   try {
-    return ProjectSettingsSchema.parse(data);
+    const parsed = ProjectSettingsSchema.parse(data);
+    // Merge parsed data with defaults to ensure all required fields are present
+    return {
+      google_oauth: { ...defaultSettings.google_oauth, ...parsed.google_oauth },
+      stripe: { ...defaultSettings.stripe, ...parsed.stripe },
+      email: { ...defaultSettings.email, ...parsed.email },
+      security: { ...defaultSettings.security, ...parsed.security }
+    };
   } catch (error) {
     console.warn('Using default settings due to validation error:', error);
     return defaultSettings;

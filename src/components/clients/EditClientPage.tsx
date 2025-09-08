@@ -141,14 +141,14 @@ export const EditClientPage = () => {
         const response = await authenticatedFetch(`/api/clients/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
+          body: JSON.stringify({ clientData })
         });
         if (!response.ok) throw new Error('Failed to update client');
       } else {
         const response = await authenticatedFetch('/api/clients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
+          body: JSON.stringify({ clientData })
         });
         if (!response.ok) throw new Error('Failed to create client');
       }

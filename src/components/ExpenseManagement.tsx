@@ -20,7 +20,7 @@ import { ExpenseImportExport } from './expenses/ExpenseImportExport';
 import { ExpenseViewModal } from './expenses/ExpenseViewModal';
 import { PaginationControls } from './ui/PaginationControls';
 import { DateRangeFilter } from './ui/DateRangeFilter';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/apiUtils.util';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { 
@@ -137,62 +137,86 @@ export const ExpenseManagement: React.FC = () => {
   const handleSaveExpense = async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       if (editingExpense) {
-        await expenseOperations.update(editingExpense.id, expenseData);
-        toast.success('Expense updated successfully');
+        const response = await apiPut(`/api/expenses/${editingExpense.id}`, { expenseData });
+        if (response.success) {
+          toast.success('Expense updated successfully');
+        } else {
+          throw new Error(response.error || 'Failed to update expense');
+        }
       } else {
-        await expenseOperations.create(expenseData);
-        toast.success('Expense created successfully');
+        const response = await apiPost('/api/expenses', { expenseData });
+        if (response.success) {
+          toast.success('Expense created successfully');
+        } else {
+          throw new Error(response.error || 'Failed to create expense');
+        }
       }
       await loadExpenses();
       setShowCreateForm(false);
       setEditingExpense(null);
     } catch (error) {
-      toast.error('Failed to save expense');
       console.error('Error saving expense:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save expense');
     }
   };
 
   const handleDeleteExpense = async (id: number) => {
     try {
-      await expenseOperations.delete(id);
-      toast.success('Expense deleted successfully');
-      await loadExpenses();
+      const response = await apiDelete(`/api/expenses/${id}`);
+      if (response.success) {
+        toast.success('Expense deleted successfully');
+        await loadExpenses();
+      } else {
+        throw new Error(response.error || 'Failed to delete expense');
+      }
     } catch (error) {
-      toast.error('Failed to delete expense');
       console.error('Error deleting expense:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete expense');
     }
   };
 
   const handleBulkDelete = async (expenseIds: number[]) => {
     try {
-      const result = await expenseOperations.bulkDelete(expenseIds);
-      toast.success(`${result.changes} expenses deleted successfully`);
-      await loadExpenses();
+      const response = await apiPost('/api/expenses/bulk-delete', { expenseIds });
+      if (response.success) {
+        toast.success(`${expenseIds.length} expenses deleted successfully`);
+        await loadExpenses();
+      } else {
+        throw new Error(response.error || 'Failed to delete expenses');
+      }
     } catch (error) {
-      toast.error('Failed to delete expenses');
       console.error('Error deleting expenses:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete expenses');
     }
   };
 
   const handleBulkCategorize = async (expenseIds: number[], category: string) => {
     try {
-      const result = await expenseOperations.bulkUpdateCategory(expenseIds, category);
-      toast.success(`${result.changes} expenses categorized as "${category}"`);
-      await loadExpenses();
+      const response = await apiPost('/api/expenses/bulk-update', { expenseIds, updates: { category } });
+      if (response.success) {
+        toast.success(`${expenseIds.length} expenses categorized as "${category}"`);
+        await loadExpenses();
+      } else {
+        throw new Error(response.error || 'Failed to categorize expenses');
+      }
     } catch (error) {
-      toast.error('Failed to update expense categories');
       console.error('Error updating categories:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update expense categories');
     }
   };
 
   const handleBulkChangeMerchant = async (expenseIds: number[], merchant: string) => {
     try {
-      const result = await expenseOperations.bulkUpdateMerchant(expenseIds, merchant);
-      toast.success(`${result.changes} expenses updated to merchant "${merchant}"`);
-      await loadExpenses();
+      const response = await apiPost('/api/expenses/bulk-update', { expenseIds, updates: { vendor: merchant } });
+      if (response.success) {
+        toast.success(`${expenseIds.length} expenses updated to vendor "${merchant}"`);
+        await loadExpenses();
+      } else {
+        throw new Error(response.error || 'Failed to update vendor');
+      }
     } catch (error) {
-      toast.error('Failed to update expense merchants');
-      console.error('Error updating merchants:', error);
+      console.error('Error updating vendors:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update expense vendors');
     }
   };
 

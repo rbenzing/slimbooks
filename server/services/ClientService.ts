@@ -17,6 +17,7 @@ export class ClientService {
     
     return databaseService.getMany<Client>(`
       SELECT * FROM clients 
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
     `, [limit, offset]);
@@ -30,7 +31,7 @@ export class ClientService {
       throw new Error('Valid client ID is required');
     }
 
-    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ?', [id]);
+    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ? AND deleted_at IS NULL', [id]);
   }
 
   /**

@@ -30,39 +30,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const authService = AuthService.getInstance();
   const tokenManager = TokenManagerService.getInstance();
+  
+  // Track current warning toast to dismiss when user becomes active
+  const [currentWarningToast, setCurrentWarningToast] = useState<string | number | null>(null);
 
   // Initialize authentication state
   useEffect(() => {
     initializeAuth();
   }, []);
 
-  // Simple token expiry monitoring - only checks expiry time and redirects
+  // Activity-aware token expiry monitoring
   useEffect(() => {
     if (user) {
-      // Start simple expiry monitoring when user is authenticated
+      // Start activity-aware expiry monitoring when user is authenticated
       tokenManager.startMonitoring(
         () => {
-          // Handle token expiration - simple redirect to login
+          // Handle token expiration - redirect to login
           toast.error('Your session has expired. Please log in again.');
           handleAutoLogout();
         },
         (minutesLeft) => {
-          // Handle token warning - optional notification
-          toast.warning(`Your session will expire in ${minutesLeft} minutes.`, {
+          // Handle token warning - show notification but track it for dismissal
+          const toastId = toast.warning(`Your session will expire in ${minutesLeft} minutes.`, {
             duration: 10000 // Show for 10 seconds
           });
+          setCurrentWarningToast(toastId);
+        },
+        () => {
+          // Handle warning dismissal when user becomes active
+          if (currentWarningToast) {
+            toast.dismiss(currentWarningToast);
+            setCurrentWarningToast(null);
+            // Show success message that session was extended
+            toast.success('Session extended due to activity', {
+              duration: 3000
+            });
+          }
         }
       );
     } else {
       // Stop monitoring when user is not authenticated
       tokenManager.stopMonitoring();
+      // Clear any pending warning toast
+      if (currentWarningToast) {
+        toast.dismiss(currentWarningToast);
+        setCurrentWarningToast(null);
+      }
     }
 
     // Cleanup on unmount
     return () => {
       tokenManager.stopMonitoring();
+      if (currentWarningToast) {
+        toast.dismiss(currentWarningToast);
+        setCurrentWarningToast(null);
+      }
     };
-  }, [user]);
+  }, [user, currentWarningToast]);
 
   const initializeAuth = async () => {
     try {
@@ -176,6 +200,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     authService.logout();
     tokenManager.stopMonitoring();
+    
+    // Clear any pending warning toast
+    if (currentWarningToast) {
+      toast.dismiss(currentWarningToast);
+      setCurrentWarningToast(null);
+    }
+    
     // Clear tokens from both storages
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
@@ -188,6 +219,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     authService.logout();
     tokenManager.stopMonitoring();
+    
+    // Clear any pending warning toast
+    if (currentWarningToast) {
+      toast.dismiss(currentWarningToast);
+      setCurrentWarningToast(null);
+    }
+    
     // Clear tokens from both storages
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');

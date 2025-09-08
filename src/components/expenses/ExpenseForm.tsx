@@ -63,7 +63,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     
     const expenseData = {
       date: formData.date,
-      merchant: formData.merchant,
+      vendor: formData.merchant, // Map frontend 'merchant' to API 'vendor'
       category: formData.category,
       amount: parseFloat(formData.amount),
       description: formData.description,

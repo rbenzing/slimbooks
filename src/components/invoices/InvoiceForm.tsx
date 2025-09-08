@@ -18,6 +18,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
     amount: '',
     status: 'draft',
     due_date: '',
+    issue_date: '',
     description: '',
     type: 'one-time'
   });
@@ -45,6 +46,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
         amount: invoice.amount?.toString() || '',
         status: invoice.status || 'draft',
         due_date: invoice.due_date || '',
+        issue_date: invoice.issue_date || '',
         description: invoice.description || '',
         type: invoice.type || 'one-time'
       });
@@ -63,10 +65,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const selectedClient = clients.find(c => c.id === parseInt(formData.client_id));
+    
+    // Ensure dates are in ISO format, default to current date if not provided
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const issueDate = formData.issue_date || currentDate;
+    const dueDate = formData.due_date || currentDate;
+    
     onSave({
       ...formData,
       client_id: parseInt(formData.client_id),
       amount: parseFloat(formData.amount),
+      issue_date: issueDate,
+      due_date: dueDate,
       client_name: selectedClient?.name,
       client_email: selectedClient?.email,
       client_phone: selectedClient?.phone,
@@ -125,7 +135,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
@@ -138,6 +148,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date *</label>
+              <input
+                type="date"
+                required
+                value={formData.issue_date}
+                onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>

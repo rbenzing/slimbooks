@@ -68,7 +68,7 @@ export const ClientManagement: React.FC = () => {
         response = await authenticatedFetch(`/api/clients/${editingClient.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
+          body: JSON.stringify({ clientData })
         });
         if (response.ok) {
           toast.success('Client updated successfully');
@@ -79,7 +79,7 @@ export const ClientManagement: React.FC = () => {
         response = await authenticatedFetch('/api/clients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
+          body: JSON.stringify({ clientData })
         });
         if (response.ok) {
           toast.success('Client created successfully');
