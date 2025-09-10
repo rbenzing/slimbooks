@@ -48,6 +48,31 @@ export const Settings = () => {
       // Handle specific tab saving
       if (activeTab === 'project' && projectSettingsRef.current) {
         await projectSettingsRef.current.saveSettings();
+      } else if (activeTab === 'company') {
+        // For company settings, trigger a manual save by dispatching a custom event
+        const companyEvent = new CustomEvent('saveCompanySettings');
+        window.dispatchEvent(companyEvent);
+        toast.success('Settings saved successfully');
+      } else if (activeTab === 'email') {
+        // For email settings, trigger a manual save by dispatching a custom event
+        const emailEvent = new CustomEvent('saveEmailSettings');
+        window.dispatchEvent(emailEvent);
+        toast.success('Settings saved successfully');
+      } else if (activeTab === 'general') {
+        // For general settings, trigger a manual save by dispatching a custom event
+        const generalEvent = new CustomEvent('saveGeneralSettings');
+        window.dispatchEvent(generalEvent);
+        toast.success('Settings saved successfully');
+      } else if (activeTab === 'appearance') {
+        // For appearance settings, trigger a manual save by dispatching a custom event
+        const appearanceEvent = new CustomEvent('saveAppearanceSettings');
+        window.dispatchEvent(appearanceEvent);
+        toast.success('Settings saved successfully');
+      } else if (activeTab === 'notifications') {
+        // For notification settings, trigger a manual save by dispatching a custom event
+        const notificationEvent = new CustomEvent('saveNotificationSettings');
+        window.dispatchEvent(notificationEvent);
+        toast.success('Settings saved successfully');
       } else {
         // For other tabs, the individual settings components handle their own saving
         // This is just a unified save action that triggers success feedback
@@ -79,6 +104,41 @@ export const Settings = () => {
             <Save className={themeClasses.iconButton} />
             {isLoading ? 'Saving...' : 'Save Settings'}
           </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-border mb-6">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { key: 'company', label: 'Company' },
+              { key: 'general', label: 'General' },
+              { key: 'tax', label: 'Tax' },
+              { key: 'shipping', label: 'Shipping' },
+              { key: 'email', label: 'Email' },
+              ...(projectSettings?.stripe?.enabled ? [{ key: 'stripe', label: 'Stripe' }] : []),
+              { key: 'notifications', label: 'Notifications' },
+              { key: 'appearance', label: 'Appearance' },
+              { key: 'project', label: 'Project' },
+              { key: 'backup', label: 'Backup' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  window.location.hash = tab.key;
+                }}
+                className={`
+                  py-2 px-1 border-b-2 font-medium text-sm transition-colors
+                  ${activeTab === tab.key 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {/* Content */}

@@ -61,8 +61,6 @@ export const GeneralSettingsTab = () => {
   const [timeZone, setTimeZone] = useState('America/New_York');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -110,59 +108,53 @@ export const GeneralSettingsTab = () => {
     loadSettings();
   }, []);
 
-  // Debounced save functions
-  const debouncedSaveSettings = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+  // Manual save function for Save button
+  const saveSettings = async () => {
+    try {
+      // Use bulk save for better efficiency
+      const settingsToSave = {
+        'date_time_settings': { value: dateTimeSettings, category: 'general' },
+        'invoice_number_settings': { value: invoiceSettings, category: 'general' },
+        'currency_format_settings': { value: currencySettings, category: 'general' },
+        'pagination_settings': { value: validatePaginationSettings(paginationSettings), category: 'general' },
+        'default_timezone': { value: timeZone, category: 'general' }
+      };
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        // Use bulk save for better efficiency
-        const settingsToSave = {
-          'date_time_settings': { value: dateTimeSettings, category: 'general' },
-          'invoice_number_settings': { value: invoiceSettings, category: 'general' },
-          'currency_format_settings': { value: currencySettings, category: 'general' },
-          'pagination_settings': { value: validatePaginationSettings(paginationSettings), category: 'general' },
-          'default_timezone': { value: timeZone, category: 'general' }
-        };
+      const response = await fetch('/api/settings/', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings: settingsToSave })
+      });
 
-        // Use dynamic import to avoid circular dependencies
-        const { sqliteService } = await import('@/services/sqlite.svc');
-        await sqliteService.setMultipleSettings(settingsToSave);
-      } catch (error) {
-        console.error('Error saving general settings:', error);
-
-        // Fallback to individual saves if bulk save fails
-        try {
-          await saveDateTimeSettings(dateTimeSettings);
-          await saveInvoiceNumberSettings(invoiceSettings);
-          await saveCurrencySettings(currencySettings);
-          await savePaginationSettings(validatePaginationSettings(paginationSettings));
-          const { sqliteService: sqliteServiceFallback } = await import('@/services/sqlite.svc');
-          await sqliteServiceFallback.setSetting('default_timezone', timeZone, 'general');
-        } catch (fallbackError) {
-          console.error('Error with fallback save:', fallbackError);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    }, 500);
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save general settings');
+      }
+    } catch (error) {
+      console.error('Error saving general settings:', error);
+      throw error;
+    }
+  };
+
+  // Listen for save events from the main Settings component
+  useEffect(() => {
+    const handleSaveEvent = async () => {
+      await saveSettings();
+    };
+
+    window.addEventListener('saveGeneralSettings', handleSaveEvent);
+    return () => {
+      window.removeEventListener('saveGeneralSettings', handleSaveEvent);
+    };
   }, [dateTimeSettings, invoiceSettings, currencySettings, paginationSettings, timeZone]);
 
-  useEffect(() => {
-    // Only save if settings have been loaded and this is a user change
-    if (isLoaded) {
-      debouncedSaveSettings();
-    }
-  }, [dateTimeSettings, invoiceSettings, currencySettings, timeZone, debouncedSaveSettings, isLoaded]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const handleDateFormatChange = (format: string) => {
     setDateTimeSettings(prev => ({ ...prev, dateFormat: format }));

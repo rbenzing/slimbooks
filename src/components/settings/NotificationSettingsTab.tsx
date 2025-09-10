@@ -21,6 +21,18 @@ export const NotificationSettingsTab = () => {
     loadSettings();
   }, []);
 
+  // Listen for save events from the main Settings component
+  useEffect(() => {
+    const handleSaveEvent = async () => {
+      await saveSettings(settings);
+    };
+
+    window.addEventListener('saveNotificationSettings', handleSaveEvent);
+    return () => {
+      window.removeEventListener('saveNotificationSettings', handleSaveEvent);
+    };
+  }, [settings]);
+
   const loadSettings = async () => {
     try {
       // Use dynamic import to avoid circular dependencies
@@ -55,25 +67,38 @@ export const NotificationSettingsTab = () => {
       ...settings,
       [key]: value
     };
-    setSettings(newSettings);
-    saveSettings(newSettings);
+    setSettings(newSettings); // Only update UI, don't save until Save button is clicked
   };
 
   const saveSettings = async (settingsToSave: NotificationSettings) => {
     try {
-      // Use dynamic import to avoid circular dependencies
-      const { sqliteService } = await import('@/services/sqlite.svc');
-      
-      if (!sqliteService.isReady()) {
-        await sqliteService.initialize();
+      const response = await fetch('/api/settings/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          key: 'notification_settings',
+          value: settingsToSave,
+          category: 'notification'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      await sqliteService.setSetting('notification_settings', settingsToSave);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save notification settings');
+      }
 
       // Apply settings immediately to the toast system
       applyToastSettings(settingsToSave);
     } catch (error) {
       console.error('Error saving notification settings:', error);
+      throw error;
     }
   };
 

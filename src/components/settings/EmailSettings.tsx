@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Mail, TestTube, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { sqliteService } from '@/services/sqlite.svc';
 import { EmailService } from '@/services/email.svc';
@@ -22,10 +22,23 @@ export const EmailSettings = () => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'success' | 'error'>('unknown');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Listen for save events from the main Settings component
+  useEffect(() => {
+    const handleSaveEvent = async () => {
+      await saveSettings();
+    };
+
+    window.addEventListener('saveEmailSettings', handleSaveEvent);
+    return () => {
+      window.removeEventListener('saveEmailSettings', handleSaveEvent);
+    };
+  }, [settings]);
 
   const loadSettings = async () => {
     try {
@@ -49,10 +62,14 @@ export const EmailSettings = () => {
           isEnabled: typeof savedSettings.isEnabled === 'boolean' ? savedSettings.isEnabled : false
         });
       }
+      setIsLoaded(true);
     } catch (error) {
       console.error('Error loading email settings:', error);
+      setIsLoaded(true);
     }
   };
+
+  // Manual save function for Save button (keep the existing saveSettings function)
 
   const handleInputChange = (field: keyof EmailSettings, value: string | number | boolean) => {
     setSettings(prev => ({
@@ -66,17 +83,37 @@ export const EmailSettings = () => {
     }
   };
 
+  // Remove auto-save - settings only save when Save button is clicked
+
   const saveSettings = async () => {
     try {
-      if (!sqliteService.isReady()) {
-        await sqliteService.initialize();
+      const response = await fetch('/api/settings/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          key: 'email_settings',
+          value: settings,
+          category: 'email'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      await sqliteService.setSetting('email_settings', settings);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save email settings');
+      }
+
       toast.success('Email settings saved successfully');
     } catch (error) {
       console.error('Error saving email settings:', error);
       toast.error('Failed to save email settings');
+      throw error;
     }
   };
 

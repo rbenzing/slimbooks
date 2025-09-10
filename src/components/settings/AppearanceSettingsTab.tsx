@@ -11,10 +11,9 @@ export const AppearanceSettingsTab = () => {
   const [pdfFormat, setPdfFormat] = useState('A4');
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveError, setSaveError] = useState<string>('');
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced save function to batch multiple setting changes
-  const debouncedSave = useCallback(async () => {
+  // Manual save function for Save button
+  const saveSettings = async () => {
     if (!isLoaded) return;
     
     // Clear any previous error
@@ -25,16 +24,32 @@ export const AppearanceSettingsTab = () => {
       const error = 'Admin privileges required to save settings. Contact your administrator.';
       setSaveError(error);
       console.error('Settings save blocked:', error, 'User role:', user?.role);
-      return;
+      throw new Error(error);
     }
 
     try {
-      const { sqliteService } = await import('@/services/sqlite.svc');
-      
-      await sqliteService.setMultipleSettings({
+      const settingsToSave = {
         'invoice_template': { value: invoiceTemplate, category: 'appearance' },
         'pdf_format': { value: { format: pdfFormat }, category: 'appearance' }
+      };
+
+      const response = await fetch('/api/settings/appearance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings: settingsToSave })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save appearance settings');
+      }
       
       setSaveError(''); // Clear any previous errors on success
     } catch (error) {
@@ -48,8 +63,9 @@ export const AppearanceSettingsTab = () => {
       } else {
         setSaveError(`Failed to save settings: ${error.message}`);
       }
+      throw error;
     }
-  }, [invoiceTemplate, pdfFormat, isLoaded, isAdmin, user?.role]);
+  };
 
   // Load settings from database on component mount
   useEffect(() => {
@@ -107,27 +123,17 @@ export const AppearanceSettingsTab = () => {
 
   // Theme changes are now handled by useTheme hook
 
-  // Debounced save all settings changes
+  // Listen for save events from the main Settings component
   useEffect(() => {
-    if (!isLoaded) return;
-
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Set new timeout to batch saves
-    saveTimeoutRef.current = setTimeout(() => {
-      debouncedSave();
-    }, 500);
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+    const handleSaveEvent = async () => {
+      await saveSettings();
     };
-  }, [invoiceTemplate, pdfFormat, isLoaded, debouncedSave]);
+
+    window.addEventListener('saveAppearanceSettings', handleSaveEvent);
+    return () => {
+      window.removeEventListener('saveAppearanceSettings', handleSaveEvent);
+    };
+  }, [invoiceTemplate, pdfFormat, isLoaded, isAdmin, user?.role]);
 
   const handleThemeChange = (newTheme: string) => {
     setGlobalTheme(newTheme as 'light' | 'dark' | 'system');

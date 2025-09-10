@@ -336,6 +336,7 @@ class SQLiteService {
   }
 
   async setSetting(key: string, value: unknown, category: string = 'general'): Promise<void> {
+    // Unified approach: all settings use the generic endpoint
     await this.apiCall('/settings', 'POST', { key, value, category });
     // Clear cache for this key to ensure fresh data on next read
     this.clearSettingsCache(key);
@@ -371,20 +372,8 @@ class SQLiteService {
   async setMultipleSettings(settings: Record<string, { value: unknown; category?: string }>): Promise<void> {
     console.log('sqliteService: setMultipleSettings called with:', settings);
     try {
-      // Check if all settings are appearance-related
-      const settingsArray = Object.entries(settings);
-      const appearanceSettings = ['theme', 'invoice_template_preference', 'pdf_format_preference'];
-      const isAllAppearanceSettings = settingsArray.every(([key]) => appearanceSettings.includes(key));
-      
-      let endpoint = '/settings';
-      if (isAllAppearanceSettings) {
-        endpoint = '/settings/appearance';
-        console.log('sqliteService: Using appearance-specific endpoint for user settings');
-      } else {
-        console.log('sqliteService: Using general settings endpoint (admin required)');
-      }
-      
-      const result = await this.apiCall(endpoint, 'PUT', { settings });
+      // Unified approach: always use the generic bulk settings endpoint
+      const result = await this.apiCall('/settings', 'PUT', { settings });
       console.log('sqliteService: Settings saved successfully, API response:', result);
       // Clear cache for all updated settings to ensure fresh data
       Object.keys(settings).forEach(key => this.clearSettingsCache(key));

@@ -74,8 +74,8 @@ export class SettingsService {
     const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
     
     databaseService.executeQuery(
-      'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)',
-      [settingKey, jsonValue, 'string']
+      'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)',
+      [settingKey, jsonValue, category]
     );
     
     return true;
@@ -97,8 +97,8 @@ export class SettingsService {
         const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
         
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
-          [key, jsonValue, 'string']
+          'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', 
+          [key, jsonValue, formatCategory]
         );
       }
     };
@@ -129,8 +129,8 @@ export class SettingsService {
         const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
         
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
-          [settingKey, jsonValue, 'string']
+          'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', 
+          [settingKey, jsonValue, category]
         );
       }
     };
@@ -258,8 +258,8 @@ export class SettingsService {
     const operations = () => {
       for (const setting of flatSettings) {
         databaseService.executeQuery(
-          'INSERT OR REPLACE INTO settings (key, value, type) VALUES (?, ?, ?)', 
-          [setting.key, setting.value, 'string']
+          'INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', 
+          [setting.key, setting.value, 'project']
         );
       }
     };

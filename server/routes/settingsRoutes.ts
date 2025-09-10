@@ -18,7 +18,7 @@ const router: Router = Router();
 router.get('/currency', async (_req: Request, res: Response): Promise<void> => {
   try {
     const { settingsService } = await import('../services/SettingsService.js');
-    const result = await settingsService.getSettingByKey('currency_format_settings');
+    const result = await settingsService.getSettingByKey('general.currency_format_settings');
 
     if (result) {
       res.json({ success: true, value: result });
@@ -45,7 +45,7 @@ router.get('/currency', async (_req: Request, res: Response): Promise<void> => {
 router.get('/company', async (_req: Request, res: Response): Promise<void> => {
   try {
     const { settingsService } = await import('../services/SettingsService.js');
-    const result = await settingsService.getSettingByKey('company_settings');
+    const result = await settingsService.getSettingByKey('company.company_settings');
 
     if (result) {
       res.json({ success: true, value: result });
@@ -66,6 +66,38 @@ router.get('/company', async (_req: Request, res: Response): Promise<void> => {
         }
       });
     }
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Save company settings (requires auth but not admin)
+router.post('/company', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { settingsService } = await import('../services/SettingsService.js');
+    const { companyName, ownerName, address, city, state, zipCode, email, phone, brandingImage } = req.body;
+    
+    // Validate required fields
+    if (!companyName || typeof companyName !== 'string') {
+      res.status(400).json({ success: false, error: 'Company name is required' });
+      return;
+    }
+    
+    // Build company settings object
+    const companySettings = {
+      companyName: companyName.trim(),
+      ownerName: ownerName || '',
+      address: address || '',
+      city: city || '',
+      state: state || '',
+      zipCode: zipCode || '',
+      email: email || '',
+      phone: phone || '',
+      brandingImage: brandingImage || ''
+    };
+    
+    await settingsService.saveSetting('company_settings', companySettings, 'company');
+    res.json({ success: true, message: 'Company settings saved successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
   }
@@ -126,7 +158,7 @@ router.get('/general', requireAuth, async (req: Request, res: Response): Promise
 router.get('/notification', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { settingsService } = await import('../services/SettingsService.js');
-    const result = await settingsService.getSettingByKey('notification_settings');
+    const result = await settingsService.getSettingByKey('general.notification_settings');
 
     if (result) {
       res.json({ success: true, settings: { notification_settings: result } });

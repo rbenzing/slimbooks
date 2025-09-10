@@ -3,6 +3,7 @@
 
 import type { IDatabase } from '../../types/database.types.js';
 import { up as migration001 } from './001_add_deleted_at_to_clients.js';
+import { up as migration002 } from './002_add_category_to_settings.js';
 
 interface Migration {
   id: string;
@@ -18,6 +19,11 @@ const migrations: Migration[] = [
     id: '001',
     name: 'add_deleted_at_to_clients',
     up: migration001
+  },
+  {
+    id: '002',
+    name: 'add_category_to_settings',
+    up: migration002
   }
 ];
 

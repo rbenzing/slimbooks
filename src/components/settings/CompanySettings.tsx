@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building } from 'lucide-react';
 import { BrandingImageSection } from './BrandingImageSection';
 import { CompanyDetailsSection } from './CompanyDetailsSection';
-import { CompanySettings as CompanySettingsType } from '@/types';
+import { CompanySettings as CompanySettingsType } from '@/types/shared/common.types';
 
 export const CompanySettings = () => {
   const [settings, setSettings] = useState<CompanySettingsType>({
@@ -19,6 +19,12 @@ export const CompanySettings = () => {
   });
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const settingsRef = useRef(settings);
+
+  // Keep settings ref up to date
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -54,6 +60,19 @@ export const CompanySettings = () => {
     loadSettings();
   }, []);
 
+  // Listen for save events from the main Settings component
+  useEffect(() => {
+    const handleSaveEvent = () => {
+      // Use current settings from ref to avoid stale closure
+      saveSettings(settingsRef.current);
+    };
+
+    window.addEventListener('saveCompanySettings', handleSaveEvent);
+    return () => {
+      window.removeEventListener('saveCompanySettings', handleSaveEvent);
+    };
+  }, []); // No dependencies - use ref for current settings
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -65,35 +84,16 @@ export const CompanySettings = () => {
 
   const saveSettings = async (newSettings: CompanySettings) => {
     try {
-      // Use dynamic import to avoid circular dependencies
+      // Use unified sqlite service - much cleaner!
       const { sqliteService } = await import('@/services/sqlite.svc');
       await sqliteService.setSetting('company_settings', newSettings, 'company');
     } catch (error) {
       console.error('Error saving company settings:', error);
+      throw error; // Re-throw so the UI can handle the error
     }
   };
 
-  // Debounced save function for text inputs (excludes branding image)
-  const debouncedSaveTextSettings = useCallback((newSettings: CompanySettings) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      // Save only text settings, preserve existing branding image
-      const textOnlySettings = {
-        ...newSettings,
-        brandingImage: settings.brandingImage // Keep existing image
-      };
-      saveSettings(textOnlySettings);
-    }, 500); // 500ms debounce
-  }, [settings.brandingImage]);
-
-  // Immediate save for branding image
-  const saveBrandingImage = async (newSettings: CompanySettings) => {
-    setSettings(newSettings);
-    await saveSettings(newSettings);
-  };
+  // Settings are only saved when the Save button is clicked
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -102,7 +102,7 @@ export const CompanySettings = () => {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         const newSettings = { ...settings, brandingImage: result };
-        saveBrandingImage(newSettings);
+        setSettings(newSettings); // Only update UI, don't save yet
       };
       reader.readAsDataURL(file);
     }
@@ -110,8 +110,7 @@ export const CompanySettings = () => {
 
   const handleInputChange = (field: keyof CompanySettings, value: string) => {
     const newSettings = { ...settings, [field]: value };
-    setSettings(newSettings); // Update UI immediately
-    debouncedSaveTextSettings(newSettings); // Save with debounce
+    setSettings(newSettings); // Only update UI, don't save until Save button is clicked
   };
 
   return (
