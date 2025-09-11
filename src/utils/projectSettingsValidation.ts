@@ -1,6 +1,10 @@
-import { z } from 'zod';
+// Project Settings Validation utilities
+// Separated from types to avoid circular dependencies with main types index
 
-// Zod schemas for runtime validation
+import { z } from 'zod';
+import type { ProjectSettings, GoogleOAuthSettings, StripeSettings, EmailServiceSettings, SecurityConfig } from '@/types/domain/settings.types';
+
+// Zod schemas for runtime validation of project settings
 export const GoogleOAuthSchema = z.object({
   enabled: z.boolean(),
   client_id: z.string(),
@@ -15,7 +19,7 @@ export const StripeSchema = z.object({
   configured: z.boolean()
 });
 
-export const EmailSchema = z.object({
+export const EmailServiceSchema = z.object({
   enabled: z.boolean(),
   smtp_host: z.string(),
   smtp_port: z.number().int().min(1).max(65535),
@@ -25,7 +29,7 @@ export const EmailSchema = z.object({
   configured: z.boolean()
 });
 
-export const SecuritySchema = z.object({
+export const SecurityConfigSchema = z.object({
   require_email_verification: z.boolean(),
   max_failed_login_attempts: z.number().int().min(1).max(50),
   account_lockout_duration: z.number().int().min(0)
@@ -34,44 +38,14 @@ export const SecuritySchema = z.object({
 export const ProjectSettingsSchema = z.object({
   google_oauth: GoogleOAuthSchema.optional(),
   stripe: StripeSchema.optional(),
-  email: EmailSchema.optional(),
-  security: SecuritySchema.optional()
+  email: EmailServiceSchema.optional(),
+  security: SecurityConfigSchema.optional()
 });
 
-// Define the complete type with all required fields for runtime use
-export type ProjectSettingsType = {
-  google_oauth: {
-    enabled: boolean;
-    client_id: string;
-    client_secret?: string;
-    configured: boolean;
-  };
-  stripe: {
-    enabled: boolean;
-    publishable_key: string;
-    secret_key?: string;
-    configured: boolean;
-  };
-  email: {
-    enabled: boolean;
-    smtp_host: string;
-    smtp_port: number;
-    smtp_user: string;
-    smtp_pass?: string;
-    email_from: string;
-    configured: boolean;
-  };
-  security: {
-    require_email_verification: boolean;
-    max_failed_login_attempts: number;
-    account_lockout_duration: number;
-  };
-};
-
 // Helper function to validate and parse project settings
-export function validateProjectSettings(data: unknown): ProjectSettingsType {
+export function validateProjectSettings(data: unknown): ProjectSettings {
   try {
-    return ProjectSettingsSchema.parse(data);
+    return ProjectSettingsSchema.parse(data) as ProjectSettings;
   } catch (error) {
     console.error('ProjectSettings validation failed:', error);
     throw new Error(`Invalid project settings data: ${error instanceof z.ZodError ? error.message : 'Unknown error'}`);
@@ -79,8 +53,8 @@ export function validateProjectSettings(data: unknown): ProjectSettingsType {
 }
 
 // Helper function for safe parsing with defaults
-export function parseProjectSettingsWithDefaults(data: unknown): ProjectSettingsType {
-  const defaultSettings = {
+export function parseProjectSettingsWithDefaults(data: unknown): ProjectSettings {
+  const defaultSettings: ProjectSettings = {
     google_oauth: {
       enabled: false,
       client_id: '',

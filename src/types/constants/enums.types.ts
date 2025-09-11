@@ -27,7 +27,8 @@ export const InvoiceStatus = {
   SENT: 'sent',
   PAID: 'paid',
   OVERDUE: 'overdue',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  REFUNDED: 'refunded'
 } as const;
 
 export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];

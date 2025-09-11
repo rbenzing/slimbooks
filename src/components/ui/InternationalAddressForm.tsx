@@ -94,7 +94,7 @@ export const InternationalAddressForm: React.FC<InternationalAddressFormProps> =
     <div className="space-y-4">
       {config.fields.map((field) => (
         <div key={field.key} className={field.key === 'address2' ? 'mt-2' : ''}>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={themeClasses.label}>
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
           {field.type === 'select' ? (
@@ -118,8 +118,8 @@ export const InternationalAddressForm: React.FC<InternationalAddressFormProps> =
               value={formData[field.key] || ''}
               onChange={(e) => onChange(field.key, e.target.value)}
               placeholder={field.placeholder}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors[field.key] ? 'border-red-300' : 'border-gray-300'
+              className={`${themeClasses.input} ${
+                errors[field.key] ? 'border-red-300' : ''
               }`}
             />
           )}

@@ -12,6 +12,7 @@ import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
 import { EmailConfigStatus } from '@/types';
+import { EmailStatus } from '@/types/domain/invoice.types';
 import { toast } from 'sonner';
 import { InvoiceType } from '@/types';
 import { Client } from '@/types';
@@ -240,7 +241,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         tax_rate_id: selectedTaxRate?.id || null,
         shipping_amount: shippingAmount,
         shipping_rate_id: selectedShippingRate?.id || null,
-        notes: thankYouMessage
+        notes: thankYouMessage,
+        email_status: 'not_sent' as EmailStatus
       };
 
       if (editingInvoice) {
@@ -299,7 +301,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         shipping_amount: shippingAmount,
         shipping_rate_id: selectedShippingRate?.id || null,
         notes: thankYouMessage,
-        status: 'sent'
+        status: 'sent',
+        email_status: 'sent' as EmailStatus
       };
 
       let invoiceId: number;
@@ -315,7 +318,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           invoice_number: generatedNumber
         };
         const result = await invoiceOperations.create(finalInvoicePayload);
-        invoiceId = result.lastInsertRowid;
+        invoiceId = result.id;
       }
 
       // Update email status to sending
@@ -356,15 +359,15 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     }
 
     // First save the invoice if it hasn't been saved yet
-    if (!invoiceData.id) {
+    if (!editingInvoice?.id) {
       await handleSaveInvoice();
     }
 
-    if (invoiceData.id) {
+    if (editingInvoice?.id) {
       try {
         await pdfService.downloadInvoicePDF(
-          invoiceData.id,
-          invoiceData.invoice_number
+          editingInvoice.id,
+          editingInvoice.invoice_number
         );
       } catch (error) {
         console.error('Error generating PDF:', error);

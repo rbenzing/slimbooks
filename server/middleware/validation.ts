@@ -200,6 +200,7 @@ export const validationSets = {
   // Invoice validation sets
   createInvoice: [
     body('invoiceData.invoice_number')
+      .optional()
       .trim()
       .isLength({ min: 1, max: 50 })
       .withMessage('Invoice number must be between 1 and 50 characters')
@@ -207,8 +208,8 @@ export const validationSets = {
     body('invoiceData.client_id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     body('invoiceData.amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
     body('invoiceData.tax_amount').optional().isFloat({ min: 0 }).withMessage('Tax amount must be positive'),
-    body('invoiceData.due_date').isISO8601().withMessage('Due date must be in ISO 8601 format'),
-    body('invoiceData.issue_date').isISO8601().withMessage('Issue date must be in ISO 8601 format'),
+    body('invoiceData.due_date').optional().isISO8601().withMessage('Due date must be in ISO 8601 format'),
+    body('invoiceData.issue_date').optional().isISO8601().withMessage('Issue date must be in ISO 8601 format'),
     body('invoiceData.description')
       .optional()
       .trim()
@@ -216,8 +217,9 @@ export const validationSets = {
       .withMessage(`Description must be less than ${validationConfig.maxFieldLengths.description} characters`)
       .escape(),
     body('invoiceData.status')
-      .isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
-      .withMessage('Status must be one of: draft, sent, paid, overdue, cancelled')
+      .optional()
+      .isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'refunded'])
+      .withMessage('Status must be one of: draft, sent, paid, overdue, cancelled, refunded')
   ] as ValidationChain[],
   
   updateInvoice: [
@@ -229,7 +231,7 @@ export const validationSets = {
     body('invoiceData.due_date').optional().isISO8601(),
     body('invoiceData.issue_date').optional().isISO8601(),
     body('invoiceData.description').optional().trim().isLength({ max: validationConfig.maxFieldLengths.description }).escape(),
-    body('invoiceData.status').optional().isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
+    body('invoiceData.status').optional().isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'refunded'])
   ] as ValidationChain[],
   
   // Expense validation sets

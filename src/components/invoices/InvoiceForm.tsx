@@ -56,6 +56,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
         amount: '',
         status: 'draft',
         due_date: '',
+        issue_date: '',
         description: '',
         type: 'one-time'
       });
@@ -95,10 +96,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+      <div className="bg-card rounded-lg p-6 w-full max-w-2xl border border-border">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">{invoice ? 'Edit Invoice' : 'Create New Invoice'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-xl font-bold text-card-foreground">{invoice ? 'Edit Invoice' : 'Create New Invoice'}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -106,7 +107,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
+              <label className={themeClasses.label}>Client *</label>
               <select
                 required
                 value={formData.client_id}
@@ -122,14 +123,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+              <label className={themeClasses.label}>Amount *</label>
               <input
                 type="number"
                 step="0.01"
                 required
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={themeClasses.input}
                 placeholder="0.00"
               />
             </div>
@@ -137,7 +138,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className={themeClasses.label}>Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -150,33 +151,33 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date *</label>
+              <label className={themeClasses.label}>Issue Date *</label>
               <input
                 type="date"
                 required
                 value={formData.issue_date}
                 onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={themeClasses.dateInput}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+              <label className={themeClasses.label}>Due Date *</label>
               <input
                 type="date"
                 required
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={themeClasses.dateInput}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className={themeClasses.label}>Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={themeClasses.textarea}
               rows={3}
               placeholder="Invoice description..."
             />
@@ -186,13 +187,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              className={themeClasses.buttonOutline}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className={themeClasses.button}
             >
               {invoice ? 'Update Invoice' : 'Create Invoice'}
             </button>

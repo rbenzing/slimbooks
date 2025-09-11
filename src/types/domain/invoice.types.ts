@@ -1,6 +1,6 @@
 // Invoice-related types and interfaces
-
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
+import { InvoiceStatus } from '../constants/enums.types';
+export type { InvoiceStatus };
 export type InvoiceType = 'one-time' | 'recurring' | 'subscription';
 export type EmailStatus = 'not_sent' | 'sent' | 'sending' | 'failed' | 'bounced';
 

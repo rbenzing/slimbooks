@@ -83,6 +83,11 @@ export const themeClasses = {
   textarea: "w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
   searchInput: "w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
 
+  // Invoice form specific elements
+  invoiceInput: "w-full border-0 border-b-2 border-border dark:border-gray-600 focus:border-primary focus:ring-0 bg-transparent text-card-foreground placeholder:text-muted-foreground",
+  invoiceInputRight: "w-full border-0 border-b-2 border-border dark:border-gray-600 focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground placeholder:text-muted-foreground",
+  invoiceLineInput: "w-full border-0 border-b border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 bg-transparent text-card-foreground placeholder:text-muted-foreground",
+
   // Buttons - Dashboard button styling
   button: "inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium",
   buttonSecondary: "inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium",
@@ -92,10 +97,17 @@ export const themeClasses = {
   // Table styles
   table: "bg-card border border-border rounded-lg overflow-hidden",
   tableBody: "",
-  tableHeader: "bg-muted/50 border-b border-border",
-  tableRow: "border-b border-border hover:bg-muted/50 transition-colors",
+  tableHeader: "bg-muted/50 border-b-2 border-border dark:border-gray-600",
+  tableRow: "border-b border-border dark:border-gray-700 hover:bg-muted/50 transition-colors",
   tableCell: "text-foreground p-4",
   tableHeaderCell: "text-muted-foreground font-medium p-4",
+
+  // Enhanced borders for better dark mode visibility
+  borderLight: "border-gray-200 dark:border-gray-700",
+  borderMedium: "border-gray-300 dark:border-gray-600", 
+  borderHeavy: "border-gray-400 dark:border-gray-500",
+  divider: "border-t border-gray-200 dark:border-gray-700",
+  dividerHeavy: "border-t-2 border-gray-300 dark:border-gray-600",
 
   // Text styles - Dashboard typography system
   heading: "text-card-foreground font-bold",

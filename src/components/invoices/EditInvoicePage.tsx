@@ -546,7 +546,7 @@ export const EditInvoicePage = () => {
                     type="text"
                     value={invoiceData.invoice_number}
                     onChange={(e) => setInvoiceData({...invoiceData, invoice_number: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                    className="block w-full border-0 border-b-2 border-border dark:border-gray-600 focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
                     placeholder="INV-001"
                     required
                   />
@@ -557,7 +557,7 @@ export const EditInvoicePage = () => {
                     type="date"
                     value={invoiceData.due_date}
                     onChange={(e) => setInvoiceData({...invoiceData, due_date: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark]"
+                    className="block w-full border-0 border-b-2 border-border dark:border-gray-600 focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark]"
                     required
                   />
                 </div>
@@ -566,7 +566,7 @@ export const EditInvoicePage = () => {
                   <select
                     value={invoiceData.status}
                     onChange={(e) => setInvoiceData({...invoiceData, status: e.target.value as InvoiceStatus})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                    className="block w-full border-0 border-b-2 border-border dark:border-gray-600 focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
                   >
                     <option value="draft">Draft</option>
                     <option value="sent">Sent</option>
@@ -590,7 +590,7 @@ export const EditInvoicePage = () => {
           <div className="mb-8">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-border">
+                <tr className="border-b-2 border-border dark:border-gray-600">
                   <th className="text-left py-3 font-semibold text-card-foreground">Description *</th>
                   <th className="text-center py-3 font-semibold w-20 text-card-foreground">Qty</th>
                   <th className="text-right py-3 font-semibold w-24 text-card-foreground">Rate</th>
@@ -600,13 +600,13 @@ export const EditInvoicePage = () => {
               </thead>
               <tbody>
                 {lineItems.map((item) => (
-                  <tr key={item.id} className="border-b border-border">
+                  <tr key={item.id} className="border-b border-border dark:border-gray-700">
                     <td className="py-3">
                       <input
                         type="text"
                         value={item.description}
                         onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                        className="w-full border-0 border-b border-transparent focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
+                        className="w-full border-0 border-b border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
                         placeholder="Item description"
                         required
                       />
@@ -616,7 +616,7 @@ export const EditInvoicePage = () => {
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        className="w-16 text-center border-0 border-b border-transparent focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
+                        className="w-16 text-center border-0 border-b border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
                         min="0"
                         step="1"
                       />
@@ -626,7 +626,7 @@ export const EditInvoicePage = () => {
                         type="number"
                         value={item.unit_price}
                         onChange={(e) => updateLineItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-right border-0 border-b border-transparent focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
+                        className="w-20 text-right border-0 border-b border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 bg-transparent text-card-foreground"
                         min="0"
                         step="0.01"
                       />
@@ -709,7 +709,7 @@ export const EditInvoicePage = () => {
                 <span className="text-card-foreground">${shippingAmount.toFixed(2)}</span>
               </div>
 
-              <div className="border-t border-border pt-2 mt-2">
+              <div className="border-t-2 border-border dark:border-gray-600 pt-2 mt-2">
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span className="text-card-foreground">Total:</span>
                   <span className="text-card-foreground">${total.toFixed(2)}</span>
@@ -719,7 +719,7 @@ export const EditInvoicePage = () => {
           </div>
 
           {/* Thank You Message */}
-          <div className="border-t border-border pt-6">
+          <div className="border-t-2 border-border dark:border-gray-600 pt-6">
             <label className="block text-sm font-medium text-card-foreground mb-2">Thank You Message</label>
             <textarea
               value={thankYouMessage}

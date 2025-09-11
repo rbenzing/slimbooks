@@ -13,7 +13,7 @@ import {
   ApiResponse,
   ProjectSettings
 } from '@/types';
-import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/schemas/projectSettings.schema';
+import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/utils/projectSettingsValidation';
 class SQLiteService {
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;

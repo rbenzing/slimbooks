@@ -7,18 +7,39 @@ let globalTheme: ThemeType = 'system';
 let globalEffectiveTheme: 'light' | 'dark' = 'light';
 let isThemeInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+let isUserSetTheme = false; // Track if theme was explicitly set by user
 
-// Reset initialization on page refresh
+// Only reset initialization on actual page reload, not on navigation
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    isThemeInitialized = false;
-    initializationPromise = null;
+  // Use pageshow event instead of beforeunload to avoid navigation interference
+  window.addEventListener('pageshow', (event) => {
+    // Only reset if this is a real page reload (not navigation)
+    if (event.persisted === false && performance.navigation.type === 1) {
+      console.log('useTheme: Actual page reload detected, resetting theme initialization');
+      isThemeInitialized = false;
+      initializationPromise = null;
+      isUserSetTheme = false; // Reset user theme flag on actual reload
+    }
   });
 }
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<ThemeType>(globalTheme);
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>(globalEffectiveTheme);
+
+  // Sync local state with global state on mount
+  useEffect(() => {
+    if (isThemeInitialized && (theme !== globalTheme || effectiveTheme !== globalEffectiveTheme)) {
+      console.log('useTheme: Syncing local state with global state', { 
+        global: globalTheme, 
+        local: theme,
+        globalEffective: globalEffectiveTheme,
+        localEffective: effectiveTheme
+      });
+      setTheme(globalTheme);
+      setEffectiveTheme(globalEffectiveTheme);
+    }
+  }, []);
 
   const getEffectiveTheme = useCallback((selectedTheme: ThemeType): 'light' | 'dark' => {
     if (selectedTheme === 'system') {
@@ -43,13 +64,28 @@ export const useTheme = () => {
   useEffect(() => {
     const loadTheme = async () => {
       if (isThemeInitialized) {
-        console.log('useTheme: Already initialized, skipping theme load');
+        console.log('useTheme: Already initialized, using global theme:', globalTheme);
+        // Ensure local state matches global state
+        setTheme(globalTheme);
+        setEffectiveTheme(globalEffectiveTheme);
         return; // Don't reload if already initialized
+      }
+      
+      // If theme was explicitly set by user, don't override with database
+      if (isUserSetTheme) {
+        console.log('useTheme: User has explicitly set theme, skipping database load');
+        setTheme(globalTheme);
+        setEffectiveTheme(globalEffectiveTheme);
+        return;
       }
       
       // Use a shared initialization promise to prevent race conditions
       if (initializationPromise) {
+        console.log('useTheme: Waiting for existing initialization promise');
         await initializationPromise;
+        // After waiting, update local state to match global state
+        setTheme(globalTheme);
+        setEffectiveTheme(globalEffectiveTheme);
         return;
       }
       
@@ -68,6 +104,7 @@ export const useTheme = () => {
             setTheme(localTheme);
             applyTheme(localTheme);
             isThemeInitialized = true;
+            isUserSetTheme = false; // This is a database load, not user action
             console.log('useTheme: Theme initialization completed with localStorage fallback');
             return;
           }
@@ -83,6 +120,7 @@ export const useTheme = () => {
           setTheme(dbTheme);
           applyTheme(dbTheme);
           isThemeInitialized = true;
+          isUserSetTheme = false; // This is a database load, not user action
           console.log('useTheme: Theme initialization completed successfully from database');
         } catch (error) {
           console.error('useTheme: Failed to load theme from database:', error);
@@ -101,6 +139,7 @@ export const useTheme = () => {
           setTheme(localTheme);
           applyTheme(localTheme);
           isThemeInitialized = true;
+          isUserSetTheme = false; // This is a database load, not user action
           console.log('useTheme: Theme initialization completed with fallback');
         }
         initializationPromise = null;
@@ -126,12 +165,16 @@ export const useTheme = () => {
   }, [theme, applyTheme]);
 
   const updateTheme = useCallback(async (newTheme: ThemeType, saveToDb = true) => {
-    console.log('useTheme: updateTheme called', { newTheme, saveToDb });
+    console.log('useTheme: updateTheme called', { newTheme, saveToDb, currentGlobal: globalTheme });
     
     // Update global state first
     globalTheme = newTheme;
     setTheme(newTheme);
     applyTheme(newTheme);
+    
+    // Mark as initialized and user-set to prevent reloading from database
+    isThemeInitialized = true;
+    isUserSetTheme = true; // This theme was explicitly set by user action
     
     if (saveToDb) {
       try {

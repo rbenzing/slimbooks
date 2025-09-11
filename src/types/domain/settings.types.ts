@@ -253,3 +253,43 @@ export const validateShippingRateArray = (data: unknown): ShippingRate[] => {
   }
   return [];
 };
+
+// Project Settings TypeScript interfaces
+export interface GoogleOAuthSettings {
+  enabled: boolean;
+  client_id: string;
+  client_secret?: string;
+  configured: boolean;
+}
+
+export interface StripeSettings {
+  enabled: boolean;
+  publishable_key: string;
+  secret_key?: string;
+  configured: boolean;
+}
+
+export interface EmailServiceSettings {
+  enabled: boolean;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_pass?: string;
+  email_from: string;
+  configured: boolean;
+}
+
+export interface SecurityConfig {
+  require_email_verification: boolean;
+  max_failed_login_attempts: number;
+  account_lockout_duration: number;
+}
+
+// Complete project settings type with all required fields for runtime use
+export interface ProjectSettings {
+  google_oauth: GoogleOAuthSettings;
+  stripe: StripeSettings;
+  email: EmailServiceSettings;
+  security: SecurityConfig;
+}
+
