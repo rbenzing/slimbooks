@@ -5,37 +5,12 @@ import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { exportToCSV, parseCSV, validateClientData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
-import { ClientImportData, ClientValidationResult } from '@/types';
+import { ClientValidationResult } from '@/types';
+import { FieldMapping, ImportExportProps, ClientImportData, PreviewDataItem, CLIENT_FIELDS } from '@/types/shared/import.types';
 
-interface ClientImportExportProps {
-  onClose: () => void;
-  onImportComplete: () => void;
-}
+// CLIENT_FIELDS now imported from shared types
 
-interface FieldMapping {
-  csvField: string;
-  dbField: string;
-}
-
-const CLIENT_FIELDS = [
-  { key: 'name', label: 'Full Name', required: false },
-  { key: 'first_name', label: 'First Name', required: false },
-  { key: 'last_name', label: 'Last Name', required: false },
-  { key: 'email', label: 'Email', required: true },
-  { key: 'phone', label: 'Phone', required: false },
-  { key: 'company', label: 'Company', required: false },
-  { key: 'address', label: 'Address', required: false },
-  { key: 'city', label: 'City', required: false },
-  { key: 'state', label: 'State', required: false },
-  { key: 'zipCode', label: 'ZIP Code', required: false },
-  { key: 'country', label: 'Country', required: false }
-];
-
-interface PreviewDataItem extends ClientImportData {
-  _originalIndex?: number;
-}
-
-export const ClientImportExport: React.FC<ClientImportExportProps> = ({ onClose, onImportComplete }) => {
+export const ClientImportExport: React.FC<ImportExportProps> = ({ onClose, onImportComplete }) => {
   const [mode, setMode] = useState<'select' | 'import' | 'export'>('select');
   const [csvData, setCsvData] = useState<Array<Record<string, string | number | boolean | null | undefined>>>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);

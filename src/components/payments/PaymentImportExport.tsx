@@ -1,40 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { exportToCSV, parseCSV, validatePaymentData } from '@/utils/csvUtils';
-import { PaymentImportData, PaymentValidationResult } from '@/types';
+import { PaymentImportData, PaymentValidationResult, FieldMapping, ImportExportProps, PreviewDataItem, PAYMENT_FIELDS } from '@/types/shared/import.types';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { PaymentMethod, PaymentStatus, Payment } from '@/types';
+import { PAYMENT_METHODS, PAYMENT_STATUSES } from '@/types/constants/enums.types';
 import { authenticatedFetch } from '@/utils/apiUtils.util';
 
-interface PaymentImportExportProps {
-  onClose: () => void;
-  onImportComplete: () => void;
-}
-
-interface FieldMapping {
-  csvField: string;
-  dbField: string;
-}
-
-const PAYMENT_FIELDS = [
-  { key: 'date', label: 'Date', required: true },
-  { key: 'client_name', label: 'Client Name', required: true },
-  { key: 'amount', label: 'Amount', required: true },
-  { key: 'method', label: 'Payment Method', required: true },
-  { key: 'reference', label: 'Reference/Transaction ID', required: false },
-  { key: 'description', label: 'Description/Notes', required: false },
-  { key: 'status', label: 'Status', required: false }
-];
-
-const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'check', 'bank_transfer', 'credit_card', 'paypal', 'other'];
-const PAYMENT_STATUSES: PaymentStatus[] = ['received', 'pending', 'failed', 'refunded'];
-
-interface PreviewDataItem extends PaymentImportData {
-  _originalIndex?: number;
-}
-
-export const PaymentImportExport: React.FC<PaymentImportExportProps> = ({ onClose, onImportComplete }) => {
+export const PaymentImportExport: React.FC<ImportExportProps> = ({ onClose, onImportComplete }) => {
   const [mode, setMode] = useState<'select' | 'import' | 'export'>('select');
   const [csvData, setCsvData] = useState<Array<Record<string, string | number | boolean | null | undefined>>>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -63,7 +37,7 @@ export const PaymentImportExport: React.FC<PaymentImportExportProps> = ({ onClos
       const exportData = payments.map(payment => ({
         date: payment.date,
         client_name: payment.client_name,
-        amount: payment.amount,
+        amount: payment.amount.toString(),
         method: payment.method,
         reference: payment.reference || '',
         description: payment.description || '',

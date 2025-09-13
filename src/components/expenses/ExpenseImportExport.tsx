@@ -5,41 +5,10 @@ import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
+import { FieldMapping, ImportExportProps, ExpenseImportData, PreviewDataItem, EXPENSE_FIELDS } from '@/types/shared/import.types';
+import { EXPENSE_CATEGORIES, EXPENSE_STATUSES } from '@/types/constants/enums.types';
 
-interface ExpenseImportExportProps {
-  onClose: () => void;
-  onImportComplete: () => void;
-}
-
-interface FieldMapping {
-  csvField: string;
-  dbField: string;
-}
-
-const EXPENSE_FIELDS = [
-  { key: 'date', label: 'Date', required: true },
-  { key: 'description', label: 'Description', required: false },
-  { key: 'merchant', label: 'Merchant/Type', required: true },
-  { key: 'amount', label: 'Amount', required: true },
-  { key: 'category', label: 'Category', required: true },
-  { key: 'status', label: 'Status', required: false }
-];
-
-const EXPENSE_CATEGORIES = [
-  'Office Supplies',
-  'Meals & Entertainment',
-  'Travel',
-  'Software',
-  'Marketing',
-  'Taxes',
-  'Utilities',
-  'Professional Services',
-  'Other'
-];
-
-const EXPENSE_STATUSES = ['pending', 'approved', 'reimbursed'];
-
-export const ExpenseImportExport: React.FC<ExpenseImportExportProps> = ({ onClose, onImportComplete }) => {
+export const ExpenseImportExport: React.FC<ImportExportProps> = ({ onClose, onImportComplete }) => {
   const [mode, setMode] = useState<'select' | 'import' | 'export'>('select');
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);

@@ -5,17 +5,7 @@ import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';
-
-interface ExpensesListProps {
-  expenses: Expense[];
-  onEditExpense: (expense: Expense) => void;
-  onDeleteExpense: (id: number) => void;
-  onViewExpense: (expense: Expense) => void;
-  onBulkDelete?: (ids: number[]) => void;
-  onBulkCategorize?: (ids: number[], category: string) => void;
-  onBulkChangeMerchant?: (ids: number[], merchant: string) => void;
-  categories?: string[];
-}
+import { ExpensesListProps } from '@/types/components/expense.types';
 
 export const ExpensesList: React.FC<ExpensesListProps> = ({ 
   expenses, 

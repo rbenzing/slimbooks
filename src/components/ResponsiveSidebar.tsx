@@ -162,11 +162,18 @@ export const ResponsiveSidebar: React.FC<ResponsiveSidebarProps> = ({ onNavigati
 
       {/* Desktop Header */}
       {!isMobile && (
-        <div className="flex h-16 items-center border-b border-border px-6">
+        <div className="flex h-16 items-center justify-between border-b border-border px-6">
           <div className="flex items-center space-x-2">
             <CreditCard className={cn("h-8 w-8 text-primary", isCollapsed && "h-6 w-6")} />
             {!isCollapsed && <h1 className="text-xl font-bold text-card-foreground">ClientBill Pro</h1>}
           </div>
+          {/* Collapse Button */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden xl:block p-1.5 rounded-lg hover:bg-accent transition-colors"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
         </div>
       )}
 
@@ -248,13 +255,6 @@ export const ResponsiveSidebar: React.FC<ResponsiveSidebarProps> = ({ onNavigati
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* Desktop Collapse Button */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="hidden xl:block fixed top-4 left-4 z-40 p-2 rounded-lg bg-card border border-border shadow-lg hover:bg-accent"
-      >
-        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </button>
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (

@@ -21,6 +21,37 @@ export const PaymentMethod = {
 
 export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 
+// Payment method and status arrays for components
+export const PAYMENT_METHODS: PaymentMethod[] = Object.values(PaymentMethod);
+export const PAYMENT_STATUSES: PaymentStatus[] = Object.values(PaymentStatus);
+
+// Expense status enum and arrays
+export const ExpenseStatus = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  REIMBURSED: 'reimbursed'
+} as const;
+
+export type ExpenseStatusType = typeof ExpenseStatus[keyof typeof ExpenseStatus];
+
+export const EXPENSE_STATUSES: ExpenseStatusType[] = Object.values(ExpenseStatus);
+
+// Expense categories
+export const EXPENSE_CATEGORIES = [
+  'Office Supplies',
+  'Meals & Entertainment',
+  'Travel',
+  'Software',
+  'Marketing',
+  'Taxes',
+  'Utilities',
+  'Professional Services',
+  'Other'
+] as const;
+
+export type ExpenseCategoryType = typeof EXPENSE_CATEGORIES[number];
+
 // Invoice related enums
 export const InvoiceStatus = {
   DRAFT: 'draft',

@@ -6,6 +6,7 @@ export interface Expense {
   id: number;
   date: string;
   vendor?: string;
+  merchant?: string; // Added for compatibility with imports and reports
   category?: string;
   amount: number;
   description?: string;
@@ -15,6 +16,7 @@ export interface Expense {
   is_billable?: boolean;
   client_id?: number;
   project?: string;
+  status?: ExpenseStatus; // Added for status tracking
   created_at: string;
   updated_at: string;
 }

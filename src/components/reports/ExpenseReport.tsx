@@ -287,7 +287,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                     <thead className={themeClasses.tableHeader}>
                       <tr>
                         <th className={themeClasses.tableHeaderCell}>Date</th>
-                        <th className={themeClasses.tableHeaderCell}>Merchant</th>
+                        <th className={themeClasses.tableHeaderCell}>Vendor</th>
                         <th className={themeClasses.tableHeaderCell}>Category</th>
                         <th className={themeClasses.tableHeaderCell}>Amount</th>
                         <th className={themeClasses.tableHeaderCell}>Status</th>
@@ -299,7 +299,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                           <td className={themeClasses.tableCell}>
                             {formatDateSync(expense.date)}
                           </td>
-                          <td className={themeClasses.tableCell}>{expense.merchant}</td>
+                          <td className={themeClasses.tableCell}>{expense.vendor || 'N/A'}</td>
                           <td className={themeClasses.tableCell}>{expense.category}</td>
                           <td className={`${themeClasses.tableCell} font-medium`}>
                             <FormattedCurrency amount={expense.amount} />
@@ -310,7 +310,7 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
                               expense.status === 'approved' ? themeClasses.badgeSuccess :
                               themeClasses.badgeInfo
                             }`}>
-                              {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                              {expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : 'Pending'}
                             </span>
                           </td>
                         </tr>

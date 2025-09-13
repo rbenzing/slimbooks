@@ -4,17 +4,13 @@ import { ArrowLeft, Upload, X, Receipt } from 'lucide-react';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { Expense, ExpenseFormData } from '@/types';
-
-interface ExpenseFormProps {
-  expense?: Expense | null;
-  onSave: (expenseData: ExpenseFormData) => void;
-  onCancel: () => void;
-}
+import { EXPENSE_CATEGORIES, EXPENSE_STATUSES } from '@/types/constants/enums.types';
+import { ExpenseFormProps } from '@/types/components/expense.types';
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     date: expense?.date || new Date().toISOString().split('T')[0],
-    merchant: expense?.merchant || '',
+    vendor: expense?.vendor || '',
     category: expense?.category || 'Office Supplies',
     amount: expense?.amount?.toString() || '',
     description: expense?.description || '',
@@ -48,7 +44,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   useEffect(() => {
     const initialData = {
       date: expense?.date || new Date().toISOString().split('T')[0],
-      merchant: expense?.merchant || '',
+      vendor: expense?.vendor || '',
       category: expense?.category || 'Office Supplies',
       amount: expense?.amount?.toString() || '',
       description: expense?.description || '',
@@ -63,7 +59,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     
     const expenseData = {
       date: formData.date,
-      vendor: formData.merchant, // Map frontend 'merchant' to API 'vendor'
+      vendor: formData.vendor,
       category: formData.category,
       amount: parseFloat(formData.amount),
       description: formData.description,
@@ -150,8 +146,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 type="text"
                 required
                 className={themeClasses.input}
-                value={formData.merchant}
-                onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
+                value={formData.vendor}
+                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                 placeholder="e.g., Office Depot, Starbucks"
               />
             </div>
@@ -166,14 +162,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               >
-                <option value="Office Supplies">Office Supplies</option>
-                <option value="Meals & Entertainment">Meals & Entertainment</option>
-                <option value="Travel">Travel</option>
-                <option value="Software">Software</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Professional Services">Professional Services</option>
-                <option value="Other">Other</option>
+                {EXPENSE_CATEGORIES.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
               </select>
             </div>
 
@@ -184,11 +175,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
               <select
                 className={themeClasses.select}
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'pending' | 'approved' | 'reimbursed' })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
               >
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="reimbursed">Reimbursed</option>
+                {EXPENSE_STATUSES.map(status => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
 

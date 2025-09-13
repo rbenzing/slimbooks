@@ -4,12 +4,7 @@ import { getStatusColor, themeClasses } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';
-
-interface ExpenseViewModalProps {
-  expense: Expense | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { ExpenseViewModalProps } from '@/types/components/expense.types';
 
 export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isOpen, onClose }) => {
   if (!isOpen || !expense) return null;
@@ -44,8 +39,8 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
               <div className="flex items-center space-x-3">
                 <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Merchant</p>
-                  <p className="font-medium text-foreground">{expense.merchant}</p>
+                  <p className="text-sm text-muted-foreground">Vendor</p>
+                  <p className="font-medium text-foreground">{expense.vendor || 'N/A'}</p>
                 </div>
               </div>
 
@@ -75,8 +70,8 @@ export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isO
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <span className={getStatusColor(expense.status)}>
-                    {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                  <span className={getStatusColor(expense.status || 'pending')}>
+                    {expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : 'Pending'}
                   </span>
                 </div>
               </div>
