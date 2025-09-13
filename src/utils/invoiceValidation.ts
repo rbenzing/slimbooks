@@ -1,14 +1,6 @@
 // Invoice validation utilities for ensuring invoices are ready to send
 
-import { Client } from '@/types';
-
-interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
+import { Client, LineItem } from '@/types';
 
 interface InvoiceValidationResult {
   isValid: boolean;
@@ -46,8 +38,8 @@ export const validateInvoiceForSave = (
   }
 
   // Check if at least one line item exists with description and amount
-  const validLineItems = lineItems.filter(item => 
-    item.description.trim() !== '' && item.amount > 0
+  const validLineItems = lineItems.filter(item =>
+    item.description.trim() !== '' && item.unit_price > 0
   );
 
   if (validLineItems.length === 0) {
@@ -55,8 +47,8 @@ export const validateInvoiceForSave = (
   }
 
   // Check for line items with missing descriptions
-  const itemsWithoutDescription = lineItems.filter(item => 
-    item.description.trim() === '' && item.amount > 0
+  const itemsWithoutDescription = lineItems.filter(item =>
+    item.description.trim() === '' && item.unit_price > 0
   );
   if (itemsWithoutDescription.length > 0) {
     warnings.push('Some line items have amounts but no description');
@@ -64,7 +56,7 @@ export const validateInvoiceForSave = (
 
   // Check for line items with zero amounts
   const itemsWithZeroAmount = lineItems.filter(item => 
-    item.description.trim() !== '' && item.amount === 0
+    item.description.trim() !== '' && item.unit_price > 0
   );
   if (itemsWithZeroAmount.length > 0) {
     warnings.push('Some line items have descriptions but zero amount');

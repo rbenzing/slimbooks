@@ -10,6 +10,7 @@ A secure, self-hosted billing and invoice management application built with Reac
 - **📊 Dashboard**: Real-time financial overview with interactive charts
 - **👥 Client Management**: Complete client profiles with contact details and history
 - **🧾 Professional Invoices**: Customizable templates with line items, taxes, and shipping
+- **🔄 Recurring Invoices**: Automated recurring billing with customizable schedules (weekly, monthly, quarterly, yearly)
 - **💰 Expense Tracking**: Categorized expense management with receipt uploads
 - **📈 Financial Reports**: Revenue and expense analytics with detailed monthly/quarterly columns for yearly reports
 
@@ -102,6 +103,31 @@ Use `./scripts/generate-secrets.sh` to create secure secrets automatically.
 - **Automatic Backups**: Daily automated backups with rotation
 - **Data Portability**: Single file database for easy migration
 - **No External Dependencies**: Everything runs locally
+
+## 🔄 Recurring Invoice System
+
+Slimbooks includes a powerful recurring invoice system for automated billing:
+
+### Features
+- **📅 Flexible Scheduling**: Weekly, monthly, quarterly, yearly, or custom frequencies
+- **🤖 Automated Processing**: Cron job integration for hands-off billing
+- **👥 Client-Specific Templates**: Create recurring templates for each client
+- **💰 Dynamic Pricing**: Support for line items, taxes, and shipping
+- **📊 Processing Statistics**: Monitor template performance and processing status
+- **⚡ Manual Triggers**: Process individual templates or all due templates on-demand
+
+### API Endpoints
+```
+/api/recurring-templates/*    - Template CRUD operations
+/api/cron/recurring-invoices  - Automated processing endpoint
+```
+
+### Template Management
+- Create recurring templates with client association
+- Set payment terms and due date calculations
+- Activate/deactivate templates as needed
+- Track next invoice dates automatically
+- Monitor processing history and errors
 
 ## 🔒 Security Features
 

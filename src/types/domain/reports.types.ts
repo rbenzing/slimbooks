@@ -3,7 +3,7 @@
 import { Invoice } from './invoice.types';
 import { Expense } from './expense.types';
 import { Client } from './client.types';
-import { ReportType } from './common.types';
+import { ReportType } from '../shared/common.types';
 
 // Date range for reports (extends the common DateRange with preset functionality)
 export interface ReportDateRange {

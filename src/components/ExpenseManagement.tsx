@@ -59,12 +59,14 @@ export const ExpenseManagement: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         const allExpenses = data.data?.data || [];
-        // Ensure all expenses have required fields
+
+        // Ensure all expenses have required fields (basic validation)
         const validExpenses = allExpenses.filter((expense: Expense) =>
           expense &&
-          typeof expense.merchant === 'string' &&
-          typeof expense.description === 'string'
+          expense.id &&
+          typeof expense.amount === 'number'
         );
+
         setExpenses(validExpenses);
       } else {
         throw new Error('Failed to load expenses');
@@ -79,12 +81,12 @@ export const ExpenseManagement: React.FC = () => {
   const filteredExpenses = expenses.filter(expense => {
     if (!expense) return false;
 
-    const merchant = expense.merchant || '';
+    const vendor = expense.vendor || '';
     const description = expense.description || '';
     const category = expense.category || '';
     const status = expense.status || '';
 
-    const matchesSearch = merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || status === statusFilter;

@@ -172,7 +172,7 @@ export const EditClientPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
@@ -203,7 +203,7 @@ export const EditClientPage = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-6">
           
           {/* Personal Information */}
           <div className="mb-8">
@@ -221,7 +221,7 @@ export const EditClientPage = () => {
                   value={formData.first_name}
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.first_name ? 'border-red-300' : 'border-gray-300'
+                    errors.first_name ? 'border-red-300 dark:border-red-500' : 'border-input'
                   }`}
                 />
                 {errors.first_name && (
@@ -234,7 +234,7 @@ export const EditClientPage = () => {
                   type="text"
                   value={formData.last_name}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                 />
               </div>
             </div>
@@ -250,7 +250,7 @@ export const EditClientPage = () => {
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
+                      errors.email ? 'border-red-300 dark:border-red-500' : 'border-input'
                     }`}
                   />
                 </div>
@@ -266,7 +266,7 @@ export const EditClientPage = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   />
                 </div>
               </div>
@@ -286,7 +286,7 @@ export const EditClientPage = () => {
                   type="text"
                   value={formData.company}
                   onChange={(e) => handleInputChange('company', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                 />
               </div>
               <div>
@@ -297,7 +297,7 @@ export const EditClientPage = () => {
                     type="email"
                     value={formData.companyEmail}
                     onChange={(e) => handleInputChange('companyEmail', e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   />
                 </div>
               </div>
@@ -328,7 +328,7 @@ export const EditClientPage = () => {
                 <select
                   value={formData.country}
                   onChange={(e) => handleInputChange('country', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                 >
                   <option value="USA">United States</option>
                   <option value="Canada">Canada</option>

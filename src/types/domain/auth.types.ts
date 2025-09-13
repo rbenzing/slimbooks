@@ -164,6 +164,29 @@ export const EMAIL_TEMPLATE_NAMES = {
   LOGIN_ALERT: 'login_alert'
 } as const;
 
+// JWT Token interfaces
+export interface BaseJWTPayload {
+  userId: number;
+  email: string;
+  iat: number;
+  exp: number;
+}
+
+export interface JWTPayload extends BaseJWTPayload {
+  role: string;
+  type: 'access' | 'refresh';
+}
+
+export interface EmailVerificationPayload extends BaseJWTPayload {
+  type: 'email_verification';
+}
+
+export interface PasswordResetPayload extends BaseJWTPayload {
+  type: 'password_reset';
+}
+
+export type AnyJWTPayload = JWTPayload | EmailVerificationPayload | PasswordResetPayload;
+
 // Default email templates
 export const DEFAULT_EMAIL_TEMPLATES: Omit<EmailTemplate, 'id' | 'created_at' | 'updated_at'>[] = [
   {

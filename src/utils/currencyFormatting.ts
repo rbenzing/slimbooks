@@ -140,27 +140,4 @@ export const getCurrencyFormatPreview = (settings: CurrencySettings): string => 
     : `${formattedNumber}${symbol}`;
 };
 
-// Validate currency settings
-export const validateCurrencySettings = (settings: Partial<CurrencySettings>): boolean => {
-  if (settings.currency && !CURRENCY_OPTIONS.find(c => c.value === settings.currency)) {
-    return false;
-  }
-  
-  if (settings.symbolPosition && !['before', 'after'].includes(settings.symbolPosition)) {
-    return false;
-  }
-  
-  if (settings.decimalPlaces !== undefined && (settings.decimalPlaces < 0 || settings.decimalPlaces > 10)) {
-    return false;
-  }
-  
-  if (settings.thousandsSeparator && ![',' , '.', ' ', 'none'].includes(settings.thousandsSeparator)) {
-    return false;
-  }
-  
-  if (settings.decimalSeparator && !['.', ','].includes(settings.decimalSeparator)) {
-    return false;
-  }
-  
-  return true;
-};
+// Note: Currency validation is now handled by settingsValidation.ts

@@ -1,52 +1,21 @@
 // Pagination settings utilities for consistent pagination across the application
+import type { PaginationSettings } from '@/types';
+import {
+  DEFAULT_PAGINATION_SETTINGS,
+  DEFAULT_ITEMS_PER_PAGE_OPTIONS,
+  MAX_ITEMS_PER_PAGE_OPTIONS,
+  AVAILABLE_PAGE_SIZES_OPTIONS,
+  MAX_PAGE_NUMBERS_OPTIONS
+} from '@/types';
 
-export interface PaginationSettings {
-  defaultItemsPerPage: number;
-  availablePageSizes: number[];
-  maxItemsPerPage: number;
-  showItemsPerPageSelector: boolean;
-  showPageNumbers: boolean;
-  maxPageNumbers: number;
-}
-
-// Default pagination settings
-export const DEFAULT_PAGINATION_SETTINGS: PaginationSettings = {
-  defaultItemsPerPage: 25,
-  availablePageSizes: [10, 25, 50, 100],
-  maxItemsPerPage: 500,
-  showItemsPerPageSelector: true,
-  showPageNumbers: true,
-  maxPageNumbers: 5
+// Re-export constants for backward compatibility
+export {
+  DEFAULT_PAGINATION_SETTINGS,
+  DEFAULT_ITEMS_PER_PAGE_OPTIONS,
+  MAX_ITEMS_PER_PAGE_OPTIONS,
+  AVAILABLE_PAGE_SIZES_OPTIONS,
+  MAX_PAGE_NUMBERS_OPTIONS
 };
-
-// Available options for settings UI
-export const DEFAULT_ITEMS_PER_PAGE_OPTIONS = [
-  { value: 10, label: '10 items' },
-  { value: 25, label: '25 items' },
-  { value: 50, label: '50 items' },
-  { value: 100, label: '100 items' }
-];
-
-export const MAX_ITEMS_PER_PAGE_OPTIONS = [
-  { value: 100, label: '100 items' },
-  { value: 250, label: '250 items' },
-  { value: 500, label: '500 items' },
-  { value: 1000, label: '1000 items' }
-];
-
-export const AVAILABLE_PAGE_SIZES_OPTIONS = [
-  { value: [5, 10, 25], label: 'Small (5, 10, 25)' },
-  { value: [10, 25, 50], label: 'Medium (10, 25, 50)' },
-  { value: [10, 25, 50, 100], label: 'Standard (10, 25, 50, 100)' },
-  { value: [25, 50, 100, 250], label: 'Large (25, 50, 100, 250)' }
-];
-
-export const MAX_PAGE_NUMBERS_OPTIONS = [
-  { value: 3, label: '3 pages' },
-  { value: 5, label: '5 pages' },
-  { value: 7, label: '7 pages' },
-  { value: 10, label: '10 pages' }
-];
 
 // Get current pagination settings from SQLite (asynchronous version)
 export const getPaginationSettings = async (): Promise<PaginationSettings> => {
@@ -118,17 +87,7 @@ export const savePaginationSettings = async (settings: PaginationSettings): Prom
   }
 };
 
-// Validate pagination settings
-export const validatePaginationSettings = (settings: PaginationSettings): PaginationSettings => {
-  return {
-    defaultItemsPerPage: Math.max(1, Math.min(settings.defaultItemsPerPage, settings.maxItemsPerPage)),
-    availablePageSizes: settings.availablePageSizes.filter(size => size <= settings.maxItemsPerPage && size > 0),
-    maxItemsPerPage: Math.max(1, settings.maxItemsPerPage),
-    showItemsPerPageSelector: settings.showItemsPerPageSelector,
-    showPageNumbers: settings.showPageNumbers,
-    maxPageNumbers: Math.max(3, Math.min(settings.maxPageNumbers, 15))
-  };
-};
+// Note: Pagination validation is now handled by settingsValidation.ts
 
 // Get pagination info for display
 export const getPaginationInfo = (

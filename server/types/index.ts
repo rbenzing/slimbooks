@@ -40,27 +40,48 @@ export interface UserPublic extends Omit<User, 'password_hash' | 'two_factor_sec
 
 export interface Client extends BaseEntity {
   name: string;
-  email?: string;
+  first_name?: string;
+  last_name?: string;
+  email: string;
   phone?: string;
   company?: string;
   address?: string;
   city?: string;
   state?: string;
-  zip?: string;
+  zipCode?: string;
   country?: string;
-  tax_id?: string;
-  notes?: string;
-  is_active?: number;
+  stripe_customer_id?: string;
 }
 
 export interface Invoice extends BaseEntity {
   invoice_number: string;
   client_id: number;
+  template_id?: number;
   amount: number;
+  tax_amount: number;
+  total_amount: number;
   status: InvoiceStatus;
-  due_date?: string;
-  paid_date?: string;
+  due_date: string;
+  issue_date: string;
+  description?: string;
+  items?: string;
   notes?: string;
+  payment_terms?: string;
+  stripe_invoice_id?: string;
+  stripe_payment_intent_id?: string;
+  type: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  client_address?: string;
+  line_items?: string;
+  tax_rate_id?: string;
+  shipping_amount: number;
+  shipping_rate_id?: string;
+  email_status: string;
+  email_sent_at?: string;
+  email_error?: string;
+  last_email_attempt?: string;
 }
 
 export interface LineItem {
@@ -79,22 +100,24 @@ export interface Template extends BaseEntity {
 }
 
 export interface Expense extends BaseEntity {
-  description: string;
-  amount: number;
   date: string;
-  category?: string;
+  merchant: string;
+  category: string;
+  amount: number;
+  description?: string;
   receipt_url?: string;
+  status: string;
 }
 
 export interface Payment extends BaseEntity {
-  invoice_id?: number;
-  client_id: number;
-  amount: number;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  transaction_id?: string;
-  notes?: string;
   date: string;
+  client_name: string;
+  invoice_id?: number;
+  amount: number;
+  method: string;
+  reference?: string;
+  description?: string;
+  status: string;
 }
 
 // Additional server-specific database types

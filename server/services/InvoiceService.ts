@@ -6,6 +6,7 @@ import { databaseService } from '../core/DatabaseService.js';
 import { authConfig } from '../config/index.js';
 import { ServiceOptions, InvoiceWithClient, InvoiceStatus } from '../types/index.js';
 import { PublicInvoiceDisplay, PublicInvoiceTokenPayload } from '../types/invoice.types.js';
+import { invoiceNumberService } from './InvoiceNumberService.js';
 
 /**
  * Invoice Service
@@ -194,7 +195,7 @@ export class InvoiceService {
    * Create new invoice
    */
   async createInvoice(invoiceData: {
-    invoice_number: string;
+    invoice_number?: string;  // Now optional - will be auto-generated if not provided
     client_id: number;
     template_id?: number;
     amount: number;
@@ -223,8 +224,8 @@ export class InvoiceService {
     email_error?: string;
     last_email_attempt?: string;
   }): Promise<number> {
-    if (!invoiceData || !invoiceData.invoice_number || !invoiceData.client_id || !invoiceData.amount) {
-      throw new Error('Invalid invoice data - invoice_number, client_id, and amount are required');
+    if (!invoiceData || !invoiceData.client_id || !invoiceData.amount) {
+      throw new Error('Invalid invoice data - client_id and amount are required');
     }
 
     // Validate required fields
@@ -242,10 +243,16 @@ export class InvoiceService {
       throw new Error('Client not found');
     }
 
-    // Check if invoice number already exists
-    const invoiceExists = databaseService.exists('invoices', 'invoice_number', invoiceData.invoice_number);
-    if (invoiceExists) {
-      throw new Error('Invoice number already exists');
+    // Auto-generate invoice number if not provided
+    let invoiceNumber = invoiceData.invoice_number;
+    if (!invoiceNumber) {
+      invoiceNumber = await invoiceNumberService.generateInvoiceNumber();
+    } else {
+      // Check if provided invoice number already exists
+      const invoiceExists = databaseService.exists('invoices', 'invoice_number', invoiceNumber);
+      if (invoiceExists) {
+        throw new Error('Invoice number already exists');
+      }
     }
 
     // Get next invoice ID
@@ -255,7 +262,7 @@ export class InvoiceService {
     const now = new Date().toISOString();
     const invoiceRecord = {
       id: nextId,
-      invoice_number: invoiceData.invoice_number,
+      invoice_number: invoiceNumber,
       client_id: invoiceData.client_id,
       template_id: invoiceData.template_id || null,
       amount: invoiceData.amount,

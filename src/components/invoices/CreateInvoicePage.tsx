@@ -6,7 +6,7 @@ import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { generateTemporaryInvoiceNumber, generateInvoiceNumber } from '@/utils/invoiceNumbering';
+// Remove client-side invoice numbering - now handled by server
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
@@ -131,7 +131,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
             setLineItems(items);
           }
         } else {
-          const tempNumber = await generateTemporaryInvoiceNumber();
+          const tempNumber = await invoiceService.generateTemporaryInvoiceNumber();
           setInvoiceData(prev => ({
             ...prev,
             invoice_number: tempNumber
@@ -250,7 +250,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         toast.success('Invoice updated successfully');
       } else {
         // Generate a proper invoice number when creating new invoices
-        const generatedNumber = await generateInvoiceNumber();
+        const generatedNumber = await invoiceService.generateInvoiceNumber();
         const finalInvoicePayload = {
           ...invoicePayload,
           invoice_number: generatedNumber
@@ -312,7 +312,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         invoiceId = editingInvoice.id;
       } else {
         // Generate a proper invoice number when creating new invoices
-        const generatedNumber = await generateInvoiceNumber();
+        const generatedNumber = await invoiceService.generateInvoiceNumber();
         const finalInvoicePayload = {
           ...invoicePayload,
           invoice_number: generatedNumber

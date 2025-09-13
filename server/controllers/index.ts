@@ -48,7 +48,9 @@ export {
   getOverdueInvoices,
   getInvoicesByClientId,
   getRecentInvoices,
-  checkInvoiceNumberExists
+  checkInvoiceNumberExists,
+  generateInvoiceNumber,
+  previewNextInvoiceNumber
 } from './invoiceController.js';
 
 // Expense controller

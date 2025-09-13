@@ -1,16 +1,16 @@
 
-import { 
-  ClientImportData, 
-  ClientValidationResult, 
-  ExpenseImportData, 
-  ExpenseValidationResult 
+import {
+  ClientImportData,
+  ClientValidationResult,
+  ExpenseImportData,
+  ExpenseValidationResult,
+  PaymentImportData,
+  PaymentValidationResult
 } from '@/types';
 import { PaymentMethod, PaymentStatus } from '@/types';
 
-// CSV utility types
-interface CSVRecord {
-  [key: string]: string | number | boolean | null | undefined;
-}
+// CSV types moved to @/types/shared/import.types.ts
+import type { CSVRecord } from '@/types';
 
 export const exportToCSV = (data: CSVRecord[], filename: string) => {
   if (data.length === 0) return;
@@ -137,20 +137,7 @@ export const validateExpenseData = (data: CSVRecord): ExpenseValidationResult =>
   };
 };
 
-export interface PaymentImportData {
-  date: string;
-  client_name: string;
-  amount: number;
-  method: PaymentMethod;
-  reference?: string;
-  description?: string;
-  status: PaymentStatus;
-}
-
-export interface PaymentValidationResult {
-  isValid: boolean;
-  errors: string[];
-}
+// Payment import types (imported at top)
 
 export const validatePaymentData = (data: CSVRecord): PaymentValidationResult => {
   const errors: string[] = [];

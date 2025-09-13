@@ -12,6 +12,14 @@ export interface RequestConfig {
   retries?: number;
 }
 
+// API utility options interface
+export interface ApiOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  skipAuth?: boolean;
+}
+
 // State management types for async operations
 export type LoadingStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 

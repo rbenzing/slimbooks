@@ -4,6 +4,8 @@
 import type { IDatabase } from '../../types/database.types.js';
 import { up as migration001 } from './001_add_deleted_at_to_clients.js';
 import { up as migration002 } from './002_add_category_to_settings.js';
+import { up as migration003 } from './003_separate_template_tables.js';
+import { up as migration004 } from './004_fix_expenses_table_schema.js';
 
 interface Migration {
   id: string;
@@ -24,6 +26,16 @@ const migrations: Migration[] = [
     id: '002',
     name: 'add_category_to_settings',
     up: migration002
+  },
+  {
+    id: '003',
+    name: 'separate_template_tables',
+    up: migration003
+  },
+  {
+    id: '004',
+    name: 'fix_expenses_table_schema',
+    up: migration004
   }
 ];
 

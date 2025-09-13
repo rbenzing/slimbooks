@@ -804,6 +804,75 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
       };
     }
   }
+
+  // ===== INVOICE NUMBER FUNCTIONALITY =====
+
+  /**
+   * Generates a new invoice number from the server
+   */
+  async generateInvoiceNumber(): Promise<string> {
+    try {
+      const response = await fetch('/api/invoices/generate-number', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to generate invoice number');
+      }
+
+      return result.data.invoice_number;
+    } catch (error) {
+      console.error('Error generating invoice number:', error);
+      throw new Error('Failed to generate invoice number from server');
+    }
+  }
+
+  /**
+   * Previews the next invoice number without incrementing the counter
+   */
+  async previewNextInvoiceNumber(): Promise<string> {
+    try {
+      const response = await fetch('/api/invoices/preview-number', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to preview invoice number');
+      }
+
+      return result.data.invoice_number;
+    } catch (error) {
+      console.error('Error previewing invoice number:', error);
+      throw new Error('Failed to preview invoice number from server');
+    }
+  }
+
+  /**
+   * Generates a temporary invoice number for display (uses preview)
+   */
+  async generateTemporaryInvoiceNumber(): Promise<string> {
+    return this.previewNextInvoiceNumber();
+  }
 }
 
 // Export singleton instance

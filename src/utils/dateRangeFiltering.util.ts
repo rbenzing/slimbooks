@@ -1,10 +1,4 @@
-import { TimePeriod, DateRange } from '@/types';
-
-export interface DateRangeFilterOption {
-  value: TimePeriod;
-  label: string;
-  getDateRange: () => DateRange;
-}
+import { TimePeriod, DateRange, DateRangeFilterOption } from '@/types';
 
 // Get start and end of day for proper date range comparison
 const getStartOfDay = (date: Date): Date => {

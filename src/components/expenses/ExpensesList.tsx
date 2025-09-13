@@ -54,8 +54,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
-  const handleDelete = (id: number, merchant: string) => {
-    if (window.confirm(`Are you sure you want to delete the expense from ${merchant}?`)) {
+  const handleDelete = (id: number, vendor?: string) => {
+    if (window.confirm(`Are you sure you want to delete the expense from ${vendor || 'Unknown vendor'}?`)) {
       onDeleteExpense(id);
     }
   };
@@ -180,7 +180,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 Date
               </th>
               <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Merchant
+                Vendor
               </th>
               <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Category
@@ -189,7 +189,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 Amount
               </th>
               <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Status
+                Type
               </th>
               <th className="text-left py-3 px-6 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Receipt
@@ -215,7 +215,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 </td>
                 <td className="py-4 px-6">
                   <div>
-                    <div className="text-sm font-medium text-foreground">{expense.merchant}</div>
+                    <div className="text-sm font-medium text-foreground">{expense.vendor || 'Unknown'}</div>
                     {expense.description && (
                       <div className="text-sm text-muted-foreground truncate max-w-xs">
                         {expense.description}
@@ -230,8 +230,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                   <FormattedCurrency amount={expense.amount} />
                 </td>
                 <td className="py-4 px-6">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(expense.status)}`}>
-                    {expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : 'Draft'}
+                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                    {expense.is_billable ? 'Billable' : 'Non-billable'}
                   </span>
                 </td>
                 <td className="py-4 px-6">
@@ -260,7 +260,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(expense.id, expense.merchant)}
+                      onClick={() => handleDelete(expense.id, expense.vendor)}
                       className="p-1 text-muted-foreground hover:text-red-600"
                       title="Delete expense"
                     >

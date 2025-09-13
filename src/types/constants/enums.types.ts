@@ -102,3 +102,81 @@ export const LanguageCode = {
 } as const;
 
 export type LanguageCode = typeof LanguageCode[keyof typeof LanguageCode];
+
+// Date and time formatting defaults and options
+export const DEFAULT_DATE_TIME_SETTINGS = {
+  dateFormat: 'MM/DD/YYYY',
+  timeFormat: '12-hour'
+} as const;
+
+export const DATE_FORMAT_OPTIONS = [
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (12/31/2024)' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (31/12/2024)' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2024-12-31)' },
+  { value: 'MMM DD, YYYY', label: 'MMM DD, YYYY (Dec 31, 2024)' },
+  { value: 'DD MMM YYYY', label: 'DD MMM YYYY (31 Dec 2024)' },
+  { value: 'MMMM DD, YYYY', label: 'MMMM DD, YYYY (December 31, 2024)' }
+] as const;
+
+export const TIME_FORMAT_OPTIONS = [
+  { value: '12-hour', label: '12-hour (2:30 PM)' },
+  { value: '24-hour', label: '24-hour (14:30)' }
+] as const;
+
+// Pagination defaults and options
+export const DEFAULT_PAGINATION_SETTINGS: {
+  defaultItemsPerPage: number;
+  availablePageSizes: number[];
+  maxItemsPerPage: number;
+  showItemsPerPageSelector: boolean;
+  showPageNumbers: boolean;
+  maxPageNumbers: number;
+} = {
+  defaultItemsPerPage: 25,
+  availablePageSizes: [10, 25, 50, 100],
+  maxItemsPerPage: 500,
+  showItemsPerPageSelector: true,
+  showPageNumbers: true,
+  maxPageNumbers: 5
+};
+
+export const DEFAULT_ITEMS_PER_PAGE_OPTIONS = [
+  { value: 10, label: '10 items' },
+  { value: 25, label: '25 items' },
+  { value: 50, label: '50 items' },
+  { value: 100, label: '100 items' }
+] as const;
+
+export const MAX_ITEMS_PER_PAGE_OPTIONS = [
+  { value: 100, label: '100 items' },
+  { value: 250, label: '250 items' },
+  { value: 500, label: '500 items' },
+  { value: 1000, label: '1000 items' }
+] as const;
+
+export const AVAILABLE_PAGE_SIZES_OPTIONS = [
+  { value: [5, 10, 25], label: 'Small (5, 10, 25)' },
+  { value: [10, 25, 50], label: 'Medium (10, 25, 50)' },
+  { value: [10, 25, 50, 100], label: 'Standard (10, 25, 50, 100)' },
+  { value: [25, 50, 100, 250], label: 'Large (25, 50, 100, 250)' }
+] as const;
+
+export const MAX_PAGE_NUMBERS_OPTIONS = [
+  { value: 3, label: '3 pages' },
+  { value: 5, label: '5 pages' },
+  { value: 7, label: '7 pages' },
+  { value: 10, label: '10 pages' }
+] as const;
+
+// Invoice numbering defaults and options
+export const DEFAULT_INVOICE_NUMBER_SETTINGS = {
+  prefix: 'INV'
+} as const;
+
+export const SUGGESTED_INVOICE_PREFIXES = [
+  'INV',
+  'INVOICE',
+  'BILL',
+  'REC',
+  'RECEIPT'
+] as const;

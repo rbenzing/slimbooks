@@ -10,10 +10,10 @@ import {
   Report,
   ImportResult,
   ValidationError,
-  ApiResponse,
   ProjectSettings
 } from '@/types';
-import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/utils/projectSettingsValidation';
+import type { ApiResponse } from '@/types/shared/common.types';
+import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/utils/settingsValidation';
 class SQLiteService {
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -385,8 +385,8 @@ class SQLiteService {
 
   // ===== INVOICE API METHODS =====
   async getInvoices(): Promise<(Invoice & { client_name: string })[]> {
-    const result = await this.apiCall<{ invoices?: (Invoice & { client_name: string })[] }>('/invoices');
-    return result.data?.invoices || [];
+    const result = await this.apiCall<{ data?: { invoices?: (Invoice & { client_name: string })[] } }>('/invoices');
+    return result.data?.data?.invoices || [];
   }
 
   async getInvoiceById(id: number): Promise<(Invoice & { client_name: string }) | null> {
@@ -419,8 +419,8 @@ class SQLiteService {
   // ===== EXPENSE API METHODS =====
   async getExpenses(startDate?: string, endDate?: string): Promise<Expense[]> {
     const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
-    const result = await this.apiCall<{ expenses?: Expense[] }>('/expenses', 'GET', params);
-    return result.data?.expenses || [];
+    const result = await this.apiCall<{ data?: Expense[]; total?: number; page?: number; limit?: number }>('/expenses', 'GET', params);
+    return result.data?.data || [];
   }
 
   async getExpenseById(id: number): Promise<Expense | null> {
@@ -473,8 +473,8 @@ class SQLiteService {
   // ===== PAYMENT API METHODS =====
   async getPayments(startDate?: string, endDate?: string): Promise<Payment[]> {
     const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
-    const result = await this.apiCall<{ payments?: Payment[] }>('/payments', 'GET', params);
-    return result.data?.payments || [];
+    const result = await this.apiCall<{ data?: { payments?: Payment[] } }>('/payments', 'GET', params);
+    return result.data?.data?.payments || [];
   }
 
   async createPayment(paymentData: PaymentFormData): Promise<Payment> {
@@ -505,13 +505,13 @@ class SQLiteService {
 
   // ===== TEMPLATE API METHODS =====
   async getTemplates(): Promise<(InvoiceTemplate & { client_name: string })[]> {
-    const result = await this.apiCall<(InvoiceTemplate & { client_name: string })[]>('/templates');
+    const result = await this.apiCall<(InvoiceTemplate & { client_name: string })[]>('/recurring-templates');
     return result.data || [];
   }
 
   async getTemplateById(id: number): Promise<(InvoiceTemplate & { client_name: string }) | null> {
     try {
-      const result = await this.apiCall<InvoiceTemplate & { client_name: string }>(`/templates/${id}`);
+      const result = await this.apiCall<InvoiceTemplate & { client_name: string }>(`/recurring-templates/${id}`);
       return result.data || null;
     } catch (error) {
       if (error.message.includes('Template not found')) {
@@ -522,17 +522,17 @@ class SQLiteService {
   }
 
   async createTemplate(templateData: Omit<InvoiceTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<{ lastInsertRowid: number }> {
-    const result = await this.apiCall<unknown, { lastInsertRowid: number }>('/templates', 'POST', { templateData });
+    const result = await this.apiCall<unknown, { lastInsertRowid: number }>('/recurring-templates', 'POST', { templateData });
     return result.result || { lastInsertRowid: 0 };
   }
 
   async updateTemplate(id: number, templateData: Partial<InvoiceTemplate>): Promise<{ changes: number }> {
-    const result = await this.apiCall<unknown, { changes: number }>(`/templates/${id}`, 'PUT', { templateData });
+    const result = await this.apiCall<unknown, { changes: number }>(`/recurring-templates/${id}`, 'PUT', { templateData });
     return result.result || { changes: 0 };
   }
 
   async deleteTemplate(id: number): Promise<{ changes: number }> {
-    const result = await this.apiCall<unknown, { changes: number }>(`/templates/${id}`, 'DELETE');
+    const result = await this.apiCall<unknown, { changes: number }>(`/recurring-templates/${id}`, 'DELETE');
     return result.result || { changes: 0 };
   }
 

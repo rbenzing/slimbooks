@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { exportToCSV, parseCSV, validatePaymentData, PaymentImportData, PaymentValidationResult } from '@/utils/csvUtils';
+import { exportToCSV, parseCSV, validatePaymentData } from '@/utils/csvUtils';
+import { PaymentImportData, PaymentValidationResult } from '@/types';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { PaymentMethod, PaymentStatus, Payment } from '@/types';

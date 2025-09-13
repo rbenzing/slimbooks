@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_number TEXT NOT NULL UNIQUE CHECK (length(trim(invoice_number)) >= 3 AND length(invoice_number) <= 50),
     client_id INTEGER NOT NULL,
-    template_id INTEGER,
+    design_template_id INTEGER,
+    recurring_template_id INTEGER,
     amount REAL NOT NULL CHECK (amount >= 0),
     tax_amount REAL NOT NULL DEFAULT 0 CHECK (tax_amount >= 0),
     total_amount REAL NOT NULL CHECK (total_amount >= 0),
@@ -78,13 +79,27 @@ CREATE TABLE IF NOT EXISTS invoices (
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     
     FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE RESTRICT,
-    FOREIGN KEY (template_id) REFERENCES templates (id) ON DELETE SET NULL
+    FOREIGN KEY (design_template_id) REFERENCES invoice_design_templates (id) ON DELETE SET NULL,
+    FOREIGN KEY (recurring_template_id) REFERENCES recurring_invoice_templates (id) ON DELETE SET NULL
 );
 
 -- =====================================================
--- TEMPLATES TABLE - Invoice templates
+-- INVOICE DESIGN TEMPLATES TABLE - Invoice layout/design templates
 -- =====================================================
-CREATE TABLE IF NOT EXISTS templates (
+CREATE TABLE IF NOT EXISTS invoice_design_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL CHECK (length(trim(name)) >= 2 AND length(name) <= 100),
+    content TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0, 1)),
+    variables TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- =====================================================
+-- RECURRING INVOICE TEMPLATES TABLE - Recurring invoice business templates
+-- =====================================================
+CREATE TABLE IF NOT EXISTS recurring_invoice_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL CHECK (length(trim(name)) >= 2 AND length(name) <= 100),
     client_id INTEGER NOT NULL,
@@ -111,15 +126,21 @@ CREATE TABLE IF NOT EXISTS templates (
 -- =====================================================
 CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT NOT NULL,
-    merchant TEXT NOT NULL DEFAULT 'Unknown Merchant' CHECK (length(trim(merchant)) >= 1 AND length(merchant) <= 100),
-    category TEXT NOT NULL CHECK (length(trim(category)) >= 2 AND length(category) <= 50),
+    description TEXT NOT NULL,
     amount REAL NOT NULL CHECK (amount > 0),
-    description TEXT,
+    currency TEXT DEFAULT 'USD',
+    category TEXT,
+    date TEXT NOT NULL,
+    vendor TEXT,
+    notes TEXT,
     receipt_url TEXT CHECK (receipt_url IS NULL OR (receipt_url LIKE 'http%' AND length(receipt_url) <= 500)),
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'reimbursed')),
+    is_billable INTEGER DEFAULT 0 CHECK (is_billable IN (0, 1)),
+    client_id INTEGER,
+    project TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    
+    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
 );
 
 -- =====================================================
@@ -219,8 +240,9 @@ CREATE INDEX IF NOT EXISTS idx_templates_frequency ON templates(frequency);
 -- Expenses table indexes
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
-CREATE INDEX IF NOT EXISTS idx_expenses_merchant ON expenses(merchant);
-CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status);
+CREATE INDEX IF NOT EXISTS idx_expenses_vendor ON expenses(vendor);
+CREATE INDEX IF NOT EXISTS idx_expenses_client_id ON expenses(client_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_is_billable ON expenses(is_billable);
 CREATE INDEX IF NOT EXISTS idx_expenses_amount ON expenses(amount);
 CREATE INDEX IF NOT EXISTS idx_expenses_date_category ON expenses(date, category);
 

@@ -13,7 +13,9 @@ import {
   getInvoiceStats,
   updateInvoiceStatus,
   markInvoiceAsSent,
-  getOverdueInvoices
+  getOverdueInvoices,
+  generateInvoiceNumber,
+  previewNextInvoiceNumber
 } from '../controllers/index.js';
 import {
   requireAuth,
@@ -88,5 +90,11 @@ router.post('/:id/public-token',
   requireAuth,
   generatePublicInvoiceToken
 );
+
+// Generate next invoice number
+router.post('/generate-number', generateInvoiceNumber);
+
+// Preview next invoice number (without incrementing counter)
+router.get('/preview-number', previewNextInvoiceNumber);
 
 export default router;

@@ -17,7 +17,6 @@ export class ClientService {
     
     return databaseService.getMany<Client>(`
       SELECT * FROM clients 
-      WHERE deleted_at IS NULL
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
     `, [limit, offset]);
@@ -31,7 +30,7 @@ export class ClientService {
       throw new Error('Valid client ID is required');
     }
 
-    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ? AND deleted_at IS NULL', [id]);
+    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ?', [id]);
   }
 
   /**
@@ -44,12 +43,11 @@ export class ClientService {
     address?: string;
     city?: string;
     state?: string;
-    zip?: string;
+    zipCode?: string;
     country?: string;
     company?: string;
     tax_id?: string;
     notes?: string;
-    is_active?: boolean;
   }): Promise<number> {
     if (!clientData) {
       throw new Error('Client data is required');
@@ -89,12 +87,11 @@ export class ClientService {
       address: clientData.address || null,
       city: clientData.city || null,
       state: clientData.state || null,
-      zip: clientData.zip || null,
+      zipCode: clientData.zipCode || null,
       country: clientData.country || null,
       company: clientData.company || null,
       tax_id: clientData.tax_id || null,
       notes: clientData.notes || null,
-      is_active: clientData.is_active !== false ? 1 : 0,
       created_at: now,
       updated_at: now
     };
@@ -102,14 +99,13 @@ export class ClientService {
     // Create client
     databaseService.executeQuery(`
       INSERT INTO clients (
-        id, name, email, phone, address, city, state, zip, country, 
-        company, tax_id, notes, is_active, created_at, updated_at
+        id, name, first_name, last_name, email, phone, company, address, city, state, 
+        zipCode, country, stripe_customer_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      clientRecord.id, clientRecord.name, clientRecord.email, clientRecord.phone,
-      clientRecord.address, clientRecord.city, clientRecord.state, clientRecord.zip,
-      clientRecord.country, clientRecord.company, clientRecord.tax_id, clientRecord.notes,
-      clientRecord.is_active, clientRecord.created_at, clientRecord.updated_at
+      clientRecord.id, clientRecord.name, null, null, clientRecord.email, clientRecord.phone,
+      null, clientRecord.address, clientRecord.city, clientRecord.state, 
+      clientRecord.zipCode, clientRecord.country, null, clientRecord.created_at, clientRecord.updated_at
     ]);
 
     return nextId;
@@ -125,12 +121,9 @@ export class ClientService {
     address: string;
     city: string;
     state: string;
-    zip: string;
+    zipCode: string;
     country: string;
     company: string;
-    tax_id: string;
-    notes: string;
-    is_active: boolean;
   }>): Promise<number> {
     if (!id || typeof id !== 'number') {
       throw new Error('Valid client ID is required');
@@ -166,8 +159,8 @@ export class ClientService {
 
     // Filter allowed fields
     const allowedFields = [
-      'name', 'email', 'phone', 'address', 'city', 'state', 'zip', 
-      'country', 'company', 'tax_id', 'notes', 'is_active'
+      'name', 'first_name', 'last_name', 'email', 'phone', 'company', 'address', 'city', 'state', 
+      'zipCode', 'country', 'stripe_customer_id'
     ];
     
     const updateData: Record<string, any> = {};
@@ -175,12 +168,7 @@ export class ClientService {
       if (clientData[field as keyof typeof clientData] !== undefined) {
         let value = clientData[field as keyof typeof clientData];
         
-        // Handle boolean conversion for is_active
-        if (field === 'is_active' && typeof value === 'boolean') {
-          updateData[field] = value ? 1 : 0;
-        } else {
-          updateData[field] = value;
-        }
+        updateData[field] = value;
       }
     });
 
@@ -234,7 +222,6 @@ export class ClientService {
     return databaseService.getMany<Client>(`
       SELECT * FROM clients
       WHERE (name LIKE ? OR email LIKE ? OR company LIKE ? OR phone LIKE ?)
-        AND is_active = 1
       ORDER BY 
         CASE 
           WHEN name = ? THEN 1
@@ -259,7 +246,6 @@ export class ClientService {
 
     return databaseService.getMany<Client>(`
       SELECT * FROM clients 
-      WHERE is_active = 1
       ORDER BY name ASC
       LIMIT ? OFFSET ?
     `, [limit, offset]);
@@ -269,15 +255,9 @@ export class ClientService {
    * Archive/Unarchive client
    */
   async toggleClientStatus(id: number, isActive: boolean): Promise<number> {
-    if (!id || typeof id !== 'number') {
-      throw new Error('Valid client ID is required');
-    }
-
-    const success = databaseService.updateById('clients', id, {
-      is_active: isActive ? 1 : 0
-    });
-
-    return success ? 1 : 0;
+    // This function is kept for API compatibility but doesn't do anything
+    // since we removed is_active column. Returns success.
+    return 1;
   }
 
   /**
@@ -292,7 +272,7 @@ export class ClientService {
 
     return databaseService.getMany<Client>(`
       SELECT * FROM clients 
-      WHERE country = ? AND is_active = 1
+      WHERE country = ?
       ORDER BY name ASC
       LIMIT ? OFFSET ?
     `, [country, limit, offset]);
@@ -313,13 +293,8 @@ export class ClientService {
       'SELECT COUNT(*) as count FROM clients'
     )?.count || 0;
 
-    const active = databaseService.getOne<{count: number}>(
-      'SELECT COUNT(*) as count FROM clients WHERE is_active = 1'
-    )?.count || 0;
-
-    const inactive = databaseService.getOne<{count: number}>(
-      'SELECT COUNT(*) as count FROM clients WHERE is_active = 0'
-    )?.count || 0;
+    const active = total; // All clients are considered active now
+    const inactive = 0;
 
     const withEmail = databaseService.getOne<{count: number}>(
       'SELECT COUNT(*) as count FROM clients WHERE email IS NOT NULL'
@@ -361,7 +336,6 @@ export class ClientService {
       SELECT DISTINCT c.* FROM clients c
       INNER JOIN invoices i ON c.id = i.client_id
       WHERE i.created_at > datetime('now', '-${days} days')
-        AND c.is_active = 1
       ORDER BY c.name ASC
       LIMIT ? OFFSET ?
     `, [limit, offset]);

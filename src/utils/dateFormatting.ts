@@ -1,31 +1,13 @@
 // Date and time formatting utilities that respect user settings
+import type { DateTimeSettings } from '@/types';
+import { 
+  DEFAULT_DATE_TIME_SETTINGS, 
+  DATE_FORMAT_OPTIONS, 
+  TIME_FORMAT_OPTIONS 
+} from '@/types';
 
-export interface DateTimeSettings {
-  dateFormat: string;
-  timeFormat: string;
-}
-
-// Default date and time formats
-export const DEFAULT_DATE_TIME_SETTINGS: DateTimeSettings = {
-  dateFormat: 'MM/DD/YYYY',
-  timeFormat: '12-hour'
-};
-
-// Available date format options
-export const DATE_FORMAT_OPTIONS = [
-  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (12/31/2024)' },
-  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (31/12/2024)' },
-  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2024-12-31)' },
-  { value: 'MMM DD, YYYY', label: 'MMM DD, YYYY (Dec 31, 2024)' },
-  { value: 'DD MMM YYYY', label: 'DD MMM YYYY (31 Dec 2024)' },
-  { value: 'MMMM DD, YYYY', label: 'MMMM DD, YYYY (December 31, 2024)' }
-];
-
-// Available time format options
-export const TIME_FORMAT_OPTIONS = [
-  { value: '12-hour', label: '12-hour (2:30 PM)' },
-  { value: '24-hour', label: '24-hour (14:30)' }
-];
+// Re-export constants for backward compatibility
+export { DEFAULT_DATE_TIME_SETTINGS, DATE_FORMAT_OPTIONS, TIME_FORMAT_OPTIONS };
 
 // Get current date/time settings from SQLite (synchronous version)
 export const getDateTimeSettings = async (): Promise<DateTimeSettings> => {

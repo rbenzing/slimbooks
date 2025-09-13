@@ -2,7 +2,7 @@
 // Handles cron endpoints for recurring invoices and other scheduled operations
 
 import { Request, Response } from 'express';
-import { processRecurringInvoices } from '../utils/recurringProcessor.js';
+import { recurringInvoiceProcessorService } from '../services/RecurringInvoiceProcessorService.js';
 import { asyncHandler } from '../middleware/index.js';
 
 /**
@@ -12,7 +12,7 @@ interface RecurringProcessResult {
   success: boolean;
   processed?: number;
   message?: string;
-  error?: string;
+  errors?: string[];
 }
 
 /**
@@ -23,21 +23,24 @@ export const processRecurringInvoicesCron = asyncHandler(async (req: Request, re
   console.log('Cron job triggered: Processing recurring invoices');
   
   try {
-    const result: RecurringProcessResult = await processRecurringInvoices();
+    const result = await recurringInvoiceProcessorService.processAllDueTemplates();
     
-    if (result.success) {
+    const success = result.errors.length === 0 || result.created > 0;
+    
+    if (success) {
       res.json({
         success: true,
         data: {
-          processed: result.processed || 0,
+          processed: result.created,
+          errors: result.errors,
           timestamp: new Date().toISOString()
         },
-        message: result.message || 'Recurring invoices processed successfully'
+        message: `Processed ${result.created} recurring invoices${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`
       });
     } else {
       res.status(500).json({
         success: false,
-        error: result.error || 'Unknown error occurred',
+        error: `Failed to process recurring invoices: ${result.errors.join('; ')}`,
         timestamp: new Date().toISOString()
       });
     }
@@ -106,16 +109,17 @@ export const triggerRecurringInvoices = asyncHandler(async (req: Request, res: R
   console.log('Manual trigger: Processing recurring invoices');
   
   try {
-    const result: RecurringProcessResult = await processRecurringInvoices();
+    const result = await recurringInvoiceProcessorService.processAllDueTemplates();
     
     res.json({
       success: true,
       data: {
-        processed: result.processed || 0,
+        processed: result.created,
+        errors: result.errors,
         timestamp: new Date().toISOString(),
         triggeredBy: 'manual'
       },
-      message: result.message || 'Recurring invoices processing triggered manually'
+      message: `Manually triggered: ${result.created} invoices created${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`
     });
   } catch (error) {
     const errorMessage = (error as Error).message;

@@ -64,3 +64,32 @@ export type URLString = Brand<string, 'URL'>;
 export type EmailString = Brand<string, 'Email'>;
 export type PhoneString = Brand<string, 'Phone'>;
 export type FileSize = Brand<number, 'FileSize'>;
+
+// Invoice numbering types
+export interface InvoiceNumberSettings {
+  prefix: string;
+}
+
+// Date and time formatting types
+export interface DateTimeSettings {
+  dateFormat: string;
+  timeFormat: string;
+}
+
+// Pagination settings
+export interface PaginationSettings {
+  defaultItemsPerPage: number;
+  availablePageSizes: number[];
+  maxItemsPerPage: number;
+  showItemsPerPageSelector: boolean;
+  showPageNumbers: boolean;
+  maxPageNumbers: number;
+}
+
+// Date range filtering
+export interface DateRangeFilterOption {
+  value: string; // TimePeriod type
+  label: string;
+  getDateRange: () => { start: Date; end: Date };
+}
+

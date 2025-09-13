@@ -36,9 +36,9 @@ import {
   MAX_ITEMS_PER_PAGE_OPTIONS,
   AVAILABLE_PAGE_SIZES_OPTIONS,
   MAX_PAGE_NUMBERS_OPTIONS,
-  validatePaginationSettings,
   type PaginationSettings
 } from '@/utils/paginationSettings';
+import { validatePaginationSettings } from '@/utils/settingsValidation';
 
 export const GeneralSettingsTab = () => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });

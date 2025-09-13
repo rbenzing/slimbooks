@@ -3,6 +3,7 @@
 
 import { Request, Response } from 'express';
 import { invoiceService } from '../services/InvoiceService.js';
+import { invoiceNumberService } from '../services/InvoiceNumberService.js';
 import {
   AppError,
   NotFoundError,
@@ -416,4 +417,38 @@ export const checkInvoiceNumberExists = asyncHandler(async (req: Request, res: R
 
   const exists = await invoiceService.invoiceNumberExists(invoice_number, excludeId);
   res.json({ success: true, data: { exists } });
+});
+
+/**
+ * Generate next invoice number
+ */
+export const generateInvoiceNumber = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  try {
+    const invoiceNumber = await invoiceNumberService.generateInvoiceNumber();
+
+    res.json({
+      success: true,
+      data: { invoice_number: invoiceNumber }
+    });
+  } catch (error) {
+    console.error('Error generating invoice number:', error);
+    throw new ValidationError('Failed to generate invoice number');
+  }
+});
+
+/**
+ * Preview next invoice number (without incrementing counter)
+ */
+export const previewNextInvoiceNumber = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  try {
+    const invoiceNumber = await invoiceNumberService.getNextInvoiceNumber();
+
+    res.json({
+      success: true,
+      data: { invoice_number: invoiceNumber }
+    });
+  } catch (error) {
+    console.error('Error previewing invoice number:', error);
+    throw new ValidationError('Failed to preview invoice number');
+  }
 });

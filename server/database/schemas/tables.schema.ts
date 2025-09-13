@@ -64,7 +64,8 @@ const invoicesSchema: TableSchema = {
     { name: 'id', type: 'INTEGER', constraints: ['PRIMARY KEY AUTOINCREMENT'] },
     { name: 'invoice_number', type: 'TEXT', constraints: ['UNIQUE NOT NULL'] },
     { name: 'client_id', type: 'INTEGER', constraints: ['NOT NULL'] },
-    { name: 'template_id', type: 'INTEGER' },
+    { name: 'design_template_id', type: 'INTEGER' },
+    { name: 'recurring_template_id', type: 'INTEGER' },
     { name: 'amount', type: 'REAL', constraints: ['NOT NULL DEFAULT 0'] },
     { name: 'tax_amount', type: 'REAL', constraints: ['DEFAULT 0'] },
     { name: 'total_amount', type: 'REAL', constraints: ['NOT NULL DEFAULT 0'] },
@@ -83,7 +84,8 @@ const invoicesSchema: TableSchema = {
   ],
   constraints: [
     'FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE',
-    'FOREIGN KEY (template_id) REFERENCES templates (id) ON DELETE SET NULL'
+    'FOREIGN KEY (design_template_id) REFERENCES invoice_design_templates (id) ON DELETE SET NULL',
+    'FOREIGN KEY (recurring_template_id) REFERENCES recurring_invoice_templates (id) ON DELETE SET NULL'
   ]
 };
 
@@ -146,10 +148,12 @@ const expensesSchema: TableSchema = {
     { name: 'currency', type: 'TEXT', constraints: ['DEFAULT \'USD\''] },
     { name: 'category', type: 'TEXT' },
     { name: 'date', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'vendor', type: 'TEXT' },
+    { name: 'notes', type: 'TEXT' },
     { name: 'receipt_url', type: 'TEXT' },
     { name: 'is_billable', type: 'INTEGER', constraints: ['DEFAULT 0'] },
     { name: 'client_id', type: 'INTEGER' },
-    { name: 'notes', type: 'TEXT' },
+    { name: 'project', type: 'TEXT' },
     { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] },
     { name: 'updated_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
   ],
@@ -159,10 +163,10 @@ const expensesSchema: TableSchema = {
 };
 
 /**
- * Invoice templates table
+ * Invoice design templates table - for invoice layout/design templates
  */
-const templatesSchema: TableSchema = {
-  name: 'templates',
+const invoiceDesignTemplatesSchema: TableSchema = {
+  name: 'invoice_design_templates',
   columns: [
     { name: 'id', type: 'INTEGER', constraints: ['PRIMARY KEY AUTOINCREMENT'] },
     { name: 'name', type: 'TEXT', constraints: ['NOT NULL'] },
@@ -171,6 +175,35 @@ const templatesSchema: TableSchema = {
     { name: 'variables', type: 'TEXT' },
     { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] },
     { name: 'updated_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
+  ]
+};
+
+/**
+ * Recurring invoice templates table - for scheduled/recurring invoices
+ */
+const recurringInvoiceTemplatesSchema: TableSchema = {
+  name: 'recurring_invoice_templates',
+  columns: [
+    { name: 'id', type: 'INTEGER', constraints: ['PRIMARY KEY AUTOINCREMENT'] },
+    { name: 'name', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'client_id', type: 'INTEGER', constraints: ['NOT NULL'] },
+    { name: 'amount', type: 'REAL', constraints: ['NOT NULL'] },
+    { name: 'description', type: 'TEXT' },
+    { name: 'frequency', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'payment_terms', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'next_invoice_date', type: 'TEXT', constraints: ['NOT NULL'] },
+    { name: 'is_active', type: 'INTEGER', constraints: ['DEFAULT 1'] },
+    { name: 'line_items', type: 'TEXT' },
+    { name: 'tax_amount', type: 'REAL', constraints: ['DEFAULT 0'] },
+    { name: 'tax_rate_id', type: 'TEXT' },
+    { name: 'shipping_amount', type: 'REAL', constraints: ['DEFAULT 0'] },
+    { name: 'shipping_rate_id', type: 'TEXT' },
+    { name: 'notes', type: 'TEXT' },
+    { name: 'created_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] },
+    { name: 'updated_at', type: 'TEXT', constraints: ['NOT NULL DEFAULT (datetime(\'now\'))'] }
+  ],
+  constraints: [
+    'FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE'
   ]
 };
 
@@ -240,7 +273,8 @@ const countersSchema: TableSchema = {
 export const tableSchemas: TableSchema[] = [
   usersSchema,
   clientsSchema,
-  templatesSchema, // Create templates before invoices due to FK
+  invoiceDesignTemplatesSchema, // Create design templates before invoices due to FK
+  recurringInvoiceTemplatesSchema, // Create recurring templates
   invoicesSchema,
   invoiceItemsSchema,
   paymentsSchema,

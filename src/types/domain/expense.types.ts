@@ -5,24 +5,32 @@ export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'reimbursed';
 export interface Expense {
   id: number;
   date: string;
-  merchant: string;
-  category: string;
+  vendor?: string;
+  category?: string;
   amount: number;
   description?: string;
   receipt_url?: string;
-  status: ExpenseStatus;
+  notes?: string;
+  currency?: string;
+  is_billable?: boolean;
+  client_id?: number;
+  project?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface ExpenseFormData {
   date: string;
-  merchant: string;
-  category: string;
+  vendor?: string;
+  category?: string;
   amount: number;
   description?: string;
   receipt_url?: string;
-  status: ExpenseStatus;
+  notes?: string;
+  currency?: string;
+  is_billable?: boolean;
+  client_id?: number;
+  project?: string;
 }
 
 // For expense statistics and reports

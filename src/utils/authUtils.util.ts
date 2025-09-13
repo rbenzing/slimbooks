@@ -18,32 +18,14 @@ const REFRESH_TOKEN_EXPIRY = securityConfig.REFRESH_TOKEN_EXPIRY;
 const EMAIL_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const PASSWORD_RESET_EXPIRY = 60 * 60 * 1000; // 1 hour in milliseconds
 
-// Base interface for all JWT tokens
-interface BaseJWTPayload {
-  userId: number;
-  email: string;
-  iat: number;
-  exp: number;
-}
-
-// Access/Refresh tokens with role information
-export interface JWTPayload extends BaseJWTPayload {
-  role: string;
-  type: 'access' | 'refresh';
-}
-
-// Email verification tokens
-interface EmailVerificationPayload extends BaseJWTPayload {
-  type: 'email_verification';
-}
-
-// Password reset tokens
-interface PasswordResetPayload extends BaseJWTPayload {
-  type: 'password_reset';
-}
-
-// Union type for all possible JWT payloads
-type AnyJWTPayload = JWTPayload | EmailVerificationPayload | PasswordResetPayload;
+// JWT types moved to @/types/domain/auth.types.ts
+import type { 
+  BaseJWTPayload, 
+  JWTPayload, 
+  EmailVerificationPayload, 
+  PasswordResetPayload, 
+  AnyJWTPayload 
+} from '@/types';
 
 export class AuthUtils {
   // Password hashing

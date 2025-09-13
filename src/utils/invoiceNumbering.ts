@@ -2,15 +2,11 @@
 
 import { invoiceOperations } from '@/lib/database';
 import { sqliteService } from '@/services/sqlite.svc';
+import type { InvoiceNumberSettings } from '@/types';
+import { DEFAULT_INVOICE_NUMBER_SETTINGS, SUGGESTED_INVOICE_PREFIXES } from '@/types';
 
-export interface InvoiceNumberSettings {
-  prefix: string;
-}
-
-// Default invoice number settings
-export const DEFAULT_INVOICE_NUMBER_SETTINGS: InvoiceNumberSettings = {
-  prefix: 'INV'
-};
+// Re-export constants for backward compatibility
+export { DEFAULT_INVOICE_NUMBER_SETTINGS };
 
 // Get current invoice number settings from SQLite
 export const getInvoiceNumberSettings = async (): Promise<InvoiceNumberSettings> => {
@@ -40,47 +36,10 @@ export const saveInvoiceNumberSettings = async (settings: InvoiceNumberSettings)
   }
 };
 
-// Generate a new invoice number using the current settings
-export const generateInvoiceNumber = async (): Promise<string> => {
-  const settings = await getInvoiceNumberSettings();
-  const existingInvoices = await invoiceOperations.getAll();
+// NOTE: Invoice number generation is now handled by the server
+// Client-side generation functions have been removed to prevent duplicate numbering
 
-  // Find the highest number for the current prefix
-  let maxNumber = 0;
-  const prefixPattern = new RegExp(`^${settings.prefix}-?(\\d+)$`, 'i');
-
-  existingInvoices.forEach(invoice => {
-    if (invoice.invoice_number) {
-      const match = invoice.invoice_number.match(prefixPattern);
-      if (match) {
-        const number = parseInt(match[1], 10);
-        if (number > maxNumber) {
-          maxNumber = number;
-        }
-      }
-    }
-  });
-
-  // Generate the next number
-  const nextNumber = maxNumber + 1;
-  return `${settings.prefix}-${String(nextNumber).padStart(4, '0')}`;
-};
-
-// Generate a temporary invoice number for new invoices (before saving)
-export const generateTemporaryInvoiceNumber = async (): Promise<string> => {
-  const settings = await getInvoiceNumberSettings();
-  return `${settings.prefix}-${Date.now()}`;
-};
-
-// Validate an invoice number format
-export const validateInvoiceNumber = (invoiceNumber: string): boolean => {
-  if (!invoiceNumber || invoiceNumber.trim() === '') {
-    return false;
-  }
-  
-  // Allow any format, but it should not be empty
-  return invoiceNumber.trim().length > 0;
-};
+// Note: Invoice number validation is now handled by settingsValidation.ts
 
 // Check if an invoice number already exists
 export const isInvoiceNumberUnique = async (invoiceNumber: string, excludeId?: number): Promise<boolean> => {
@@ -98,11 +57,5 @@ export const getInvoiceNumberPreview = (prefix: string): string => {
 
 // Get suggested prefixes
 export const getSuggestedPrefixes = (): string[] => {
-  return [
-    'INV',
-    'INVOICE',
-    'BILL',
-    'REC',
-    'RECEIPT'
-  ];
+  return [...SUGGESTED_INVOICE_PREFIXES];
 };

@@ -25,7 +25,7 @@ export const TemplatesTab = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await authenticatedFetch('/api/templates');
+      const response = await authenticatedFetch('/api/recurring-templates');
       if (response.ok) {
         const data = await response.json();
         setTemplates(data.data || []);

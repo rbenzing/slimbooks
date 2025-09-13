@@ -1,19 +1,8 @@
 // Enhanced API utility functions with authentication and token management
 import { TokenManagerService } from '@/services/tokenManager.svc';
 
-interface ApiOptions {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: unknown;
-  skipAuth?: boolean;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
+// API types moved to @/types/shared/api.types.ts
+import type { ApiOptions, ApiResponse } from '@/types';
 
 // Legacy function - get auth token from storage
 export const getAuthToken = (): string | null => {

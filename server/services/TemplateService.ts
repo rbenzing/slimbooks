@@ -28,7 +28,7 @@ interface TemplateData {
 
 /**
  * Template Service
- * Manages invoice templates
+ * Manages invoice design templates (layout/design templates)
  */
 export class TemplateService {
   /**
@@ -36,7 +36,7 @@ export class TemplateService {
    */
   async getAllTemplates(): Promise<Template[]> {
     return databaseService.getMany<Template>(
-      'SELECT * FROM templates ORDER BY name ASC'
+      'SELECT * FROM invoice_design_templates ORDER BY name ASC'
     );
   }
 
@@ -49,7 +49,7 @@ export class TemplateService {
     }
 
     return databaseService.getOne<Template>(
-      'SELECT * FROM templates WHERE id = ?',
+      'SELECT * FROM invoice_design_templates WHERE id = ?',
       [id]
     );
   }
@@ -69,12 +69,12 @@ export class TemplateService {
     // If this is set as default, make sure no other template is default
     if (templateData.is_default) {
       databaseService.executeQuery(
-        'UPDATE templates SET is_default = 0 WHERE is_default = 1'
+        'UPDATE invoice_design_templates SET is_default = 0 WHERE is_default = 1'
       );
     }
 
     const result = databaseService.executeQuery(
-      'INSERT INTO templates (name, content, is_default, variables, created_at, updated_at) VALUES (?, ?, ?, ?, datetime("now"), datetime("now"))',
+      'INSERT INTO invoice_design_templates (name, content, is_default, variables, created_at, updated_at) VALUES (?, ?, ?, ?, DATETIME(\'now\'), DATETIME(\'now\')),',
       [
         templateData.name,
         templateData.content,
@@ -107,7 +107,7 @@ export class TemplateService {
     // If this is set as default, make sure no other template is default
     if (templateData.is_default) {
       databaseService.executeQuery(
-        'UPDATE templates SET is_default = 0 WHERE is_default = 1 AND id != ?',
+        'UPDATE invoice_design_templates SET is_default = 0 WHERE is_default = 1 AND id != ?',
         [id]
       );
     }
@@ -135,11 +135,11 @@ export class TemplateService {
       values.push(templateData.variables);
     }
 
-    updates.push('updated_at = datetime("now")');
+    updates.push('updated_at = DATETIME(\'now\')');
     values.push(id);
 
     const result = databaseService.executeQuery(
-      `UPDATE templates SET ${updates.join(', ')} WHERE id = ?`,
+      `UPDATE invoice_design_templates SET ${updates.join(', ')} WHERE id = ?`,
       values
     );
 
@@ -156,7 +156,7 @@ export class TemplateService {
 
     // Check if template is in use by any invoices
     const inUse = databaseService.getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM invoices WHERE template_id = ?',
+      'SELECT COUNT(*) as count FROM invoices WHERE design_template_id = ?',
       [id]
     );
 
@@ -165,7 +165,7 @@ export class TemplateService {
     }
 
     const result = databaseService.executeQuery(
-      'DELETE FROM templates WHERE id = ?',
+      'DELETE FROM invoice_design_templates WHERE id = ?',
       [id]
     );
 
@@ -177,7 +177,7 @@ export class TemplateService {
    */
   async getDefaultTemplate(): Promise<Template | null> {
     return databaseService.getOne<Template>(
-      'SELECT * FROM templates WHERE is_default = 1 LIMIT 1'
+      'SELECT * FROM invoice_design_templates WHERE is_default = 1 LIMIT 1'
     );
   }
 
@@ -198,12 +198,12 @@ export class TemplateService {
     const operations = () => {
       // Remove default from all templates
       databaseService.executeQuery(
-        'UPDATE templates SET is_default = 0 WHERE is_default = 1'
+        'UPDATE invoice_design_templates SET is_default = 0 WHERE is_default = 1'
       );
 
       // Set new default
       databaseService.executeQuery(
-        'UPDATE templates SET is_default = 1, updated_at = datetime("now") WHERE id = ?',
+        'UPDATE invoice_design_templates SET is_default = 1, updated_at = DATETIME(\'now\') WHERE id = ?',
         [id]
       );
     };
