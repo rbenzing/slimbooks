@@ -3,7 +3,6 @@ import { X, Calendar, DollarSign, FileText, Tag, Receipt, Clock } from 'lucide-r
 import { getStatusColor, themeClasses } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { Expense } from '@/types';
 import { ExpenseViewModalProps } from '@/types/components/expense.types';
 
 export const ExpenseViewModal: React.FC<ExpenseViewModalProps> = ({ expense, isOpen, onClose }) => {

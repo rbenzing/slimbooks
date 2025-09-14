@@ -7,15 +7,14 @@ import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
 import { themeClasses } from '@/utils/themeUtils.util';
-// Remove client-side invoice numbering - now handled by server
-import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
+import { validateInvoiceForSave, validateInvoiceForSend, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
 import { EmailConfigStatus } from '@/types';
 import { EmailStatus } from '@/types/domain/invoice.types';
 import { toast } from 'sonner';
-import { InvoiceType } from '@/types';
+import { InvoiceType, InvoiceStatus } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate } from '@/types';
 
@@ -199,17 +198,38 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
   // Validation for save button
   const isValidForSave = () => {
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+    const invoiceItems = lineItems.map(item => ({
+      id: parseInt(item.id) || undefined,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.rate,
+      total: item.amount
+    }));
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems);
     return validation.isValid;
   };
 
   const isValidForSend = () => {
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
+    const invoiceItems = lineItems.map(item => ({
+      id: parseInt(item.id) || undefined,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.rate,
+      total: item.amount
+    }));
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems);
     return validation.canSend;
   };
 
   const getActionAvailability = () => {
-    return getAvailableInvoiceActions(invoiceData, selectedClient, lineItems);
+    const invoiceItems = lineItems.map(item => ({
+      id: parseInt(item.id) || undefined,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.rate,
+      total: item.amount
+    }));
+    return getAvailableInvoiceActions(invoiceData, selectedClient, invoiceItems);
   };
 
   const handleBackClick = () => {
@@ -235,6 +255,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time' as InvoiceType,
+        status: invoiceData.status as InvoiceStatus,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -304,7 +325,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         shipping_amount: shippingAmount,
         shipping_rate_id: selectedShippingRate?.id || null,
         notes: thankYouMessage,
-        status: 'sent',
+        status: 'sent' as InvoiceStatus,
         email_status: 'sent' as EmailStatus
       };
 
@@ -321,7 +342,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           invoice_number: generatedNumber
         };
         const result = await invoiceOperations.create(finalInvoicePayload);
-        invoiceId = result.id;
+        invoiceId = result.lastInsertRowid;
       }
 
       // Update email status to sending
@@ -363,7 +384,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
     // First save the invoice if it hasn't been saved yet
     if (!editingInvoice?.id) {
-      await handleSaveInvoice();
+      await handleSave();
     }
 
     if (editingInvoice?.id) {

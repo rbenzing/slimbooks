@@ -5,8 +5,8 @@ import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
-import { FieldMapping, ImportExportProps, ExpenseImportData, PreviewDataItem, EXPENSE_FIELDS } from '@/types/shared/import.types';
-import { EXPENSE_CATEGORIES, EXPENSE_STATUSES } from '@/types/constants/enums.types';
+import { FieldMapping, ImportExportProps, EXPENSE_FIELDS } from '@/types/shared/import.types';
+import { EXPENSE_STATUSES } from '@/types/constants/enums.types';
 
 export const ExpenseImportExport: React.FC<ImportExportProps> = ({ onClose, onImportComplete }) => {
   const [mode, setMode] = useState<'select' | 'import' | 'export'>('select');

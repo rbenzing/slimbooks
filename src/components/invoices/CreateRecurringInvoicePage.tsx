@@ -112,7 +112,9 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         // Load client
         if (template.client_id) {
           try {
-            const client = await clientOperations.getById(template.client_id);
+            const response = await authenticatedFetch(`/api/clients/${template.client_id}`);
+            const clientData = await response.json();
+            const client = clientData.data;
             setSelectedClient(client);
           } catch (error) {
             console.error('Error loading client:', error);
@@ -257,11 +259,12 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     const templatePayload = {
       name: templateData.name,
       client_id: selectedClient.id,
-      frequency: templateData.frequency,
+      frequency: templateData.frequency as 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
       amount: total,
       description: lineItems.map(item => item.description).join(', '),
       payment_terms: templateData.payment_terms,
       next_invoice_date: templateData.next_invoice_date,
+      is_active: 1, // SQLite uses INTEGER for boolean (1 = true, 0 = false)
       line_items: JSON.stringify(lineItems),
       tax_amount: taxAmount,
       tax_rate_id: selectedTaxRate?.id || null,

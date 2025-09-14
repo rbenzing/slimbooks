@@ -182,12 +182,26 @@ export const EditInvoicePage = () => {
 
   // Validation functions
   const isValidForSave = () => {
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, mapInvoiceItemsToLineItems(lineItems));
+    const invoiceItems = lineItems.map(item => ({
+      id: item.id,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total: item.total
+    }));
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems);
     return validation.isValid;
   };
 
   const isValidForSend = () => {
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, mapInvoiceItemsToLineItems(lineItems));
+    const invoiceItems = lineItems.map(item => ({
+      id: item.id,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total: item.total
+    }));
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems);
     return validation.canSend;
   };
 
