@@ -46,11 +46,6 @@ export const initDatabase = async () => {
 
 // Client operations
 export const clientOperations = {
-  getAll: async (): Promise<Client[]> => {
-    console.warn('⚠️  DEPRECATED: clientOperations.getAll() bypasses authentication. Use authenticatedFetch("/api/clients") instead.');
-    await ensureInitialized();
-    return await sqliteService.getClients();
-  },
 
   getById: async (id: number): Promise<Client | undefined> => {
     await ensureInitialized();

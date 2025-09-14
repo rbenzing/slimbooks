@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { clientOperations, invoiceOperations, templateOperations } from '@/lib/database';
+import { invoiceOperations, templateOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
@@ -57,7 +58,9 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     const loadData = async () => {
       setLoading(true);
       try {
-        const allClients = await clientOperations.getAll();
+        const response = await authenticatedFetch('/api/clients');
+        const clientsData = await response.json();
+        const allClients = clientsData.data;
         setClients(allClients);
 
         // Load template data if editing (from URL parameter)

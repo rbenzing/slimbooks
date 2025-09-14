@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Plus, X, Send, Printer } from 'lucide-react';
-import { invoiceOperations, clientOperations } from '@/lib/database';
+import { invoiceOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
@@ -91,7 +92,9 @@ export const EditInvoicePage = () => {
             setThankYouMessage(invoiceRecord.notes || 'Thank you for your business!');
 
             // Load all clients first
-            const allClients = await clientOperations.getAll();
+            const response = await authenticatedFetch('/api/clients');
+            const clientsData = await response.json();
+            const allClients = clientsData.data;
             setClients(allClients);
 
             // Find and set the client

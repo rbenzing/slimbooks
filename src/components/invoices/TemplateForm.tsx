@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { clientOperations } from '@/lib/database';
+import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 
 interface TemplateFormProps {
@@ -27,7 +27,9 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onS
     const loadClients = async () => {
       if (isOpen) {
         try {
-          const allClients = await clientOperations.getAll();
+          const response = await authenticatedFetch('/api/clients');
+          const clientsData = await response.json();
+          const allClients = clientsData.data;
           setClients(allClients);
         } catch (error) {
           console.error('Error loading clients:', error);
