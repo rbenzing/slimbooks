@@ -166,7 +166,7 @@ export class ClientService {
     const updateData: Record<string, any> = {};
     allowedFields.forEach(field => {
       if (clientData[field as keyof typeof clientData] !== undefined) {
-        let value = clientData[field as keyof typeof clientData];
+        const value = clientData[field as keyof typeof clientData];
         
         updateData[field] = value;
       }

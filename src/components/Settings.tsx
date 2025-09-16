@@ -16,11 +16,28 @@ import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
 
+// Standard interface that all settings tabs should implement
+export interface SettingsTabRef {
+  saveSettings: () => Promise<void>;
+  hasUnsavedChanges?: () => boolean;
+}
+
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
+
+  // Refs for all settings tabs
+  const companySettingsRef = useRef<SettingsTabRef>(null);
+  const generalSettingsRef = useRef<SettingsTabRef>(null);
+  const taxSettingsRef = useRef<SettingsTabRef>(null);
+  const shippingSettingsRef = useRef<SettingsTabRef>(null);
+  const emailSettingsRef = useRef<SettingsTabRef>(null);
+  const stripeSettingsRef = useRef<SettingsTabRef>(null);
+  const notificationSettingsRef = useRef<SettingsTabRef>(null);
+  const appearanceSettingsRef = useRef<SettingsTabRef>(null);
   const projectSettingsRef = useRef<ProjectSettingsRef>(null);
+
   const { settings: projectSettings } = useProjectSettings();
 
   useEffect(() => {
@@ -45,43 +62,53 @@ export const Settings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // Handle specific tab saving
-      if (activeTab === 'project' && projectSettingsRef.current) {
-        await projectSettingsRef.current.saveSettings();
-      } else if (activeTab === 'company') {
-        // For company settings, trigger a manual save by dispatching a custom event
-        const companyEvent = new CustomEvent('saveCompanySettings');
-        window.dispatchEvent(companyEvent);
-        toast.success('Settings saved successfully');
-      } else if (activeTab === 'email') {
-        // For email settings, trigger a manual save by dispatching a custom event
-        const emailEvent = new CustomEvent('saveEmailSettings');
-        window.dispatchEvent(emailEvent);
-        toast.success('Settings saved successfully');
-      } else if (activeTab === 'general') {
-        // For general settings, trigger a manual save by dispatching a custom event
-        const generalEvent = new CustomEvent('saveGeneralSettings');
-        window.dispatchEvent(generalEvent);
-        toast.success('Settings saved successfully');
-      } else if (activeTab === 'appearance') {
-        // For appearance settings, trigger a manual save by dispatching a custom event
-        const appearanceEvent = new CustomEvent('saveAppearanceSettings');
-        window.dispatchEvent(appearanceEvent);
-        toast.success('Settings saved successfully');
-      } else if (activeTab === 'notifications') {
-        // For notification settings, trigger a manual save by dispatching a custom event
-        const notificationEvent = new CustomEvent('saveNotificationSettings');
-        window.dispatchEvent(notificationEvent);
+      // Get the appropriate settings ref based on active tab
+      let settingsRef: SettingsTabRef | ProjectSettingsRef | null = null;
+
+      switch (activeTab) {
+        case 'company':
+          settingsRef = companySettingsRef.current;
+          break;
+        case 'general':
+          settingsRef = generalSettingsRef.current;
+          break;
+        case 'tax':
+          settingsRef = taxSettingsRef.current;
+          break;
+        case 'shipping':
+          settingsRef = shippingSettingsRef.current;
+          break;
+        case 'email':
+          settingsRef = emailSettingsRef.current;
+          break;
+        case 'stripe':
+          settingsRef = stripeSettingsRef.current;
+          break;
+        case 'notifications':
+          settingsRef = notificationSettingsRef.current;
+          break;
+        case 'appearance':
+          settingsRef = appearanceSettingsRef.current;
+          break;
+        case 'project':
+          settingsRef = projectSettingsRef.current;
+          break;
+        default:
+          // For backup and other tabs that don't have save functionality
+          toast.info('This tab does not have saveable settings');
+          return;
+      }
+
+      if (settingsRef && settingsRef.saveSettings) {
+        await settingsRef.saveSettings();
         toast.success('Settings saved successfully');
       } else {
-        // For other tabs, the individual settings components handle their own saving
-        // This is just a unified save action that triggers success feedback
-        await new Promise(resolve => setTimeout(resolve, 500));
-        toast.success('Settings saved successfully');
+        console.warn(`No save method available for ${activeTab} tab`);
+        toast.error('Save method not available for this tab');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(`Failed to save settings: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -143,14 +170,14 @@ export const Settings = () => {
 
         {/* Content */}
         <div className="space-y-6">
-          {activeTab === 'company' && <CompanySettings />}
-          {activeTab === 'general' && <GeneralSettingsTab />}
-          {activeTab === 'tax' && <TaxSettings />}
-          {activeTab === 'shipping' && <ShippingSettings />}
-          {activeTab === 'email' && <EmailSettings />}
-          {activeTab === 'stripe' && projectSettings?.stripe?.enabled && <StripeSettingsTab />}
-          {activeTab === 'notifications' && <NotificationSettingsTab />}
-          {activeTab === 'appearance' && <AppearanceSettingsTab />}
+          {activeTab === 'company' && <CompanySettings ref={companySettingsRef} />}
+          {activeTab === 'general' && <GeneralSettingsTab ref={generalSettingsRef} />}
+          {activeTab === 'tax' && <TaxSettings ref={taxSettingsRef} />}
+          {activeTab === 'shipping' && <ShippingSettings ref={shippingSettingsRef} />}
+          {activeTab === 'email' && <EmailSettings ref={emailSettingsRef} />}
+          {activeTab === 'stripe' && projectSettings?.stripe?.enabled && <StripeSettingsTab ref={stripeSettingsRef} />}
+          {activeTab === 'notifications' && <NotificationSettingsTab ref={notificationSettingsRef} />}
+          {activeTab === 'appearance' && <AppearanceSettingsTab ref={appearanceSettingsRef} />}
           {activeTab === 'project' && <ProjectSettingsTab ref={projectSettingsRef} />}
           {activeTab === 'backup' && <DatabaseBackupSection />}
         </div>

@@ -196,7 +196,7 @@ export const createInvoice = asyncHandler(async (req: Request<object, object, { 
 /**
  * Update invoice
  */
-export const updateInvoice = asyncHandler(async (req: Request<{ id: string }, {}, { invoiceData: Partial<InvoiceRequest> }>, res: Response): Promise<void> => {
+export const updateInvoice = asyncHandler(async (req: Request<{ id: string }, Record<string, unknown>, { invoiceData: Partial<InvoiceRequest> }>, res: Response): Promise<void> => {
   const { id } = req.params;
   const { invoiceData } = req.body;
   const invoiceId = parseInt(id, 10);
@@ -280,7 +280,7 @@ export const getInvoiceStats = asyncHandler(async (req: Request, res: Response):
 /**
  * Update invoice status
  */
-export const updateInvoiceStatus = asyncHandler(async (req: Request<{ id: string }, {}, { status: InvoiceStatus }>, res: Response): Promise<void> => {
+export const updateInvoiceStatus = asyncHandler(async (req: Request<{ id: string }, Record<string, unknown>, { status: InvoiceStatus }>, res: Response): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
   const invoiceId = parseInt(id, 10);
@@ -315,7 +315,7 @@ export const updateInvoiceStatus = asyncHandler(async (req: Request<{ id: string
 /**
  * Mark invoice as sent
  */
-export const markInvoiceAsSent = asyncHandler(async (req: Request<{ id: string }, {}, { email_sent_at?: string }>, res: Response): Promise<void> => {
+export const markInvoiceAsSent = asyncHandler(async (req: Request<{ id: string }, Record<string, unknown>, { email_sent_at?: string }>, res: Response): Promise<void> => {
   const { id } = req.params;
   const { email_sent_at } = req.body;
   const invoiceId = parseInt(id, 10);

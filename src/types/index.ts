@@ -52,7 +52,6 @@ export {
 // === Shared Common Types ===
 // Common types that may be used across multiple domains
 export * from './shared/common.types';
-export * from './shared/ui.types';
 
 // === Type Guards and Utilities ===
 // Common type guard functions for runtime type checking

@@ -2,6 +2,11 @@
 // Handles application settings and project configuration endpoints
 
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname, resolve, extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs/promises';
 import {
   getAllSettings,
   getSettingByKey,
@@ -11,6 +16,49 @@ import {
 import { requireAuth, requireAdmin } from '../middleware/index.js';
 
 const router: Router = Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Configure multer for image uploads
+const imageStorage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = resolve(__dirname, '../../uploads/logos');
+    try {
+      await fs.mkdir(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error as Error, uploadDir);
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `logo-${uuidv4()}${extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+const uploadImage = multer({
+  storage: imageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml'
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images are allowed.'));
+    }
+  }
+});
 
 // Public settings (no auth required)
 
@@ -54,7 +102,7 @@ router.get('/company', async (_req: Request, res: Response): Promise<void> => {
       res.json({
         success: true,
         value: {
-          companyName: 'ClientBill Pro',
+          companyName: '',
           ownerName: '',
           address: '',
           city: '',
@@ -67,6 +115,114 @@ router.get('/company', async (_req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Upload company logo (requires auth but not admin)
+router.post('/company/logo', requireAuth, uploadImage.single('logo'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No file uploaded' });
+      return;
+    }
+
+    const { settingsService } = await import('../services/SettingsService.js');
+    const logoPath = `/uploads/logos/${req.file.filename}`;
+
+    // Get existing company settings
+    const existingSettings = await settingsService.getSettingByKey('company.company_settings') || {
+      companyName: '',
+      ownerName: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      email: '',
+      phone: '',
+      brandingImage: ''
+    };
+
+    // Delete old logo file if it exists
+    if (existingSettings.brandingImage && existingSettings.brandingImage.startsWith('/uploads/logos/')) {
+      const oldFilename = existingSettings.brandingImage.split('/').pop();
+      if (oldFilename && oldFilename.startsWith('logo-')) {
+        const oldFilePath = resolve(__dirname, '../../uploads/logos', oldFilename);
+        try {
+          await fs.unlink(oldFilePath);
+        } catch (deleteError) {
+          console.warn('Could not delete old logo file:', deleteError);
+        }
+      }
+    }
+
+    // Update company settings with new logo path
+    const updatedSettings = {
+      ...existingSettings,
+      brandingImage: logoPath
+    };
+
+    await settingsService.saveSetting('company_settings', updatedSettings, 'company');
+
+    res.json({
+      success: true,
+      logoPath,
+      settings: updatedSettings,
+      message: 'Logo uploaded and company settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Logo upload error:', error);
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Delete company logo (requires auth but not admin)
+router.delete('/company/logo', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { settingsService } = await import('../services/SettingsService.js');
+
+    // Get existing company settings
+    const existingSettings = await settingsService.getSettingByKey('company.company_settings') || {
+      companyName: '',
+      ownerName: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      email: '',
+      phone: '',
+      brandingImage: ''
+    };
+
+    // Delete logo file if it exists
+    if (existingSettings.brandingImage && existingSettings.brandingImage.startsWith('/uploads/logos/')) {
+      const filename = existingSettings.brandingImage.split('/').pop();
+      if (filename && filename.startsWith('logo-')) {
+        const filePath = resolve(__dirname, '../../uploads/logos', filename);
+        try {
+          await fs.unlink(filePath);
+        } catch (deleteError) {
+          console.warn('Could not delete logo file:', deleteError);
+          // Don't fail if file doesn't exist
+        }
+      }
+    }
+
+    // Update company settings to remove logo path
+    const updatedSettings = {
+      ...existingSettings,
+      brandingImage: ''
+    };
+
+    await settingsService.saveSetting('company_settings', updatedSettings, 'company');
+
+    res.json({
+      success: true,
+      settings: updatedSettings,
+      message: 'Logo deleted and company settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Logo delete error:', error);
     res.status(500).json({ success: false, error: (error as Error).message });
   }
 });

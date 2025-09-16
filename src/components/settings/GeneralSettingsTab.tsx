@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { toast } from 'sonner';
 import { Calendar, Clock, FileText, DollarSign, List } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import {
@@ -8,15 +9,13 @@ import {
   DATE_FORMAT_OPTIONS,
   TIME_FORMAT_OPTIONS,
   getDateFormatPreview,
-  getTimeFormatPreview,
-  type DateTimeSettings
+  getTimeFormatPreview
 } from '@/utils/dateFormatting';
 import {
   getInvoiceNumberSettings,
   saveInvoiceNumberSettings,
   getInvoiceNumberPreview,
-  getSuggestedPrefixes,
-  type InvoiceNumberSettings
+  getSuggestedPrefixes
 } from '@/utils/invoiceNumbering';
 import {
   getCurrencySettings,
@@ -26,8 +25,7 @@ import {
   DECIMAL_PLACES_OPTIONS,
   THOUSANDS_SEPARATOR_OPTIONS,
   DECIMAL_SEPARATOR_OPTIONS,
-  getCurrencyFormatPreview,
-  type CurrencySettings
+  getCurrencyFormatPreview
 } from '@/utils/currencyFormatting';
 import {
   getPaginationSettingsAsync,
@@ -35,12 +33,13 @@ import {
   DEFAULT_ITEMS_PER_PAGE_OPTIONS,
   MAX_ITEMS_PER_PAGE_OPTIONS,
   AVAILABLE_PAGE_SIZES_OPTIONS,
-  MAX_PAGE_NUMBERS_OPTIONS,
-  type PaginationSettings
+  MAX_PAGE_NUMBERS_OPTIONS
 } from '@/utils/paginationSettings';
 import { validatePaginationSettings } from '@/utils/settingsValidation';
+import type { DateTimeSettings, InvoiceNumberSettings, PaginationSettings, CurrencySettings } from '@/types';
+import type { SettingsTabRef } from '../Settings';
 
-export const GeneralSettingsTab = () => {
+export const GeneralSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
   const [dateTimeSettings, setDateTimeSettings] = useState<DateTimeSettings>({ dateFormat: 'MM/DD/YYYY', timeFormat: '12-hour' });
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceNumberSettings>({ prefix: 'INV' });
   const [currencySettings, setCurrencySettings] = useState<CurrencySettings>({
@@ -75,12 +74,22 @@ export const GeneralSettingsTab = () => {
         try {
           const allSettings = await sqliteService.getAllSettings('general');
 
-          // Load settings from bulk response
-          if (allSettings && allSettings.default_timezone) setTimeZone(allSettings.default_timezone);
-          if (allSettings && allSettings.currency_format_settings) setCurrencySettings(allSettings.currency_format_settings);
-          if (allSettings && allSettings.date_time_settings) setDateTimeSettings(allSettings.date_time_settings);
-          if (allSettings && allSettings.invoice_number_settings) setInvoiceSettings(allSettings.invoice_number_settings);
-          if (allSettings && allSettings.pagination_settings) setPaginationSettings(allSettings.pagination_settings);
+          // Load settings from bulk response with proper type checking
+          if (allSettings && typeof allSettings.default_timezone === 'string') {
+            setTimeZone(allSettings.default_timezone);
+          }
+          if (allSettings && allSettings.currency_format_settings && typeof allSettings.currency_format_settings === 'object') {
+            setCurrencySettings(allSettings.currency_format_settings as CurrencySettings);
+          }
+          if (allSettings && allSettings.date_time_settings && typeof allSettings.date_time_settings === 'object') {
+            setDateTimeSettings(allSettings.date_time_settings as DateTimeSettings);
+          }
+          if (allSettings && allSettings.invoice_number_settings && typeof allSettings.invoice_number_settings === 'object') {
+            setInvoiceSettings(allSettings.invoice_number_settings as InvoiceNumberSettings);
+          }
+          if (allSettings && allSettings.pagination_settings && typeof allSettings.pagination_settings === 'object') {
+            setPaginationSettings(allSettings.pagination_settings as PaginationSettings);
+          }
         } catch (bulkError) {
           console.warn('Bulk settings API failed, falling back to individual calls:', bulkError);
 
@@ -91,7 +100,9 @@ export const GeneralSettingsTab = () => {
           const savedCurrencySettings = await getCurrencySettings();
           const savedPaginationSettings = await getPaginationSettingsAsync();
 
-          if (savedTimeZone) setTimeZone(savedTimeZone);
+          if (savedTimeZone && typeof savedTimeZone === 'string') {
+            setTimeZone(savedTimeZone);
+          }
           setInvoiceSettings(savedInvoiceSettings);
           setDateTimeSettings(savedDateTimeSettings);
           setCurrencySettings(savedCurrencySettings);
@@ -110,6 +121,8 @@ export const GeneralSettingsTab = () => {
 
   // Manual save function for Save button
   const saveSettings = async () => {
+    if (!isLoaded) return;
+
     try {
       // Use bulk save for better efficiency
       const settingsToSave = {
@@ -137,23 +150,26 @@ export const GeneralSettingsTab = () => {
       if (!result.success) {
         throw new Error(result.error || 'Failed to save general settings');
       }
+
+      toast.success('General settings saved successfully');
     } catch (error) {
       console.error('Error saving general settings:', error);
+      toast.error(`Failed to save general settings: ${error.message}`);
       throw error;
     }
   };
 
-  // Listen for save events from the main Settings component
-  useEffect(() => {
-    const handleSaveEvent = async () => {
-      await saveSettings();
-    };
-
-    window.addEventListener('saveGeneralSettings', handleSaveEvent);
-    return () => {
-      window.removeEventListener('saveGeneralSettings', handleSaveEvent);
-    };
-  }, [dateTimeSettings, invoiceSettings, currencySettings, paginationSettings, timeZone]);
+  // Expose saveSettings method to parent component
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      try {
+        await saveSettings();
+      } catch (error) {
+        console.error('Error saving general settings:', error);
+        throw error;
+      }
+    }
+  }), [dateTimeSettings, invoiceSettings, currencySettings, paginationSettings, timeZone]);
 
 
   const handleDateFormatChange = (format: string) => {
@@ -502,4 +518,6 @@ export const GeneralSettingsTab = () => {
       </div>
     </div>
   );
-};
+});
+
+GeneralSettingsTab.displayName = 'GeneralSettingsTab';

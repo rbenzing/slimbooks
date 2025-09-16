@@ -28,7 +28,7 @@ export interface User extends BaseEntity {
 }
 
 // Public user interface without sensitive fields
-export interface UserPublic extends Omit<User, 'password_hash' | 'two_factor_secret' | 'backup_codes'> {}
+export type UserPublic = Omit<User, 'password_hash' | 'two_factor_secret' | 'backup_codes'>;
 
 export interface AuthSession {
   id: number;

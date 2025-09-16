@@ -97,6 +97,10 @@ export const createApp = async () => {
     });
   });
 
+  // Serve static files from uploads directory
+  const uploadsPath = join(__dirname, 'uploads');
+  app.use('/uploads', express.static(uploadsPath));
+
   // Serve static files from dist directory (built frontend)
   const distPath = join(__dirname, '..', 'dist');
   app.use(express.static(distPath));

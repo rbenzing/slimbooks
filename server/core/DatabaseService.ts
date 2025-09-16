@@ -19,36 +19,36 @@ export class DatabaseService {
   /**
    * Execute a query with parameters
    */
-  public executeQuery(query: string, params: any[] = []) {
+  public executeQuery(query: string, params: unknown[] = []) {
     return this.database.executeQuery(query, params);
   }
 
   /**
    * Get single record with prepared statement
    */
-  public getOne<T = any>(query: string, params: any[] = []): T | null {
+  public getOne<T = Record<string, unknown>>(query: string, params: unknown[] = []): T | null {
     return this.database.getOne<T>(query, params);
   }
 
   /**
    * Get multiple records with prepared statement
    */
-  public getMany<T = any>(query: string, params: any[] = []): T[] {
+  public getMany<T = Record<string, unknown>>(query: string, params: unknown[] = []): T[] {
     return this.database.getMany<T>(query, params);
   }
 
   /**
    * Get records with pagination and filtering
    */
-  public getPaginated<T = any>(
-    query: string, 
-    params: any[] = [], 
+  public getPaginated<T = Record<string, unknown>>(
+    query: string,
+    params: unknown[] = [],
     options: ServiceOptions = {}
   ) {
     const { limit = 50, offset = 0, page, sort, filters, includeDeleted = false } = options;
-    
+
     let finalQuery = query;
-    let finalParams = [...params];
+    const finalParams = [...params];
     
     // Add soft delete filter if not explicitly including deleted records
     if (!includeDeleted && !query.toLowerCase().includes('where')) {
@@ -118,7 +118,7 @@ export class DatabaseService {
   /**
    * Update a record with automatic timestamp
    */
-  public updateRecord(table: string, id: number, data: Record<string, any>): boolean {
+  public updateRecord(table: string, id: number, data: Record<string, unknown>): boolean {
     const keys = Object.keys(data);
     const values = Object.values(data);
     
@@ -142,7 +142,7 @@ export class DatabaseService {
   /**
    * Insert a record with automatic timestamps
    */
-  public insertRecord(table: string, data: Record<string, any>): number {
+  public insertRecord(table: string, data: Record<string, unknown>): number {
     const keys = Object.keys(data);
     const values = Object.values(data);
     
@@ -199,7 +199,7 @@ export class DatabaseService {
   /**
    * Update a record by ID (legacy method for compatibility)
    */
-  public updateById(table: string, id: number, data: Record<string, any>): boolean {
+  public updateById(table: string, id: number, data: Record<string, unknown>): boolean {
     return this.updateRecord(table, id, data);
   }
 
@@ -220,7 +220,7 @@ export class DatabaseService {
   /**
    * Check if a record exists with specific criteria
    */
-  public exists(table: string, column: string, value: any): boolean {
+  public exists(table: string, column: string, value: unknown): boolean {
     const result = this.getOne(`SELECT 1 FROM ${table} WHERE ${column} = ?`, [value]);
     return result !== null;
   }

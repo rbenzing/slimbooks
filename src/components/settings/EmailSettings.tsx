@@ -1,124 +1,51 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Mail, TestTube, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { sqliteService } from '@/services/sqlite.svc';
+import { useState, forwardRef, useImperativeHandle } from 'react';
+import { Mail, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { EmailService } from '@/services/email.svc';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { toast } from 'sonner';
-import { EmailSettings as EmailSettingsType, isEmailSettings } from '@/types';
+import { useEmailSettings } from '@/hooks/useSettings.hook';
+import type { SettingsTabRef } from '../Settings';
 
-export const EmailSettings = () => {
-  const [settings, setSettings] = useState<EmailSettingsType>({
-    smtpHost: '',
-    smtpPort: 587,
-    smtpUsername: '',
-    smtpPassword: '',
-    smtpSecure: 'tls',
-    fromEmail: '',
-    fromName: '',
-    replyToEmail: '',
-    isEnabled: false
-  });
+export const EmailSettings = forwardRef<SettingsTabRef>((props, ref) => {
+  const {
+    settings,
+    setSettings,
+    saveSettings,
+    isLoading,
+    isSaving,
+    isLoaded,
+    error
+  } = useEmailSettings();
 
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'success' | 'error'>('unknown');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  // Listen for save events from the main Settings component
-  useEffect(() => {
-    const handleSaveEvent = async () => {
-      await saveSettings();
-    };
-
-    window.addEventListener('saveEmailSettings', handleSaveEvent);
-    return () => {
-      window.removeEventListener('saveEmailSettings', handleSaveEvent);
-    };
-  }, [settings]);
-
-  const loadSettings = async () => {
-    try {
-      if (!sqliteService.isReady()) {
-        await sqliteService.initialize();
+  // Expose saveSettings method to parent component
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      try {
+        await saveSettings();
+      } catch (error) {
+        console.error('Error saving email settings:', error);
+        throw error;
       }
-
-      const saved = await sqliteService.getSetting('email_settings');
-      if (saved && typeof saved === 'object' && saved !== null) {
-        const savedSettings = saved as Record<string, unknown>;
-        setSettings({
-          smtpHost: typeof savedSettings.smtpHost === 'string' ? savedSettings.smtpHost : '',
-          smtpPort: typeof savedSettings.smtpPort === 'number' ? savedSettings.smtpPort : 587,
-          smtpUsername: typeof savedSettings.smtpUsername === 'string' ? savedSettings.smtpUsername : '',
-          smtpPassword: typeof savedSettings.smtpPassword === 'string' ? savedSettings.smtpPassword : '',
-          smtpSecure: typeof savedSettings.smtpSecure === 'string' && ['tls', 'ssl', 'none'].includes(savedSettings.smtpSecure) 
-                      ? savedSettings.smtpSecure as 'tls' | 'ssl' | 'none' : 'tls',
-          fromEmail: typeof savedSettings.fromEmail === 'string' ? savedSettings.fromEmail : '',
-          fromName: typeof savedSettings.fromName === 'string' ? savedSettings.fromName : '',
-          replyToEmail: typeof savedSettings.replyToEmail === 'string' ? savedSettings.replyToEmail : '',
-          isEnabled: typeof savedSettings.isEnabled === 'boolean' ? savedSettings.isEnabled : false
-        });
-      }
-      setIsLoaded(true);
-    } catch (error) {
-      console.error('Error loading email settings:', error);
-      setIsLoaded(true);
     }
-  };
+  }), [saveSettings]);
 
-  // Manual save function for Save button (keep the existing saveSettings function)
-
-  const handleInputChange = (field: keyof EmailSettings, value: string | number | boolean) => {
+  const handleInputChange = (field: keyof typeof settings, value: string | number | boolean) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
     }));
-    
+
     // Reset connection status when settings change
     if (connectionStatus !== 'unknown') {
       setConnectionStatus('unknown');
     }
   };
 
-  // Remove auto-save - settings only save when Save button is clicked
-
-  const saveSettings = async () => {
-    try {
-      const response = await fetch('/api/settings/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          key: 'email_settings',
-          value: settings,
-          category: 'email'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save email settings');
-      }
-
-      toast.success('Email settings saved successfully');
-    } catch (error) {
-      console.error('Error saving email settings:', error);
-      toast.error('Failed to save email settings');
-      throw error;
-    }
-  };
-
   const testConnection = async () => {
-    if (!settings.smtpHost || !settings.smtpUsername || !settings.fromEmail) {
+    if (!settings.smtp_host || !settings.smtp_user || !settings.from_email) {
       toast.error('Please fill in required fields before testing');
       return;
     }
@@ -151,7 +78,7 @@ export const EmailSettings = () => {
   };
 
   const sendTestEmail = async () => {
-    if (!settings.fromEmail) {
+    if (!settings.from_email) {
       toast.error('Please set a from email address');
       return;
     }
@@ -160,7 +87,7 @@ export const EmailSettings = () => {
       const emailService = EmailService.getInstance();
       
       const result = await emailService.sendEmail(
-        settings.fromEmail,
+        settings.from_email,
         'Test Email from Slimbooks',
         '<h2>Test Email</h2><p>This is a test email from your Slimbooks application. If you received this, your email configuration is working correctly!</p>',
         'Test Email\n\nThis is a test email from your Slimbooks application. If you received this, your email configuration is working correctly!'
@@ -197,6 +124,37 @@ export const EmailSettings = () => {
         return 'Not tested';
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <div className="flex items-center mb-6">
+          <Mail className="h-5 w-5 text-primary mr-2" />
+          <h3 className="text-lg font-medium text-card-foreground">Email Configuration</h3>
+        </div>
+        <div className="flex justify-center py-8">
+          <div className="text-muted-foreground">Loading email settings...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <div className="flex items-center mb-6">
+          <Mail className="h-5 w-5 text-primary mr-2" />
+          <h3 className="text-lg font-medium text-card-foreground">Email Configuration</h3>
+        </div>
+        <div className="text-center py-8">
+          <div className="text-destructive mb-2">Error loading settings</div>
+          <div className="text-sm text-muted-foreground">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -259,8 +217,8 @@ export const EmailSettings = () => {
               </label>
               <input
                 type="text"
-                value={settings.smtpHost}
-                onChange={(e) => handleInputChange('smtpHost', e.target.value)}
+                value={settings.smtp_host}
+                onChange={(e) => handleInputChange('smtp_host', e.target.value)}
                 placeholder="smtp.gmail.com"
                 className={themeClasses.input}
                 disabled={!settings.isEnabled}
@@ -272,8 +230,8 @@ export const EmailSettings = () => {
               </label>
               <input
                 type="number"
-                value={settings.smtpPort}
-                onChange={(e) => handleInputChange('smtpPort', parseInt(e.target.value) || 587)}
+                value={settings.smtp_port}
+                onChange={(e) => handleInputChange('smtp_port', parseInt(e.target.value) || 587)}
                 placeholder="587"
                 className={themeClasses.input}
                 disabled={!settings.isEnabled}
@@ -283,19 +241,16 @@ export const EmailSettings = () => {
 
           {/* Security Settings */}
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Security Protocol
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={settings.smtp_secure}
+                onChange={(e) => handleInputChange('smtp_secure', e.target.checked)}
+                disabled={!settings.isEnabled}
+                className="rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-muted-foreground">Use SSL/TLS Security</span>
             </label>
-            <select
-              value={settings.smtpSecure}
-              onChange={(e) => handleInputChange('smtpSecure', e.target.value as 'tls' | 'ssl' | 'none')}
-              className={themeClasses.select}
-              disabled={!settings.isEnabled}
-            >
-              <option value="tls">TLS (Recommended - Port 587)</option>
-              <option value="ssl">SSL (Port 465)</option>
-              <option value="none">None (Port 25 - Not recommended)</option>
-            </select>
           </div>
 
           {/* Authentication */}
@@ -306,8 +261,8 @@ export const EmailSettings = () => {
               </label>
               <input
                 type="text"
-                value={settings.smtpUsername}
-                onChange={(e) => handleInputChange('smtpUsername', e.target.value)}
+                value={settings.smtp_user}
+                onChange={(e) => handleInputChange('smtp_user', e.target.value)}
                 placeholder="your-email@gmail.com"
                 className={themeClasses.input}
                 disabled={!settings.isEnabled}
@@ -320,8 +275,8 @@ export const EmailSettings = () => {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={settings.smtpPassword}
-                  onChange={(e) => handleInputChange('smtpPassword', e.target.value)}
+                  value={settings.smtp_password}
+                  onChange={(e) => handleInputChange('smtp_password', e.target.value)}
                   placeholder="App password or account password"
                   className={themeClasses.input}
                   disabled={!settings.isEnabled}
@@ -346,8 +301,8 @@ export const EmailSettings = () => {
               </label>
               <input
                 type="email"
-                value={settings.fromEmail}
-                onChange={(e) => handleInputChange('fromEmail', e.target.value)}
+                value={settings.from_email}
+                onChange={(e) => handleInputChange('from_email', e.target.value)}
                 placeholder="invoices@yourcompany.com"
                 className={themeClasses.input}
                 disabled={!settings.isEnabled}
@@ -359,8 +314,8 @@ export const EmailSettings = () => {
               </label>
               <input
                 type="text"
-                value={settings.fromName}
-                onChange={(e) => handleInputChange('fromName', e.target.value)}
+                value={settings.from_name}
+                onChange={(e) => handleInputChange('from_name', e.target.value)}
                 placeholder="Your Company Name"
                 className={themeClasses.input}
                 disabled={!settings.isEnabled}
@@ -368,19 +323,6 @@ export const EmailSettings = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Reply-To Email
-            </label>
-            <input
-              type="email"
-              value={settings.replyToEmail}
-              onChange={(e) => handleInputChange('replyToEmail', e.target.value)}
-              placeholder="support@yourcompany.com"
-              className={themeClasses.input}
-              disabled={!settings.isEnabled}
-            />
-          </div>
 
 
         </div>
@@ -408,4 +350,6 @@ export const EmailSettings = () => {
       </div>
     </div>
   );
-};
+});
+
+EmailSettings.displayName = 'EmailSettings';

@@ -109,7 +109,7 @@ export class SQLiteDatabase implements IDatabase {
   /**
    * Get a single record
    */
-  getOne<T = any>(query: string, params: any[] = []): T | null {
+  getOne<T = Record<string, unknown>>(query: string, params: unknown[] = []): T | null {
     this.ensureConnected();
     
     try {
@@ -127,7 +127,7 @@ export class SQLiteDatabase implements IDatabase {
   /**
    * Get multiple records
    */
-  getMany<T = any>(query: string, params: any[] = []): T[] {
+  getMany<T = Record<string, unknown>>(query: string, params: unknown[] = []): T[] {
     this.ensureConnected();
     
     try {
@@ -145,7 +145,7 @@ export class SQLiteDatabase implements IDatabase {
   /**
    * Get records with pagination support
    */
-  getWithPagination<T = any>(query: string, params: any[] = [], options: QueryOptions = {}): SelectResult<T> {
+  getWithPagination<T = Record<string, unknown>>(query: string, params: unknown[] = [], options: QueryOptions = {}): SelectResult<T> {
     this.ensureConnected();
     
     try {

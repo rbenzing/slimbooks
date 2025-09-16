@@ -1,14 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { ShippingRate, validateShippingRateArray } from '@/types';
-// Use dynamic import to avoid circular dependencies
+import type { SettingsTabRef } from '../Settings';
 
-export const ShippingSettings = () => {
+export const ShippingSettings = forwardRef<SettingsTabRef>((props, ref) => {
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', amount: 0 });
+
+  // Expose saveSettings method to parent component (no-op for shipping settings as they save immediately)
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      // Shipping rates are saved immediately when added/edited, no additional save needed
+      return Promise.resolve();
+    }
+  }), []);
 
   useEffect(() => {
     const loadShippingRates = async () => {
@@ -195,4 +203,6 @@ export const ShippingSettings = () => {
       </div>
     </div>
   );
-};
+});
+
+ShippingSettings.displayName = 'ShippingSettings';

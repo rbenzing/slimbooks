@@ -1,10 +1,12 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { toast } from 'sonner';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme.hook';
+import type { SettingsTabRef } from '../Settings';
 
-export const AppearanceSettingsTab = () => {
+export const AppearanceSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
   const { isAdmin, user } = useAuth();
   const { theme, setTheme: setGlobalTheme } = useTheme();
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern-blue');
@@ -50,8 +52,9 @@ export const AppearanceSettingsTab = () => {
       if (!result.success) {
         throw new Error(result.error || 'Failed to save appearance settings');
       }
-      
+
       setSaveError(''); // Clear any previous errors on success
+      toast.success('Appearance settings saved successfully');
     } catch (error) {
       console.error('Error saving appearance settings:', error);
       
@@ -63,6 +66,7 @@ export const AppearanceSettingsTab = () => {
       } else {
         setSaveError(`Failed to save settings: ${error.message}`);
       }
+      toast.error(`Failed to save appearance settings: ${error.message}`);
       throw error;
     }
   };
@@ -123,17 +127,17 @@ export const AppearanceSettingsTab = () => {
 
   // Theme changes are now handled by useTheme hook
 
-  // Listen for save events from the main Settings component
-  useEffect(() => {
-    const handleSaveEvent = async () => {
-      await saveSettings();
-    };
-
-    window.addEventListener('saveAppearanceSettings', handleSaveEvent);
-    return () => {
-      window.removeEventListener('saveAppearanceSettings', handleSaveEvent);
-    };
-  }, [invoiceTemplate, pdfFormat, isLoaded, isAdmin, user?.role]);
+  // Expose saveSettings method to parent component
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      try {
+        await saveSettings();
+      } catch (error) {
+        console.error('Error saving appearance settings:', error);
+        throw error;
+      }
+    }
+  }), [invoiceTemplate, pdfFormat, isLoaded, isAdmin, user?.role]);
 
   const handleThemeChange = (newTheme: string) => {
     setGlobalTheme(newTheme as 'light' | 'dark' | 'system');
@@ -209,4 +213,6 @@ export const AppearanceSettingsTab = () => {
       </div>
     </div>
   );
-};
+});
+
+AppearanceSettingsTab.displayName = 'AppearanceSettingsTab';

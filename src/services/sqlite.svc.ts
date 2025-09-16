@@ -342,6 +342,23 @@ class SQLiteService {
     this.clearSettingsCache(key);
   }
 
+  async saveCompanySettings(settings: {
+    companyName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    brandingImage: string;
+  }): Promise<void> {
+    // Use the specific company settings endpoint that expects individual fields
+    await this.apiCall('/settings/company', 'POST', settings);
+    // Clear cache for company_settings to ensure fresh data on next read
+    this.clearSettingsCache('company_settings');
+  }
+
   // Bulk settings operations
   async getAllSettings(category?: string): Promise<Record<string, unknown>> {
     console.log('sqliteService: getAllSettings called with category:', category);

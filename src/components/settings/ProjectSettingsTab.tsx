@@ -1,7 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Globe, CreditCard, Shield, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
-// Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
 import { ProjectSettings } from '@/types';
 import { useFormNavigation } from '@/hooks/useFormNavigation';

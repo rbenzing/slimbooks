@@ -1,13 +1,22 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { TaxRate, validateTaxRateArray } from '@/types';
+import type { SettingsTabRef } from '../Settings';
 
-export const TaxSettings = () => {
+export const TaxSettings = forwardRef<SettingsTabRef>((props, ref) => {
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', rate: 0 });
+
+  // Expose saveSettings method to parent component (no-op for tax settings as they save immediately)
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      // Tax rates are saved immediately when added/edited, no additional save needed
+      return Promise.resolve();
+    }
+  }), []);
 
   useEffect(() => {
     const loadTaxRates = async () => {
@@ -183,4 +192,6 @@ export const TaxSettings = () => {
       </div>
     </div>
   );
-};
+});
+
+TaxSettings.displayName = 'TaxSettings';

@@ -1,105 +1,40 @@
 
-import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
-// Use dynamic import to avoid circular dependencies
+import { forwardRef, useImperativeHandle } from 'react';
+import { Bell, CheckCircle, AlertTriangle } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-import { NotificationSettings, isNotificationSettings } from '@/types';
+import { useNotificationSettings } from '@/hooks/useSettings.hook';
+import type { NotificationSettings } from '@/types';
+import type { SettingsTabRef } from '../Settings';
 
-export const NotificationSettingsTab = () => {
-  const [settings, setSettings] = useState<NotificationSettings>({
-    showToastNotifications: true,
-    showSuccessToasts: true,
-    showErrorToasts: true,
-    showWarningToasts: true,
-    showInfoToasts: true,
-    toastDuration: 4000,
-    toastPosition: 'bottom-right'
-  });
+export const NotificationSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
+  const {
+    settings,
+    setSettings,
+    saveSettings,
+    isLoading,
+    isSaving,
+    isLoaded,
+    error
+  } = useNotificationSettings();
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  // Listen for save events from the main Settings component
-  useEffect(() => {
-    const handleSaveEvent = async () => {
-      await saveSettings(settings);
-    };
-
-    window.addEventListener('saveNotificationSettings', handleSaveEvent);
-    return () => {
-      window.removeEventListener('saveNotificationSettings', handleSaveEvent);
-    };
-  }, [settings]);
-
-  const loadSettings = async () => {
-    try {
-      // Use dynamic import to avoid circular dependencies
-      const { sqliteService } = await import('@/services/sqlite.svc');
-      
-      if (!sqliteService.isReady()) {
-        await sqliteService.initialize();
+  // Expose saveSettings method to parent component
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      try {
+        await saveSettings();
+      } catch (error) {
+        console.error('Error saving notification settings:', error);
+        throw error;
       }
-
-      const saved = await sqliteService.getSetting('notification_settings');
-      if (saved && typeof saved === 'object' && saved !== null) {
-        const savedSettings = saved as Record<string, unknown>;
-        const toastPositions = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'bottom-center'];
-        setSettings({
-          showToastNotifications: typeof savedSettings.showToastNotifications === 'boolean' ? savedSettings.showToastNotifications : true,
-          showSuccessToasts: typeof savedSettings.showSuccessToasts === 'boolean' ? savedSettings.showSuccessToasts : true,
-          showErrorToasts: typeof savedSettings.showErrorToasts === 'boolean' ? savedSettings.showErrorToasts : true,
-          showWarningToasts: typeof savedSettings.showWarningToasts === 'boolean' ? savedSettings.showWarningToasts : true,
-          showInfoToasts: typeof savedSettings.showInfoToasts === 'boolean' ? savedSettings.showInfoToasts : true,
-          toastDuration: typeof savedSettings.toastDuration === 'number' ? savedSettings.toastDuration : 4000,
-          toastPosition: typeof savedSettings.toastPosition === 'string' && toastPositions.includes(savedSettings.toastPosition) 
-                        ? savedSettings.toastPosition as any : 'bottom-right'
-        });
-      }
-    } catch (error) {
-      console.error('Error loading notification settings:', error);
     }
-  };
+  }), [saveSettings]);
 
-  const handleSettingChange = (key: keyof NotificationSettings, value: boolean | number | string) => {
-    const newSettings = {
-      ...settings,
+  const handleSettingChange = (key: keyof typeof settings, value: boolean | number | string) => {
+    setSettings(prev => ({
+      ...prev,
       [key]: value
-    };
-    setSettings(newSettings); // Only update UI, don't save until Save button is clicked
-  };
-
-  const saveSettings = async (settingsToSave: NotificationSettings) => {
-    try {
-      const response = await fetch('/api/settings/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          key: 'notification_settings',
-          value: settingsToSave,
-          category: 'notification'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save notification settings');
-      }
-
-      // Apply settings immediately to the toast system
-      applyToastSettings(settingsToSave);
-    } catch (error) {
-      console.error('Error saving notification settings:', error);
-      throw error;
-    }
+    }));
   };
 
   const applyToastSettings = (settings: NotificationSettings) => {
@@ -130,6 +65,37 @@ export const NotificationSettingsTab = () => {
         break;
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <div className="flex items-center mb-6">
+          <Bell className="h-5 w-5 text-primary mr-2" />
+          <h3 className="text-lg font-medium text-card-foreground">Toast Notifications</h3>
+        </div>
+        <div className="flex justify-center py-8">
+          <div className="text-muted-foreground">Loading notification settings...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <div className="flex items-center mb-6">
+          <Bell className="h-5 w-5 text-primary mr-2" />
+          <h3 className="text-lg font-medium text-card-foreground">Toast Notifications</h3>
+        </div>
+        <div className="text-center py-8">
+          <div className="text-destructive mb-2">Error loading settings</div>
+          <div className="text-sm text-muted-foreground">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -315,4 +281,6 @@ export const NotificationSettingsTab = () => {
       </div>
     </div>
   );
-};
+});
+
+NotificationSettingsTab.displayName = 'NotificationSettingsTab';

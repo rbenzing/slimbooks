@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, TestTube, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
-// Use dynamic import to avoid circular dependencies
 import { toast } from 'sonner';
 
 interface StripeSettings {
@@ -17,7 +16,9 @@ interface StripeSettings {
   connectedAt?: string;
 }
 
-export const StripeSettingsTab = () => {
+import type { SettingsTabRef } from '../Settings';
+
+export const StripeSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
   const [settings, setSettings] = useState<StripeSettings>({
     webhookSecret: '',
     webhookEndpoint: '',
@@ -89,7 +90,7 @@ export const StripeSettingsTab = () => {
     try {
       // Use dynamic import to avoid circular dependencies
       const { sqliteService } = await import('@/services/sqlite.svc');
-      
+
       if (!sqliteService.isReady()) {
         await sqliteService.initialize();
       }
@@ -101,6 +102,18 @@ export const StripeSettingsTab = () => {
       toast.error('Failed to save Stripe settings');
     }
   };
+
+  // Expose saveSettings method to parent component
+  useImperativeHandle(ref, () => ({
+    saveSettings: async () => {
+      try {
+        await saveSettings();
+      } catch (error) {
+        console.error('Error saving Stripe settings:', error);
+        throw error;
+      }
+    }
+  }), [settings]);
 
   const testConnection = async () => {
     if (!settings.publishableKey || !settings.secretKey) {
@@ -474,4 +487,6 @@ export const StripeSettingsTab = () => {
       </div>
     </div>
   );
-};
+});
+
+StripeSettingsTab.displayName = 'StripeSettingsTab';

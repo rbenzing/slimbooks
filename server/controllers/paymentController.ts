@@ -108,7 +108,7 @@ export const createPayment = asyncHandler(async (req: Request<object, object, { 
 /**
  * Update payment
  */
-export const updatePayment = asyncHandler(async (req: Request<{ id: string }, {}, { paymentData: Partial<PaymentRequest> }>, res: Response): Promise<void> => {
+export const updatePayment = asyncHandler(async (req: Request<{ id: string }, Record<string, unknown>, { paymentData: Partial<PaymentRequest> }>, res: Response): Promise<void> => {
   const { id } = req.params;
   const { paymentData } = req.body;
   const paymentId = parseInt(id, 10);
@@ -346,7 +346,7 @@ export const getTotalPaymentsAmount = asyncHandler(async (req: Request, res: Res
 /**
  * Update payment status
  */
-export const updatePaymentStatus = asyncHandler(async (req: Request<{ id: string }, {}, { status: PaymentStatus }>, res: Response): Promise<void> => {
+export const updatePaymentStatus = asyncHandler(async (req: Request<{ id: string }, Record<string, unknown>, { status: PaymentStatus }>, res: Response): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
   const paymentId = parseInt(id, 10);

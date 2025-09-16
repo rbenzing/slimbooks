@@ -56,7 +56,7 @@ export class ReportService {
     }
 
     // Parse JSON data field if it exists
-    let parsedReport: any = { ...report };
+    const parsedReport: any = { ...report };
     if (report.data) {
       try {
         parsedReport.data = JSON.parse(report.data);
