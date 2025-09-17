@@ -16,6 +16,12 @@ import { toast } from 'sonner';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
 import { cn } from '@/utils/themeUtils.util';
 
+// Standard interface that all settings tabs should implement
+export interface SettingsTabRef {
+  saveSettings: () => Promise<void>;
+  hasUnsavedChanges?: () => boolean;
+}
+
 interface SettingsTab {
   id: string;
   name: string;
@@ -31,6 +37,16 @@ export const ResponsiveSettings = () => {
   const projectSettingsRef = useRef<ProjectSettingsRef>(null);
   const { settings: projectSettings } = useProjectSettings();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Refs for all settings tabs
+  const companySettingsRef = useRef<SettingsTabRef>(null);
+  const generalSettingsRef = useRef<SettingsTabRef>(null);
+  const taxSettingsRef = useRef<SettingsTabRef>(null);
+  const shippingSettingsRef = useRef<SettingsTabRef>(null);
+  const emailSettingsRef = useRef<SettingsTabRef>(null);
+  const stripeSettingsRef = useRef<SettingsTabRef>(null);
+  const notificationSettingsRef = useRef<SettingsTabRef>(null);
+  const appearanceSettingsRef = useRef<SettingsTabRef>(null);
 
   const baseTabs: SettingsTab[] = [
     { id: 'company', name: 'Company' },
@@ -72,15 +88,53 @@ export const ResponsiveSettings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      if (activeTab === 'project' && projectSettingsRef.current) {
-        await projectSettingsRef.current.saveSettings();
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Get the appropriate settings ref based on active tab
+      let settingsRef: SettingsTabRef | ProjectSettingsRef | null = null;
+
+      switch (activeTab) {
+        case 'company':
+          settingsRef = companySettingsRef.current;
+          break;
+        case 'general':
+          settingsRef = generalSettingsRef.current;
+          break;
+        case 'tax':
+          settingsRef = taxSettingsRef.current;
+          break;
+        case 'shipping':
+          settingsRef = shippingSettingsRef.current;
+          break;
+        case 'email':
+          settingsRef = emailSettingsRef.current;
+          break;
+        case 'stripe':
+          settingsRef = stripeSettingsRef.current;
+          break;
+        case 'notifications':
+          settingsRef = notificationSettingsRef.current;
+          break;
+        case 'appearance':
+          settingsRef = appearanceSettingsRef.current;
+          break;
+        case 'project':
+          settingsRef = projectSettingsRef.current;
+          break;
+        default:
+          // For backup and other tabs that don't have save functionality
+          toast.info('This tab does not have saveable settings');
+          return;
+      }
+
+      if (settingsRef && settingsRef.saveSettings) {
+        await settingsRef.saveSettings();
         toast.success('Settings saved successfully');
+      } else {
+        console.warn(`No save method available for ${activeTab} tab`);
+        toast.error('Save method not available for this tab');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(`Failed to save settings: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -91,17 +145,17 @@ export const ResponsiveSettings = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'company': return <CompanySettings />;
-      case 'general': return <GeneralSettingsTab />;
-      case 'tax': return <TaxSettings />;
-      case 'shipping': return <ShippingSettings />;
-      case 'email': return <EmailSettings />;
-      case 'stripe': return projectSettings?.stripe?.enabled ? <StripeSettingsTab /> : null;
-      case 'notifications': return <NotificationSettingsTab />;
-      case 'appearance': return <AppearanceSettingsTab />;
+      case 'company': return <CompanySettings ref={companySettingsRef} />;
+      case 'general': return <GeneralSettingsTab ref={generalSettingsRef} />;
+      case 'tax': return <TaxSettings ref={taxSettingsRef} />;
+      case 'shipping': return <ShippingSettings ref={shippingSettingsRef} />;
+      case 'email': return <EmailSettings ref={emailSettingsRef} />;
+      case 'stripe': return projectSettings?.stripe?.enabled ? <StripeSettingsTab ref={stripeSettingsRef} /> : null;
+      case 'notifications': return <NotificationSettingsTab ref={notificationSettingsRef} />;
+      case 'appearance': return <AppearanceSettingsTab ref={appearanceSettingsRef} />;
       case 'project': return <ProjectSettingsTab ref={projectSettingsRef} />;
       case 'backup': return <DatabaseBackupSection />;
-      default: return <CompanySettings />;
+      default: return <CompanySettings ref={companySettingsRef} />;
     }
   };
 

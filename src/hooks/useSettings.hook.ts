@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { getAuthToken } from '@/utils/apiUtils.util';
 
 // Global cache to prevent multiple API calls for the same settings across all component instances
 const globalSettingsCache = new Map<string, {
@@ -147,7 +148,7 @@ export function useSettings<T extends Record<string, unknown>>({
           try {
             const response = await fetch(apiEndpoint, {
               headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                'Authorization': `Bearer ${getAuthToken()}`
               }
             });
 
@@ -238,7 +239,7 @@ export function useSettings<T extends Record<string, unknown>>({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             },
             body: JSON.stringify(dataToSave)
           });
@@ -374,6 +375,20 @@ export function useCompanySettings() {
       });
 
       return transformedSettings;
+    },
+    transformSave: (data) => {
+      // Format data to match the POST /api/settings/company endpoint
+      return {
+        companyName: data.companyName,
+        ownerName: data.ownerName,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        email: data.email,
+        phone: data.phone,
+        brandingImage: data.brandingImage
+      };
     },
     onSaveSuccess: () => {
       toast.success('Company settings saved successfully');
