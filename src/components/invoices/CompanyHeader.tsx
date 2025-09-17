@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Upload } from 'lucide-react';
-import { CompanySettings } from '@/types';
+import { useCompanySettings } from '@/hooks/useSettings.hook';
 
 interface CompanyHeaderProps {
   companyLogo: string;
@@ -10,68 +10,11 @@ interface CompanyHeaderProps {
 
 export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLogoUpload }) => {
 
-  const [companySettings, setCompanySettings] = useState<CompanySettings>({
-    companyName: 'Your Company',
-    ownerName: 'Owner Name',
-    email: 'contact@yourcompany.com',
-    phone: '(555) 123-4567',
-    address: '123 Business Street',
-    city: 'City',
-    state: 'State',
-    zipCode: '12345',
-    brandingImage: ''
-  });
+  const { settings: companySettings, isLoading } = useCompanySettings();
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        // Use dynamic import to avoid circular dependencies
-        const { sqliteService } = await import('@/services/sqlite.svc');
-
-        if (!sqliteService.isReady()) {
-          await sqliteService.initialize();
-        }
-
-        const saved = await sqliteService.getSetting('company_settings') as CompanySettings;
-        if (saved) {
-          setCompanySettings(saved);
-        } else {
-          // Set default company settings if none exist
-          const defaultSettings = {
-            companyName: 'ClientBill Pro',
-            ownerName: 'Business Owner',
-            email: 'contact@clientbillpro.com',
-            phone: '(555) 123-4567',
-            address: '123 Business Street',
-            city: 'Business City',
-            state: 'CA',
-            zipCode: '90210',
-            brandingImage: ''
-          };
-          setCompanySettings(defaultSettings);
-          // Save defaults to SQLite so they persist
-          await sqliteService.setSetting('company_settings', defaultSettings, 'company');
-        }
-      } catch (error) {
-        console.error('Error loading company settings:', error);
-        // Fallback to default settings
-        const defaultSettings = {
-          companyName: 'ClientBill Pro',
-          ownerName: 'Business Owner',
-          email: 'contact@clientbillpro.com',
-          phone: '(555) 123-4567',
-          address: '123 Business Street',
-          city: 'Business City',
-          state: 'CA',
-          zipCode: '90210',
-          brandingImage: ''
-        };
-        setCompanySettings(defaultSettings);
-      }
-    };
-
-    loadSettings();
-  }, []);
+  if (isLoading) {
+    return <div className="flex items-center space-x-4">Loading...</div>;
+  }
 
   const displayLogo = companyLogo ?? companySettings.brandingImage;
 

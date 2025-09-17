@@ -12,6 +12,7 @@ import {
 import { cn } from '@/utils/themeUtils.util';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
+import { useCompanySettings } from '@/hooks/useSettings.hook';
 
 const navigation = [
   { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -57,6 +58,7 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
   const location = useLocation();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingPath, setPendingPath] = useState<string>('');
+  const { settings: companySettings, isLoading: companySettingsLoading } = useCompanySettings();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -87,7 +89,7 @@ export const NavigationGuardedSidebar: React.FC<NavigationGuardedSidebarProps> =
         <div className="flex h-16 items-center border-b border-border px-6">
           <div className="flex items-center space-x-2">
             <CreditCard className="h-8 w-8 text-blue-600" />
-            <h1 className="text-xl font-bold text-foreground">ClientBill Pro</h1>
+            <h1 className="text-xl font-bold text-foreground">{companySettings.companyName || 'Slimbooks'}</h1>
           </div>
         </div>
 

@@ -15,6 +15,7 @@ import { cn } from '@/utils/themeUtils.util';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
+import { useCompanySettings } from '@/hooks/useSettings.hook';
 
 const navigation = [
   { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -56,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings: companySettings, isLoading: companySettingsLoading } = useCompanySettings();
   
   const isOnFormPage = location.pathname.includes('/new') || location.pathname.includes('/edit') || 
                        location.pathname.includes('/create');
@@ -136,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigationAttempt }) => {
         <div className="flex h-16 items-center border-b border-border px-6">
           <div className="flex items-center space-x-2">
             <CreditCard className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">ClientBill Pro</h1>
+            <h1 className="text-xl font-bold text-card-foreground">{companySettings.companyName || 'Slimbooks'}</h1>
           </div>
         </div>
 

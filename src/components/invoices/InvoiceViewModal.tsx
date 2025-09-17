@@ -5,6 +5,7 @@ import { getStatusColor } from '@/utils/themeUtils.util';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
+import { useCompanySettings } from '@/hooks/useSettings.hook';
 
 interface InvoiceViewModalProps {
   invoice: any;
@@ -14,50 +15,21 @@ interface InvoiceViewModalProps {
 }
 
 export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose, onMarkAsPaid }) => {
-  const [companySettings, setCompanySettings] = useState<any>({});
+  const { settings: companySettings, isLoading: companySettingsLoading } = useCompanySettings();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        // Use dynamic import to avoid circular dependencies
-        const { sqliteService } = await import('@/services/sqlite.svc');
-
-        if (!sqliteService.isReady()) {
-          await sqliteService.initialize();
-        }
-
-        const saved = await sqliteService.getSetting('company_settings');
-        if (saved) {
-          setCompanySettings(saved);
-        } else {
-          setCompanySettings({
-            companyName: 'ClientBill Pro',
-            address: '123 Business Street',
-            city: 'Business City',
-            state: 'CA',
-            zipCode: '90210',
-            brandingImage: ''
-          });
-        }
-      } catch (error) {
-        console.error('Error loading company settings:', error);
-        // Fallback to default settings
-        setCompanySettings({
-          companyName: 'ClientBill Pro',
-          address: '123 Business Street',
-          city: 'Business City',
-          state: 'CA',
-          zipCode: '90210',
-          brandingImage: ''
-        });
-      }
-    };
-
-    loadSettings();
-  }, []);
 
   if (!isOpen || !invoice) return null;
+
+  if (companySettingsLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-card border rounded-lg shadow-xl p-8">
+          <div className="text-foreground">Loading company settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle line items - create from description if none exist
   let lineItems = [];
@@ -279,10 +251,10 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
                   )}
                 </div>
                 <div>
-                  <h1 className={`text-2xl font-bold ${styles.title}`}>{companySettings.companyName || 'ClientBill Pro'}</h1>
-                  <p className={`${styles.accent} text-sm`}>{companySettings.address || '123 Business Street'}</p>
+                  <h1 className={`text-2xl font-bold ${styles.title}`}>{companySettings.companyName}</h1>
+                  <p className={`${styles.accent} text-sm`}>{companySettings.address}</p>
                   <p className={`${styles.accent} text-sm`}>
-                    {companySettings.city || 'Business City'}, {companySettings.state || 'CA'} {companySettings.zipCode || '90210'}
+                    {companySettings.city}, {companySettings.state} {companySettings.zipCode}
                   </p>
                 </div>
               </div>
