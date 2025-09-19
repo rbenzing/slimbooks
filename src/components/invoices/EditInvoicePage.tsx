@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { InvoiceItem, Invoice, InvoiceStatus } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types';
+import { formatCurrencySync } from '@/utils/currencyFormatting';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();
@@ -72,7 +73,12 @@ export const EditInvoicePage = () => {
             if (invoiceRecord.line_items) {
               try {
                 const parsedLineItems = JSON.parse(invoiceRecord.line_items);
-                setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
+                // Ensure all line items have total calculated
+                const lineItemsWithTotal = parsedLineItems.map(item => ({
+                  ...item,
+                  total: item.total || (item.quantity * item.unit_price) || 0
+                }));
+                setLineItems(lineItemsWithTotal.length > 0 ? lineItemsWithTotal : [
                   { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
                 ]);
               } catch (e) {
@@ -218,7 +224,7 @@ export const EditInvoicePage = () => {
     setIsSaving(true);
     try {
       // Calculate total amount from line items
-      const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
+      const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
       const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
       const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
       const total = subtotal + taxAmount + shippingAmount;
@@ -280,7 +286,7 @@ export const EditInvoicePage = () => {
       }
 
       // Calculate total amount from line items
-      const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
+      const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
       const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
       const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
       const total = subtotal + taxAmount + shippingAmount;
@@ -442,7 +448,7 @@ export const EditInvoicePage = () => {
   }
 
   // Calculate totals
-  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
+  const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
   const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
@@ -649,7 +655,7 @@ export const EditInvoicePage = () => {
                       />
                     </td>
                     <td className="py-3 text-right text-card-foreground">
-                      ${item.total.toFixed(2)}
+                      {formatCurrencySync(item.total || 0)}
                     </td>
                     <td className="py-3">
                       {lineItems.length > 1 && (
@@ -679,7 +685,7 @@ export const EditInvoicePage = () => {
             <div className="w-80">
               <div className="flex justify-between items-center py-2">
                 <span className="text-card-foreground">Subtotal:</span>
-                <span className="text-card-foreground">${subtotal.toFixed(2)}</span>
+                <span className="text-card-foreground">{formatCurrencySync(subtotal || 0)}</span>
               </div>
 
               <div className="flex justify-between items-center py-2">
@@ -701,7 +707,7 @@ export const EditInvoicePage = () => {
                     ))}
                   </select>
                 </div>
-                <span className="text-card-foreground">${taxAmount.toFixed(2)}</span>
+                <span className="text-card-foreground">{formatCurrencySync(taxAmount || 0)}</span>
               </div>
 
               <div className="flex justify-between items-center py-2">
@@ -723,13 +729,13 @@ export const EditInvoicePage = () => {
                     ))}
                   </select>
                 </div>
-                <span className="text-card-foreground">${shippingAmount.toFixed(2)}</span>
+                <span className="text-card-foreground">{formatCurrencySync(shippingAmount || 0)}</span>
               </div>
 
               <div className="border-t-2 border-border dark:border-gray-500 pt-2 mt-2">
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span className="text-card-foreground">Total:</span>
-                  <span className="text-card-foreground">${total.toFixed(2)}</span>
+                  <span className="text-card-foreground">{formatCurrencySync(total || 0)}</span>
                 </div>
               </div>
             </div>

@@ -98,7 +98,7 @@ export const createApp = async () => {
   });
 
   // Serve static files from uploads directory
-  const uploadsPath = join(__dirname, 'uploads');
+  const uploadsPath = join(__dirname, '..', 'public', 'uploads');
   app.use('/uploads', express.static(uploadsPath));
 
   // Serve static files from dist directory (built frontend)
