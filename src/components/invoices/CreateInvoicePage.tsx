@@ -205,7 +205,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       unit_price: item.rate,
       total: item.amount
     }));
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems);
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems, !editingInvoice);
     return validation.isValid;
   };
 
@@ -217,7 +217,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       unit_price: item.rate,
       total: item.amount
     }));
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems);
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems, !editingInvoice);
     return validation.canSend;
   };
 
@@ -229,7 +229,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       unit_price: item.rate,
       total: item.amount
     }));
-    return getAvailableInvoiceActions(invoiceData, selectedClient, invoiceItems);
+    return getAvailableInvoiceActions(invoiceData, selectedClient, invoiceItems, !editingInvoice);
   };
 
   const handleBackClick = () => {
@@ -247,8 +247,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
     setIsSaving(true);
     try {
-      const invoicePayload = {
-        ...invoiceData,
+      const basePayload = {
         client_id: selectedClient.id,
         amount: subtotal,
         total_amount: total,
@@ -256,6 +255,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time' as InvoiceType,
         status: invoiceData.status as InvoiceStatus,
+        due_date: invoiceData.due_date,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -269,17 +269,40 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         email_status: 'not_sent' as EmailStatus
       };
 
+      // For updates, include the invoice number; for creates, let server auto-generate
+      const invoicePayload = editingInvoice
+        ? { ...basePayload, invoice_number: invoiceData.invoice_number }
+        : basePayload;
+
       if (editingInvoice) {
-        await invoiceOperations.update(editingInvoice.id, invoicePayload);
+        // Update existing invoice via API
+        const response = await authenticatedFetch(`/api/invoices/${editingInvoice.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ invoiceData: invoicePayload }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update invoice: ${response.statusText}`);
+        }
+
         toast.success('Invoice updated successfully');
       } else {
-        // Generate a proper invoice number when creating new invoices
-        const generatedNumber = await invoiceService.generateInvoiceNumber();
-        const finalInvoicePayload = {
-          ...invoicePayload,
-          invoice_number: generatedNumber
-        };
-        await invoiceOperations.create(finalInvoicePayload);
+        // Create new invoice via API (server will auto-generate invoice number)
+        const response = await authenticatedFetch('/api/invoices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ invoiceData: invoicePayload }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to create invoice: ${response.statusText}`);
+        }
+
         toast.success('Invoice saved successfully');
       }
       navigate('/invoices');
@@ -511,11 +534,17 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                   <input
                     type="text"
                     value={invoiceData.invoice_number}
-                    onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, invoice_number: e.target.value})}
-                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                    onChange={(e) => !viewOnly && editingInvoice && setInvoiceData({...invoiceData, invoice_number: e.target.value})}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly || !editingInvoice ? 'bg-muted cursor-not-allowed' : ''}`}
                     required
-                    disabled={viewOnly}
+                    disabled={viewOnly || !editingInvoice}
+                    placeholder={!editingInvoice ? 'Auto-generated' : ''}
                   />
+                  {!editingInvoice && (
+                    <p className="text-xs text-muted-foreground text-right mt-1">
+                      Invoice number will be auto-generated when saved
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Due Date</label>

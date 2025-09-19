@@ -812,11 +812,12 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async generateInvoiceNumber(): Promise<string> {
     try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch('/api/invoices/generate-number', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -842,11 +843,12 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async previewNextInvoiceNumber(): Promise<string> {
     try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const response = await fetch('/api/invoices/preview-number', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 

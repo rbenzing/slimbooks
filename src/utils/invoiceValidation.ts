@@ -22,7 +22,8 @@ interface InvoiceData {
 export const validateInvoiceForSave = (
   invoiceData: InvoiceData,
   selectedClient: Client | null,
-  lineItems: LineItem[]
+  lineItems: LineItem[],
+  isNewInvoice: boolean = false
 ): InvoiceValidationResult => {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -32,8 +33,8 @@ export const validateInvoiceForSave = (
     errors.push('Please select a client');
   }
 
-  // Check if invoice number exists
-  if (!invoiceData.invoice_number || invoiceData.invoice_number.trim() === '') {
+  // Check if invoice number exists (only for existing invoices)
+  if (!isNewInvoice && (!invoiceData.invoice_number || invoiceData.invoice_number.trim() === '')) {
     errors.push('Invoice number is required');
   }
 
@@ -79,10 +80,11 @@ export const validateInvoiceForSave = (
 export const validateInvoiceForSend = (
   invoiceData: InvoiceData,
   selectedClient: Client | null,
-  lineItems: LineItem[]
+  lineItems: LineItem[],
+  isNewInvoice: boolean = false
 ): InvoiceValidationResult => {
   // First check basic validation
-  const basicValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+  const basicValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems, isNewInvoice);
   
   const errors = [...basicValidation.errors];
   const warnings = [...basicValidation.warnings];
@@ -121,9 +123,10 @@ export const validateInvoiceForSend = (
 export const validateInvoiceForPrint = (
   invoiceData: InvoiceData,
   selectedClient: Client | null,
-  lineItems: LineItem[]
+  lineItems: LineItem[],
+  isNewInvoice: boolean = false
 ): InvoiceValidationResult => {
-  const basicValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
+  const basicValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems, isNewInvoice);
   
   return {
     ...basicValidation,
@@ -138,7 +141,8 @@ export const validateInvoiceForPrint = (
 export const getAvailableInvoiceActions = (
   invoiceData: InvoiceData,
   selectedClient: Client | null,
-  lineItems: LineItem[]
+  lineItems: LineItem[],
+  isNewInvoice: boolean = false
 ): {
   canSave: boolean;
   canSend: boolean;
@@ -149,8 +153,8 @@ export const getAvailableInvoiceActions = (
   sendButtonDisabled: boolean;
   printButtonDisabled: boolean;
 } => {
-  const saveValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
-  const sendValidation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
+  const saveValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems, isNewInvoice);
+  const sendValidation = validateInvoiceForSend(invoiceData, selectedClient, lineItems, isNewInvoice);
   
   const hasClientEmail = selectedClient?.email && selectedClient.email.trim() !== '';
   const isDueDateInFuture = invoiceData.due_date && new Date(invoiceData.due_date) > new Date();
@@ -174,15 +178,16 @@ export const getAvailableInvoiceActions = (
 export const getValidationMessages = (
   invoiceData: InvoiceData,
   selectedClient: Client | null,
-  lineItems: LineItem[]
+  lineItems: LineItem[],
+  isNewInvoice: boolean = false
 ): {
   saveMessages: string[];
   sendMessages: string[];
   printMessages: string[];
 } => {
-  const saveValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
-  const sendValidation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
-  const printValidation = validateInvoiceForPrint(invoiceData, selectedClient, lineItems);
+  const saveValidation = validateInvoiceForSave(invoiceData, selectedClient, lineItems, isNewInvoice);
+  const sendValidation = validateInvoiceForSend(invoiceData, selectedClient, lineItems, isNewInvoice);
+  const printValidation = validateInvoiceForPrint(invoiceData, selectedClient, lineItems, isNewInvoice);
 
   return {
     saveMessages: [...saveValidation.errors, ...saveValidation.warnings],

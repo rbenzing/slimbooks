@@ -402,8 +402,8 @@ class SQLiteService {
 
   // ===== INVOICE API METHODS =====
   async getInvoices(): Promise<(Invoice & { client_name: string })[]> {
-    const result = await this.apiCall<{ data?: { invoices?: (Invoice & { client_name: string })[] } }>('/invoices');
-    return result.data?.data?.invoices || [];
+    const result = await this.apiCall<{ invoices?: (Invoice & { client_name: string })[]; pagination?: any }>('/invoices');
+    return result.data?.invoices || [];
   }
 
   async getInvoiceById(id: number): Promise<(Invoice & { client_name: string }) | null> {
@@ -490,8 +490,8 @@ class SQLiteService {
   // ===== PAYMENT API METHODS =====
   async getPayments(startDate?: string, endDate?: string): Promise<Payment[]> {
     const params = startDate && endDate ? { date_from: startDate, date_to: endDate } : {};
-    const result = await this.apiCall<{ data?: { payments?: Payment[] } }>('/payments', 'GET', params);
-    return result.data?.data?.payments || [];
+    const result = await this.apiCall<{ payments?: Payment[]; pagination?: any }>('/payments', 'GET', params);
+    return result.data?.payments || [];
   }
 
   async createPayment(paymentData: PaymentFormData): Promise<Payment> {

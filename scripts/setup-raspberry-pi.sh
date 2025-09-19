@@ -127,8 +127,8 @@ DATE=$(date +%Y%m%d_%H%M%S)
 
 mkdir -p "$BACKUP_DIR"
 
-if [ -f "$APP_DIR/data/slimbooks.db" ]; then
-    cp "$APP_DIR/data/slimbooks.db" "$BACKUP_DIR/slimbooks_$DATE.db"
+if [ -f "$APP_DIR/server/data/slimbooks.db" ]; then
+    cp "$APP_DIR/server/data/slimbooks.db" "$BACKUP_DIR/slimbooks_$DATE.db"
     echo "Database backed up to $BACKUP_DIR/slimbooks_$DATE.db"
 fi
 

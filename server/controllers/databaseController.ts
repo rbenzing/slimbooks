@@ -5,6 +5,8 @@ import { copyFile } from 'fs/promises';
 import path from 'path';
 import multer from 'multer';
 import { getDatabasePath } from '../config/database.js';
+import { closeDatabase, initializeDatabase } from '../database/index.js';
+import { databaseService } from '../core/DatabaseService.js';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -26,13 +28,23 @@ const upload = multer({
 export const exportDatabase = async (req: Request, res: Response): Promise<void> => {
   try {
     const dbPath = getDatabasePath();
-    
+
     if (!existsSync(dbPath)) {
       res.status(404).json({
         success: false,
         error: 'Database file not found'
       });
       return;
+    }
+
+    // Checkpoint WAL to ensure all data is written to the main database file
+    // This is crucial in WAL mode to include all recent transactions
+    try {
+      console.log('Checkpointing WAL before export...');
+      databaseService.executeQuery('PRAGMA wal_checkpoint(FULL)');
+      console.log('WAL checkpoint completed');
+    } catch (checkpointError) {
+      console.warn('WAL checkpoint failed, continuing with export:', checkpointError);
     }
 
     // Set headers for file download
@@ -87,14 +99,45 @@ export const importDatabase = [
       const backupPath = `${dbPath}.backup-${Date.now()}`;
       
       try {
+        // Close database connection to release file lock
+        console.log('Closing database connection...');
+        await closeDatabase();
+
         if (existsSync(dbPath)) {
           await copyFile(dbPath, backupPath);
           console.log('Current database backed up to:', backupPath);
         }
 
+        // Clean up any existing WAL/SHM files
+        const walPath = `${dbPath}-wal`;
+        const shmPath = `${dbPath}-shm`;
+
+        if (existsSync(walPath)) {
+          unlinkSync(walPath);
+          console.log('Removed existing WAL file');
+        }
+
+        if (existsSync(shmPath)) {
+          unlinkSync(shmPath);
+          console.log('Removed existing SHM file');
+        }
+
         // Replace current database with uploaded file
         await copyFile(uploadedFilePath, dbPath);
         console.log('Database imported successfully from:', req.file.originalname);
+
+        // Reconnect to the new database
+        console.log('Reconnecting to database...');
+        await initializeDatabase();
+
+        // Checkpoint the new database to ensure proper WAL initialization
+        try {
+          console.log('Checkpointing new database...');
+          databaseService.executeQuery('PRAGMA wal_checkpoint(FULL)');
+          console.log('New database checkpoint completed');
+        } catch (checkpointError) {
+          console.warn('New database checkpoint failed:', checkpointError);
+        }
 
         // Clean up uploaded file
         unlinkSync(uploadedFilePath);
@@ -110,6 +153,15 @@ export const importDatabase = [
           await copyFile(backupPath, dbPath);
           console.log('Database restored from backup due to import failure');
         }
+
+        // Always try to reconnect the database, even if import failed
+        try {
+          console.log('Reconnecting to database after import failure...');
+          await initializeDatabase();
+        } catch (reconnectError) {
+          console.error('Failed to reconnect to database:', reconnectError);
+        }
+
         throw importError;
       } finally {
         // Clean up backup file after successful import (optional)

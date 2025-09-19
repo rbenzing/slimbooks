@@ -74,8 +74,8 @@ const DEFAULT_CONFIG: EnvironmentConfig = {
   EMAIL_TOKEN_EXPIRY: 24 * 60 * 60 * 1000, // 24 hours
   PASSWORD_RESET_EXPIRY: 60 * 60 * 1000, // 1 hour
   
-  DB_PATH: './data/slimbooks.db',
-  DB_BACKUP_PATH: './data/backups',
+  DB_PATH: './server/data/slimbooks.db',
+  DB_BACKUP_PATH: './server/data/backups',
   
   CORS_ORIGIN: 'http://localhost:8080',
   CORS_CREDENTIALS: true,
