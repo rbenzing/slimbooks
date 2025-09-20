@@ -5,6 +5,7 @@ import { invoiceOperations } from '@/lib/database';
 import { EmailService } from './email.svc';
 import { generateInvoiceToken } from '@/utils/invoiceTokens';
 import { sqliteService } from './sqlite.svc';
+import { formatClientAddressSingleLine, formatClientAddress } from '@/utils/addressFormatting';
 import {
   InvoiceEmailData,
   CompanySettings,
@@ -179,9 +180,9 @@ export class InvoiceService {
           </p>
           ${company.email ? `<p style="color: #666; font-size: 14px; margin: 5px 0;">${company.email}</p>` : ''}
           ${company.phone ? `<p style="color: #666; font-size: 14px; margin: 5px 0;">${company.phone}</p>` : ''}
-          ${company.address ? `
+          ${formatClientAddressSingleLine(company) ? `
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
-              ${company.address}${company.city ? `, ${company.city}` : ''}${company.state ? `, ${company.state}` : ''} ${company.zipCode}
+              ${formatClientAddressSingleLine(company)}
             </p>
           ` : ''}
         </div>
@@ -223,7 +224,7 @@ View Invoice: ${viewUrl}
 ${invoice.notes ? `Notes:\n${invoice.notes}\n\n` : ''}
 
 ${company.companyName}
-${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\n' : ''}${company.address ? company.address + (company.city ? `, ${company.city}` : '') + (company.state ? `, ${company.state}` : '') + ' ' + company.zipCode + '\n' : ''}
+${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\n' : ''}${formatClientAddressSingleLine(company) ? formatClientAddressSingleLine(company) + '\n' : ''}
 
 This email was sent by ${company.companyName}. If you have any questions about this invoice, please contact us.
     `.trim();

@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { InvoiceType, InvoiceStatus } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate } from '@/types';
+import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
 
 interface LineItem {
   id: string;
@@ -259,7 +260,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
-        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        client_address: formatClientAddressSingleLine(selectedClient),
         line_items: JSON.stringify(lineItems),
         tax_amount: taxAmount,
         tax_rate_id: selectedTaxRate?.id || null,
@@ -341,7 +342,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
-        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        client_address: formatClientAddressSingleLine(selectedClient),
         line_items: JSON.stringify(lineItems),
         tax_amount: taxAmount,
         tax_rate_id: selectedTaxRate?.id || null,

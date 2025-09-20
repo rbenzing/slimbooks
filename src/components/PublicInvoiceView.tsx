@@ -7,6 +7,7 @@ import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { envConfig } from '@/lib/env-config';
 import { InvoiceItem } from '@/types';
+import { formatClientAddress } from '@/utils/addressFormatting';
 
 export const PublicInvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,20 @@ export const PublicInvoiceView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Helper function to clean up stored client address that may contain "null" values
+  const cleanClientAddress = (address: string) => {
+    if (!address) return '';
+
+    // Remove "null" strings and clean up the address
+    const cleanedAddress = address
+      .split(',')
+      .map(part => part.trim())
+      .filter(part => part && part !== 'null' && part !== 'undefined')
+      .join(', ');
+
+    return cleanedAddress || '';
+  };
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -206,7 +221,9 @@ export const PublicInvoiceView: React.FC = () => {
               <div className="font-medium text-card-foreground">{invoice.client_name}</div>
               {invoice.client_email && <div>{invoice.client_email}</div>}
               {invoice.client_phone && <div>{invoice.client_phone}</div>}
-              {invoice.client_address && <div className="whitespace-pre-line">{invoice.client_address}</div>}
+              {invoice.client_address && cleanClientAddress(invoice.client_address) && (
+                <div className="whitespace-pre-line">{cleanClientAddress(invoice.client_address)}</div>
+              )}
             </div>
           </div>
 

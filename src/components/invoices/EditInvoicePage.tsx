@@ -17,6 +17,7 @@ import { InvoiceItem, Invoice, InvoiceStatus } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types';
 import { formatCurrencySync } from '@/utils/currencyFormatting';
+import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();
@@ -243,7 +244,7 @@ export const EditInvoicePage = () => {
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
-        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        client_address: formatClientAddressSingleLine(selectedClient),
         line_items: JSON.stringify(lineItems),
         tax_amount: taxAmount,
         tax_rate_id: selectedTaxRate?.id || null,
@@ -304,7 +305,7 @@ export const EditInvoicePage = () => {
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
-        client_address: `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}`,
+        client_address: formatClientAddressSingleLine(selectedClient),
         line_items: JSON.stringify(lineItems),
         tax_amount: taxAmount,
         tax_rate_id: selectedTaxRate?.id || null,

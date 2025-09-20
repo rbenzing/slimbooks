@@ -6,6 +6,7 @@ import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { useCompanySettings } from '@/hooks/useSettings.hook';
+import { formatClientAddress } from '@/utils/addressFormatting';
 
 interface InvoiceViewModalProps {
   invoice: any;
@@ -17,6 +18,20 @@ interface InvoiceViewModalProps {
 export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose, onMarkAsPaid }) => {
   const { settings: companySettings, isLoading: companySettingsLoading } = useCompanySettings();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Helper function to clean up stored client address that may contain "null" values
+  const cleanClientAddress = (address: string) => {
+    if (!address) return '';
+
+    // Remove "null" strings and clean up the address
+    const cleanedAddress = address
+      .split(',')
+      .map(part => part.trim())
+      .filter(part => part && part !== 'null' && part !== 'undefined')
+      .join(', ');
+
+    return cleanedAddress || '';
+  };
 
 
   if (!isOpen || !invoice) return null;
@@ -281,9 +296,9 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isO
               <p className={`font-medium text-lg ${styles.clientText}`}>{invoice.client_name}</p>
               {invoice.client_email && <p className={styles.clientText}>{invoice.client_email}</p>}
               {invoice.client_phone && <p className={styles.clientText}>{invoice.client_phone}</p>}
-              {invoice.client_address && (
+              {invoice.client_address && cleanClientAddress(invoice.client_address) && (
                 <div className="mt-2">
-                  <p className={styles.clientText}>{invoice.client_address}</p>
+                  <p className={styles.clientText}>{cleanClientAddress(invoice.client_address)}</p>
                 </div>
               )}
             </div>

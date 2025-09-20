@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { authenticatedFetch } from '@/utils/apiUtils.util';
 import { themeClasses } from '@/utils/themeUtils.util';
+import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
 
 interface InvoiceFormProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSav
       client_name: selectedClient?.name,
       client_email: selectedClient?.email,
       client_phone: selectedClient?.phone,
-      client_address: selectedClient ? `${selectedClient.address}, ${selectedClient.city}, ${selectedClient.state} ${selectedClient.zipCode}` : undefined,
+      client_address: selectedClient ? formatClientAddressSingleLine(selectedClient) : undefined,
       line_items: JSON.stringify([{
         id: '1',
         description: formData.description,

@@ -2,6 +2,7 @@
 // Handles processing of recurring invoices from templates
 
 import { databaseService } from '../core/DatabaseService.js';
+import { formatClientAddressSingleLine } from './addressFormatting.js';
 
 const processRecurringInvoices = async () => {
   try {
@@ -66,7 +67,7 @@ const processRecurringInvoices = async () => {
             client_name: client.name,
             client_email: client.email,
             client_phone: client.phone || '',
-            client_address: `${client.address || ''}, ${client.city || ''}, ${client.state || ''} ${client.zipCode || ''}`.trim(),
+            client_address: formatClientAddressSingleLine(client),
             line_items: template.line_items || '[]',
             tax_amount: template.tax_amount || 0,
             tax_rate_id: template.tax_rate_id || null,
