@@ -10,7 +10,7 @@ import {
   TIME_FORMAT_OPTIONS,
   getDateFormatPreview,
   getTimeFormatPreview
-} from '@/utils/dateFormatting';
+} from '@/utils/formatting';
 import {
   getInvoiceNumberSettings,
   saveInvoiceNumberSettings,
@@ -26,7 +26,7 @@ import {
   THOUSANDS_SEPARATOR_OPTIONS,
   DECIMAL_SEPARATOR_OPTIONS,
   getCurrencyFormatPreview
-} from '@/utils/currencyFormatting';
+} from '@/utils/formatting';
 import {
   getPaginationSettingsAsync,
   savePaginationSettings,

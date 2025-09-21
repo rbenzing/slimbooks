@@ -28,8 +28,8 @@ import {
   getButtonClasses, 
   getStatusColor 
 } from '@/utils/themeUtils.util';
-import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/data';
+import { authenticatedFetch } from '@/utils/api';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { Payment } from '@/types';

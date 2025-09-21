@@ -8,7 +8,7 @@ import { ClientReport } from './reports/ClientReport';
 import { reportOperations } from '../lib/database';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
+import { formatDateSync, formatDateRangeSync } from '@/utils/formatting';
 import { Report, ReportType } from '@/types';
 import { ReportDateRange } from '@/types';
 

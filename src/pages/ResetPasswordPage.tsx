@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, Check, X } from 'lucide-react';
-import { AuthUtils } from '@/utils/authUtils.util';
+import { AuthUtils } from '@/utils/api';
 import { DEFAULT_PASSWORD_REQUIREMENTS } from '@/types';
 
 export const ResetPasswordPage: React.FC = () => {

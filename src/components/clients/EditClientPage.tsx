@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, User, Building, Mail, Phone, MapPin } from 'lucide-react';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { InternationalAddressForm } from '@/components/ui/InternationalAddressForm';
 import { ClientFormData } from '@/types';

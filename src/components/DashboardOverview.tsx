@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { themeClasses, getIconColorClasses, getStatusColor } from '@/utils/themeUtils.util';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { TimePeriod } from '@/types';

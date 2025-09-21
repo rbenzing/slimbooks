@@ -6,7 +6,7 @@ import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { useCompanySettings } from '@/hooks/useSettings.hook';
-import { formatClientAddress } from '@/utils/addressFormatting';
+import { formatClientAddress } from '@/utils/formatting';
 
 interface InvoiceViewModalProps {
   invoice: any;

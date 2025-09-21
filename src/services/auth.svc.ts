@@ -1,7 +1,7 @@
 // Authentication service for login, registration, and session management
 
 import { userOperations } from '@/lib/database';
-import { AuthUtils } from '@/utils/authUtils.util';
+import { AuthUtils } from '@/utils/api';
 import { envConfig } from '@/lib/env-config';
 import { 
   User, 
@@ -148,8 +148,10 @@ export class AuthService {
     this.currentUser = user;
   }
 
-  // Generate JWT tokens
+  // Note: Token generation should be handled entirely by the backend
+  // This method is kept for compatibility but should not be used
   private generateTokens(user: User, rememberMe: boolean = false): { accessToken: string; refreshToken: string } {
+    console.warn('Frontend should not generate tokens. This is handled by the backend.');
     const payload = {
       userId: user.id,
       email: user.email,

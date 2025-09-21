@@ -1,37 +1,41 @@
-// Currency formatting utilities with user settings support
 import { CurrencySettings } from '@/types';
-import { DEFAULT_CURRENCY_SETTINGS, CURRENCY_OPTIONS, SYMBOL_POSITION_OPTIONS, DECIMAL_PLACES_OPTIONS, THOUSANDS_SEPARATOR_OPTIONS, DECIMAL_SEPARATOR_OPTIONS } from '@/lib/constants';
+import {
+  DEFAULT_CURRENCY_SETTINGS,
+  CURRENCY_OPTIONS,
+  SYMBOL_POSITION_OPTIONS,
+  DECIMAL_PLACES_OPTIONS,
+  THOUSANDS_SEPARATOR_OPTIONS,
+  DECIMAL_SEPARATOR_OPTIONS
+} from '@/lib/constants';
 
-// Re-export constants for backward compatibility (can be removed in future refactor)
-export { CURRENCY_OPTIONS, SYMBOL_POSITION_OPTIONS, DECIMAL_PLACES_OPTIONS, THOUSANDS_SEPARATOR_OPTIONS, DECIMAL_SEPARATOR_OPTIONS };
+// Re-export constants for convenient access
+export {
+  CURRENCY_OPTIONS,
+  SYMBOL_POSITION_OPTIONS,
+  DECIMAL_PLACES_OPTIONS,
+  THOUSANDS_SEPARATOR_OPTIONS,
+  DECIMAL_SEPARATOR_OPTIONS
+};
 
+let currencySettingsCache: CurrencySettings | null = null;
+let currencySettingsPromise: Promise<CurrencySettings> | null = null;
 
-// Get currency symbol for a given currency code
 export const getCurrencySymbol = (currencyCode: string): string => {
   const currency = CURRENCY_OPTIONS.find(c => c.value === currencyCode);
   return currency?.symbol || currencyCode;
 };
 
-// Cache for currency settings to prevent duplicate API calls
-let currencySettingsCache: CurrencySettings | null = null;
-let currencySettingsPromise: Promise<CurrencySettings> | null = null;
-
-// Get current currency settings from SQLite (async)
 export const getCurrencySettings = async (): Promise<CurrencySettings> => {
-  // Return cached settings if available
   if (currencySettingsCache) {
     return currencySettingsCache;
   }
 
-  // Return existing promise if one is already in progress
   if (currencySettingsPromise) {
     return currencySettingsPromise;
   }
 
-  // Create new promise and cache it
   currencySettingsPromise = (async () => {
     try {
-      // Use dynamic import to avoid circular dependencies
       const { sqliteService } = await import('@/services/sqlite.svc');
 
       if (sqliteService.isReady()) {
@@ -57,87 +61,86 @@ export const getCurrencySettings = async (): Promise<CurrencySettings> => {
   })();
 
   const result = await currencySettingsPromise;
-  currencySettingsPromise = null; // Clear promise after completion
+  currencySettingsPromise = null;
   return result;
 };
 
-// Save currency settings to SQLite
 export const saveCurrencySettings = async (settings: CurrencySettings): Promise<void> => {
   try {
-    // Use dynamic import to avoid circular dependencies
     const { sqliteService } = await import('@/services/sqlite.svc');
 
     if (sqliteService.isReady()) {
       await sqliteService.setSetting('currency_format_settings', settings, 'general');
+      currencySettingsCache = settings;
     }
   } catch (error) {
     console.error('Error saving currency settings:', error);
   }
 };
 
-// Format a number according to currency settings
 const formatNumber = (amount: number, settings: CurrencySettings): string => {
   const { decimalPlaces, thousandsSeparator, decimalSeparator } = settings;
-  
-  // Round to specified decimal places
+
   const rounded = Number(amount.toFixed(decimalPlaces));
-  
-  // Split into integer and decimal parts
+
   const parts = rounded.toFixed(decimalPlaces).split('.');
   let integerPart = parts[0];
   const decimalPart = parts[1];
-  
-  // Add thousands separator
+
   if (thousandsSeparator !== 'none' && integerPart.length > 3) {
     const regex = /(\d)(?=(\d{3})+(?!\d))/g;
     integerPart = integerPart.replace(regex, `$1${thousandsSeparator}`);
   }
-  
-  // Combine with decimal separator
+
   let result = integerPart;
   if (decimalPlaces > 0) {
     result += decimalSeparator + decimalPart;
   }
-  
+
   return result;
 };
 
-// Format currency according to user settings (async)
-export const formatCurrency = async (amount: number | undefined | null, customSettings?: Partial<CurrencySettings>): Promise<string> => {
+export const formatCurrency = async (
+  amount: number | undefined | null,
+  customSettings?: Partial<CurrencySettings>
+): Promise<string> => {
   const safeAmount = amount || 0;
   const settings = customSettings ? { ...await getCurrencySettings(), ...customSettings } : await getCurrencySettings();
-  
+
   const symbol = getCurrencySymbol(settings.currency);
   const formattedNumber = formatNumber(safeAmount, settings);
-  
-  return settings.symbolPosition === 'before' 
+
+  return settings.symbolPosition === 'before'
     ? `${symbol}${formattedNumber}`
     : `${formattedNumber}${symbol}`;
 };
 
-// Synchronous version using default settings (for components that can't handle async)
-export const formatCurrencySync = (amount: number | undefined | null, currency: string = 'USD'): string => {
+export const formatCurrencySync = (
+  amount: number | undefined | null,
+  currency: string = 'USD'
+): string => {
   const safeAmount = amount || 0;
   const symbol = getCurrencySymbol(currency);
-  
-  // Use default formatting for sync version
+
   const formatted = safeAmount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
-  
+
   return `${symbol}${formatted}`;
 };
 
-// Get a preview of how currency will look with given settings
 export const getCurrencyFormatPreview = (settings: CurrencySettings): string => {
   const sampleAmount = 1234.56;
   const symbol = getCurrencySymbol(settings.currency);
   const formattedNumber = formatNumber(sampleAmount, settings);
-  
-  return settings.symbolPosition === 'before' 
+
+  return settings.symbolPosition === 'before'
     ? `${symbol}${formattedNumber}`
     : `${formattedNumber}${symbol}`;
 };
 
-// Note: Currency validation is now handled by settingsValidation.ts
+export const clearCurrencyCache = (): void => {
+  currencySettingsCache = null;
+  currencySettingsPromise = null;
+};

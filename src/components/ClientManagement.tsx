@@ -4,7 +4,7 @@ import { Plus, Search, Users, Building, Mail, Phone, LayoutGrid, Table, Edit, Tr
 import { ClientForm } from './ClientForm';
 import { ClientImportExport } from './clients/ClientImportExport';
 import { PaginationControls } from './ui/PaginationControls';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { formatDateSync } from '@/components/ui/FormattedDate';

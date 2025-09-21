@@ -1,31 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X, Eye, Send, Printer } from 'lucide-react';
 import { invoiceOperations } from '@/lib/database';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { useNavigate } from 'react-router-dom';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { validateInvoiceForSave, validateInvoiceForSend, getAvailableInvoiceActions } from '@/utils/invoiceValidation';
+import { validateInvoiceForSave, validateInvoiceForSend, getAvailableInvoiceActions } from '@/utils/data';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
 import { EmailConfigStatus } from '@/types';
 import { EmailStatus } from '@/types/domain/invoice.types';
 import { toast } from 'sonner';
-import { InvoiceType, InvoiceStatus } from '@/types';
+import { InvoiceType, InvoiceStatus, InvoiceItem } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate } from '@/types';
-import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
+import { formatClientAddressSingleLine } from '@/utils/formatting';
 
-interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
 
 interface CreateInvoicePageProps {
   onBack: () => void;
@@ -42,15 +35,15 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     due_date: '',
     status: 'draft'
   });
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
+  const [lineItems, setLineItems] = useState<InvoiceItem[]>([
+    { id: 1, description: '', quantity: 1, unit_price: 0, total: 0 }
   ]);
   const [selectedTaxRate, setSelectedTaxRate] = useState<TaxRate | null>(null);
   const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
-  const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [originalFormData, setOriginalFormData] = useState<any>(null); // TODO: Create proper interface for form data
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -125,11 +118,11 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           if (editingInvoice.description) {
             const descriptions = editingInvoice.description.split(', ');
             const items = descriptions.map((desc: string, index: number) => ({
-              id: (index + 1).toString(),
+              id: index + 1,
               description: desc,
               quantity: 1,
-              rate: editingInvoice.amount / descriptions.length,
-              amount: editingInvoice.amount / descriptions.length
+              unit_price: editingInvoice.amount / descriptions.length,
+              total: editingInvoice.amount / descriptions.length
             }));
             setLineItems(items);
           }
@@ -163,28 +156,28 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   }, [editingInvoice]);
 
   const addLineItem = () => {
-    const newItem: LineItem = {
-      id: Date.now().toString(),
+    const newItem: InvoiceItem = {
+      id: Date.now(),
       description: '',
       quantity: 1,
-      rate: 0,
-      amount: 0
+      unit_price: 0,
+      total: 0
     };
     setLineItems([...lineItems, newItem]);
   };
 
-  const removeLineItem = (id: string) => {
+  const removeLineItem = (id: number) => {
     if (lineItems.length > 1) {
       setLineItems(lineItems.filter(item => item.id !== id));
     }
   };
 
-  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
+  const updateLineItem = (id: number, field: keyof InvoiceItem, value: string | number) => {
     setLineItems(lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        if (field === 'quantity' || field === 'rate') {
-          updatedItem.amount = updatedItem.quantity * updatedItem.rate;
+        if (field === 'quantity' || field === 'unit_price') {
+          updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
         }
         return updatedItem;
       }
@@ -192,45 +185,24 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
     }));
   };
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const taxAmount = selectedTaxRate ? subtotal * (selectedTaxRate.rate / 100) : 0;
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
 
   // Validation for save button
   const isValidForSave = () => {
-    const invoiceItems = lineItems.map(item => ({
-      id: parseInt(item.id) || undefined,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.rate,
-      total: item.amount
-    }));
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems, !editingInvoice);
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems, !editingInvoice);
     return validation.isValid;
   };
 
   const isValidForSend = () => {
-    const invoiceItems = lineItems.map(item => ({
-      id: parseInt(item.id) || undefined,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.rate,
-      total: item.amount
-    }));
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems, !editingInvoice);
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems, !editingInvoice);
     return validation.canSend;
   };
 
   const getActionAvailability = () => {
-    const invoiceItems = lineItems.map(item => ({
-      id: parseInt(item.id) || undefined,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.rate,
-      total: item.amount
-    }));
-    return getAvailableInvoiceActions(invoiceData, selectedClient, invoiceItems, !editingInvoice);
+    return getAvailableInvoiceActions(invoiceData, selectedClient, lineItems, !editingInvoice);
   };
 
   const handleBackClick = () => {
@@ -248,6 +220,14 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
     setIsSaving(true);
     try {
+      // Auto-fill due date if not set (same logic as handleSendInvoice)
+      const updatedInvoiceData = { ...invoiceData };
+      if (!updatedInvoiceData.due_date || updatedInvoiceData.due_date.trim() === '') {
+        updatedInvoiceData.due_date = new Date().toISOString().split('T')[0];
+        // Update the state so user sees the auto-filled date
+        setInvoiceData(updatedInvoiceData);
+      }
+
       const basePayload = {
         client_id: selectedClient.id,
         amount: subtotal,
@@ -255,8 +235,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time' as InvoiceType,
-        status: invoiceData.status as InvoiceStatus,
-        due_date: invoiceData.due_date,
+        status: updatedInvoiceData.status as InvoiceStatus,
+        due_date: updatedInvoiceData.due_date,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -272,7 +252,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
 
       // For updates, include the invoice number; for creates, let server auto-generate
       const invoicePayload = editingInvoice
-        ? { ...basePayload, invoice_number: invoiceData.invoice_number }
+        ? { ...basePayload, invoice_number: updatedInvoiceData.invoice_number }
         : basePayload;
 
       if (editingInvoice) {
@@ -304,9 +284,16 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           throw new Error(`Failed to create invoice: ${response.statusText}`);
         }
 
+        const result = await response.json();
+        const createdInvoice = result.data;
+
+        // Update editingInvoice state so the UI knows it's saved
+        setEditingInvoice(createdInvoice);
+
         toast.success('Invoice saved successfully');
       }
-      navigate('/invoices');
+
+      // Don't navigate away - stay on the page so user can print or send
     } catch (error) {
       console.error('Error saving invoice:', error);
       toast.error('Error saving invoice. Please try again.');
@@ -402,25 +389,18 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   };
 
   const handlePrintInvoice = async () => {
-    if (!isValidForSave() || viewOnly) {
+    if (!editingInvoice?.id || viewOnly) {
       return;
     }
 
-    // First save the invoice if it hasn't been saved yet
-    if (!editingInvoice?.id) {
-      await handleSave();
-    }
-
-    if (editingInvoice?.id) {
-      try {
-        await pdfService.downloadInvoicePDF(
-          editingInvoice.id,
-          editingInvoice.invoice_number
-        );
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-        toast.error('Failed to generate PDF. Please try again.');
-      }
+    try {
+      await pdfService.downloadInvoicePDF(
+        editingInvoice.id,
+        editingInvoice.invoice_number
+      );
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF. Please try again.');
     }
   };
 
@@ -458,6 +438,17 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                 {isSaving ? 'Saving...' : (editingInvoice ? 'Update Invoice' : 'Save Invoice')}
               </button>
 
+              {/* Print button in header - only show after invoice is saved */}
+              {editingInvoice?.id && (
+                <button
+                  onClick={handlePrintInvoice}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Invoice
+                </button>
+              )}
+
               {(() => {
                 const actions = getActionAvailability();
                 const hasClientEmail = selectedClient?.email && selectedClient.email.trim() !== '';
@@ -492,19 +483,23 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     tooltipMessage = 'Invoice has already been sent';
                   }
 
+                  // Determine print button tooltip
+                  const printTooltipMessage = !editingInvoice?.id ? 'Save invoice first to enable printing' : '';
+                  const showTooltip = tooltipMessage || printTooltipMessage;
+
                   return (
                     <div className="relative group">
                       <button
                         onClick={handlePrintInvoice}
-                        disabled={!isValidForSave()}
+                        disabled={!editingInvoice?.id}
                         className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
                       >
                         <Printer className="h-4 w-4 mr-2" />
                         Print Invoice
                       </button>
-                      {tooltipMessage && (
+                      {showTooltip && (
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                          {tooltipMessage}
+                          {tooltipMessage || printTooltipMessage}
                           <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                         </div>
                       )}
@@ -625,8 +620,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     <td className="py-3 text-right">
                       <input
                         type="number"
-                        value={item.rate}
-                        onChange={(e) => !viewOnly && updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                        value={item.unit_price}
+                        onChange={(e) => !viewOnly && updateLineItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
                         className={`w-full text-right border-0 focus:ring-0 p-0 bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
                         min="0"
                         step="0.01"
@@ -634,7 +629,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                       />
                     </td>
                     <td className="py-3 text-right font-medium text-card-foreground">
-                      ${item.amount.toFixed(2)}
+                      ${item.total.toFixed(2)}
                     </td>
                     {!viewOnly && (
                       <td className="py-3">

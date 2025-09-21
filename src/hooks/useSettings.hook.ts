@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { getAuthToken } from '@/utils/apiUtils.util';
+import { getToken as getAuthToken } from '@/utils/api';
 
 // Global cache to prevent multiple API calls for the same settings across all component instances
 const globalSettingsCache = new Map<string, {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, TrendingUp, TrendingDown, Save, Calendar } from 'lucide-react';
 import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
-import { formatDateRangeSync } from '@/utils/dateFormatting';
+import { formatDateRangeSync } from '@/utils/formatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { ProfitLossReportProps, ProfitLossReportData, ReportDateRange, AccountingMethod, BreakdownPeriod } from '@/types';

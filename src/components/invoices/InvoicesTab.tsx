@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, DollarSign, Calendar, User, Search, LayoutGrid, Table, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/apiUtils.util';
+import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/api';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoiceViewModal } from './InvoiceViewModal';
 import { PaginationControls } from '../ui/PaginationControls';
 import { DateRangeFilter } from '../ui/DateRangeFilter';
 import { usePagination } from '@/hooks/usePagination';
 import { getStatusColor } from '@/utils/themeUtils.util';
-import { filterByDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
+import { filterByDateRange, getDateRangeForPeriod } from '@/utils/data';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { createPaymentForInvoice } from '@/utils/paymentHelpers';

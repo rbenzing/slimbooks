@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency, formatCurrencySync } from '@/utils/currencyFormatting';
+import { formatCurrency, formatCurrencySync } from '@/utils/formatting';
 import { CurrencySettings } from '@/types';
 
 interface FormattedCurrencyProps {

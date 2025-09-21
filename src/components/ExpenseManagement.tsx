@@ -20,7 +20,7 @@ import { ExpenseImportExport } from './expenses/ExpenseImportExport';
 import { ExpenseViewModal } from './expenses/ExpenseViewModal';
 import { PaginationControls } from './ui/PaginationControls';
 import { DateRangeFilter } from './ui/DateRangeFilter';
-import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/apiUtils.util';
+import { authenticatedFetch, apiPost, apiPut, apiDelete } from '@/utils/api';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 import { 
@@ -29,7 +29,7 @@ import {
   getButtonClasses, 
   getStatusColor 
 } from '@/utils/themeUtils.util';
-import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/dateRangeFiltering.util';
+import { filterByDateRange, getDefaultDateRange, getDateRangeForPeriod } from '@/utils/data';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';

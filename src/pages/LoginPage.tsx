@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
-import { AuthUtils } from '@/utils/authUtils.util';
+import { AuthUtils } from '@/utils/api';
 
 export const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({

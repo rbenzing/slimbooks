@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
 import { TimePeriod, DateRange } from '@/types';
-import { 
-  dateRangeFilterOptions, 
-  getDateRangeForPeriod, 
-  getDateRangeLabel 
-} from '@/utils/dateRangeFiltering.util';
+import {
+  getDateRangeForPeriod,
+  formatDateRangeLabel,
+  dateRangeFilterOptions
+} from '@/utils/data';
 import { cn } from '@/utils/themeUtils.util';
 
 interface DateRangeFilterProps {

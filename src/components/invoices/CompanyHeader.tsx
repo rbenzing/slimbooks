@@ -4,8 +4,8 @@ import { Upload } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useSettings.hook';
 
 interface CompanyHeaderProps {
-  companyLogo: string;
-  onLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  companyLogo: string | null;
+  onLogoUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLogoUpload }) => {
@@ -26,12 +26,14 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({ companyLogo, onLog
         ) : (
           <Upload className="h-6 w-6 text-muted-foreground" />
         )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={onLogoUpload}
-          className="absolute inset-0 opacity-0 cursor-pointer"
-        />
+        {onLogoUpload && (
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onLogoUpload}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+        )}
       </div>
       <div>
         <h1 className="text-2xl font-bold text-card-foreground">{companySettings.companyName}</h1>

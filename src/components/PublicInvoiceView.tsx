@@ -7,7 +7,7 @@ import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { envConfig } from '@/lib/env-config';
 import { InvoiceItem } from '@/types';
-import { formatClientAddress } from '@/utils/addressFormatting';
+import { formatClientAddress } from '@/utils/formatting';
 
 export const PublicInvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,14 +73,26 @@ export const PublicInvoiceView: React.FC = () => {
         if (invoiceRecord.line_items) {
           try {
             const parsedLineItems = JSON.parse(invoiceRecord.line_items);
-            setLineItems(parsedLineItems.length > 0 ? parsedLineItems : [
-              { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
-            ]);
+            if (parsedLineItems.length > 0) {
+              setLineItems(parsedLineItems);
+            } else {
+              const fallbackAmount = invoiceRecord.total_amount || invoiceRecord.amount || 0;
+              setLineItems([
+                { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: fallbackAmount, total: fallbackAmount }
+              ]);
+            }
           } catch (e) {
+            const fallbackAmount = invoiceRecord.total_amount || invoiceRecord.amount || 0;
             setLineItems([
-              { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
+              { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: fallbackAmount, total: fallbackAmount }
             ]);
           }
+        } else {
+          // Fallback: create line item from invoice amount if no line_items data
+          const fallbackAmount = invoiceRecord.total_amount || invoiceRecord.amount || 0;
+          setLineItems([
+            { id: 1, description: invoiceRecord.description || 'Invoice', quantity: 1, unit_price: fallbackAmount, total: fallbackAmount }
+          ]);
         }
 
       } catch (error) {
@@ -108,7 +120,10 @@ export const PublicInvoiceView: React.FC = () => {
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const taxAmount = invoice?.tax_amount || 0;
   const shippingAmount = invoice?.shipping_amount || 0;
-  const total = subtotal + taxAmount + shippingAmount;
+
+  // Use calculated total, but fallback to invoice.total_amount if line items are empty
+  const calculatedTotal = subtotal + taxAmount + shippingAmount;
+  const total = calculatedTotal > 0 ? calculatedTotal : (invoice?.total_amount || invoice?.amount || 0);
 
   const handleDownloadPDF = async () => {
     if (!id || !token || !invoice) return;
@@ -219,10 +234,19 @@ export const PublicInvoiceView: React.FC = () => {
             <h3 className="text-lg font-semibold text-card-foreground mb-2">Bill To:</h3>
             <div className="text-muted-foreground">
               <div className="font-medium text-card-foreground">{invoice.client_name}</div>
+              {invoice.client_company && <div>{invoice.client_company}</div>}
               {invoice.client_email && <div>{invoice.client_email}</div>}
               {invoice.client_phone && <div>{invoice.client_phone}</div>}
-              {invoice.client_address && cleanClientAddress(invoice.client_address) && (
-                <div className="whitespace-pre-line">{cleanClientAddress(invoice.client_address)}</div>
+              {(invoice.client_address || invoice.client_city || invoice.client_state || invoice.client_zipCode) && (
+                <div className="whitespace-pre-line">
+                  {formatClientAddress({
+                    address: invoice.client_address,
+                    city: invoice.client_city,
+                    state: invoice.client_state,
+                    zipCode: invoice.client_zipCode,
+                    country: invoice.client_country
+                  })}
+                </div>
               )}
             </div>
           </div>

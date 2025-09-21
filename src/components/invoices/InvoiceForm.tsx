@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { themeClasses } from '@/utils/themeUtils.util';
-import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
+import { formatClientAddressSingleLine } from '@/utils/formatting';
 
 interface InvoiceFormProps {
   isOpen: boolean;

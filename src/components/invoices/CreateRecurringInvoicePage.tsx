@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { invoiceOperations, templateOperations } from '@/lib/database';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
@@ -12,8 +12,8 @@ interface LineItem {
   id: string;
   description: string;
   quantity: number;
-  rate: number;
-  amount: number;
+  unit_price: number;
+  total: number;
 }
 
 interface CreateRecurringInvoicePageProps {
@@ -33,7 +33,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     payment_terms: 'net_30'
   });
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: '1', description: '', quantity: 1, rate: 0, amount: 0 }
+    { id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }
   ]);
   const [selectedTaxRate, setSelectedTaxRate] = useState<any>(null);
   const [selectedShippingRate, setSelectedShippingRate] = useState<any>(null);
@@ -137,8 +137,8 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
             id: '1',
             description: template.description,
             quantity: 1,
-            rate: template.amount,
-            amount: template.amount
+            unit_price: template.amount,
+            total: template.amount
           }]);
         }
 
@@ -187,7 +187,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         templateData.payment_terms !== (template.payment_terms || 'net_30') ||
         selectedClient?.id !== template.client_id ||
         thankYouMessage !== (template.notes || 'Thank you for your business!') ||
-        JSON.stringify(lineItems) !== (template.line_items || JSON.stringify([{ id: '1', description: '', quantity: 1, rate: 0, amount: 0 }]));
+        JSON.stringify(lineItems) !== (template.line_items || JSON.stringify([{ id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }]));
 
       setIsDirty(hasChanges);
     } else {
@@ -206,8 +206,8 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
       id: Date.now().toString(),
       description: '',
       quantity: 1,
-      rate: 0,
-      amount: 0
+      unit_price: 0,
+      total: 0
     };
     setLineItems([...lineItems, newItem]);
   };
@@ -222,8 +222,8 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     setLineItems(lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        if (field === 'quantity' || field === 'rate') {
-          updatedItem.amount = updatedItem.quantity * updatedItem.rate;
+        if (field === 'quantity' || field === 'unit_price') {
+          updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
         }
         return updatedItem;
       }
@@ -231,7 +231,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     }));
   };
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
   const taxAmount = selectedTaxRate ? subtotal * (selectedTaxRate.rate / 100) : 0;
   const shippingAmount = selectedShippingRate ? selectedShippingRate.amount : 0;
   const total = subtotal + taxAmount + shippingAmount;
@@ -441,15 +441,15 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
                     <td className="py-3 text-right">
                       <input
                         type="number"
-                        value={item.rate}
-                        onChange={(e) => updateLineItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                        value={item.unit_price}
+                        onChange={(e) => updateLineItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
                         className="w-full text-right border-0 focus:ring-0 p-0 bg-transparent text-card-foreground"
                         min="0"
                         step="0.01"
                       />
                     </td>
                     <td className="py-3 text-right font-medium text-card-foreground">
-                      ${item.amount.toFixed(2)}
+                      ${item.total.toFixed(2)}
                     </td>
                     <td className="py-3">
                       {lineItems.length > 1 && (

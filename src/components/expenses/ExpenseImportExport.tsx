@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
-import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/csvUtils';
+import { authenticatedFetch } from '@/utils/api';
+import { exportToCSV, parseCSV, validateExpenseData } from '@/utils/data';
 import { toast } from 'sonner';
 import { themeClasses, getIconColorClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { FieldMapping, ImportExportProps, EXPENSE_FIELDS } from '@/types/shared/import.types';

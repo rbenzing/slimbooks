@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Calendar, DollarSign, Search, LayoutGrid, Table, FileText, TrendingUp, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { TemplateForm } from './TemplateForm';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { themeClasses, getButtonClasses, getIconColorClasses } from '@/utils/themeUtils.util';

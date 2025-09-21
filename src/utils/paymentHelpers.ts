@@ -1,6 +1,6 @@
 // Utility functions for payment-related operations
 import { toast } from 'sonner';
-import { authenticatedFetch } from './apiUtils.util';
+import { authenticatedFetch } from './api';
 import { Invoice } from '@/types';
 import { PaymentFormData } from '@/types';
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
 import { reportOperations } from '../../lib/database';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
-import { formatDateSync, formatDateRangeSync } from '@/utils/dateFormatting';
+import { formatDateSync, formatDateRangeSync } from '@/utils/formatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
 import { Expense } from '@/types';
 import { ExpenseReportData, ExpenseReportProps, ReportDateRange } from '@/types';

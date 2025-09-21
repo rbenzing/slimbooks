@@ -1,6 +1,6 @@
 // Component to handle async date formatting
 import React, { useState, useEffect } from 'react';
-import { formatDate } from '@/utils/dateFormatting';
+import { formatDate } from '@/utils/formatting';
 
 interface FormattedDateProps {
   date: Date | string;

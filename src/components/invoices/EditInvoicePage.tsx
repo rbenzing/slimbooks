@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Plus, X, Send, Printer } from 'lucide-react';
 import { invoiceOperations } from '@/lib/database';
-import { authenticatedFetch } from '@/utils/apiUtils.util';
+import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
-import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults, getInvoiceStatusPermissions } from '@/utils/invoiceValidation';
+import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults } from '@/utils/data';
+import { getInvoiceStatusPermissions } from '@/utils/business';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
@@ -16,8 +17,7 @@ import { toast } from 'sonner';
 import { InvoiceItem, Invoice, InvoiceStatus } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate, validateTaxRateArray } from '@/types';
-import { formatCurrencySync } from '@/utils/currencyFormatting';
-import { formatClientAddressSingleLine } from '@/utils/addressFormatting';
+import { formatCurrencySync, formatClientAddressSingleLine } from '@/utils/formatting';
 
 export const EditInvoicePage = () => {
   const { id } = useParams();
@@ -38,7 +38,7 @@ export const EditInvoicePage = () => {
   const [lineItems, setLineItems] = useState<InvoiceItem[]>([
     { id: 1, description: '', quantity: 1, unit_price: 0, total: 0 }
   ]);
-  const [companyLogo, setCompanyLogo] = useState('');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
   const [selectedTaxRate, setSelectedTaxRate] = useState<TaxRate | null>(null);
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
@@ -70,26 +70,31 @@ export const EditInvoicePage = () => {
               status: invoiceRecord.status || 'draft'
             });
 
-            // Load line items if they exist
-            if (invoiceRecord.line_items) {
+            // Load line items if they exist - check both 'line_items' and 'items' fields
+            const lineItemsData = invoiceRecord.line_items || invoiceRecord.items;
+            if (lineItemsData) {
               try {
-                const parsedLineItems = JSON.parse(invoiceRecord.line_items);
-                // Ensure all line items have total calculated
-                const lineItemsWithTotal = parsedLineItems.map(item => ({
-                  ...item,
+                const parsedLineItems = JSON.parse(lineItemsData);
+                // Ensure all line items have proper format and calculated totals
+                const lineItemsWithTotal = parsedLineItems.map((item, index) => ({
+                  id: item.id || (index + 1),
+                  description: item.description || '',
+                  quantity: item.quantity || 1,
+                  unit_price: item.unit_price || 0,
                   total: item.total || (item.quantity * item.unit_price) || 0
                 }));
                 setLineItems(lineItemsWithTotal.length > 0 ? lineItemsWithTotal : [
                   { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
                 ]);
               } catch (e) {
+                console.warn('Failed to parse line items, using fallback:', e);
                 // Fallback to single line item from description and amount
                 setLineItems([
                   { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
                 ]);
               }
             } else {
-              // Fallback to single line item from description and amount
+              // Fallback to single line item from description and amount (subtotal)
               setLineItems([
                 { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
               ]);
@@ -128,12 +133,16 @@ export const EditInvoicePage = () => {
           const savedTaxRates = await sqliteService.getSetting('tax_rates');
           if (savedTaxRates) {
             setTaxRates(savedTaxRates as TaxRate[]);
-            // If invoice has a saved tax rate ID, use that; otherwise use default
+            // If invoice has a saved tax rate ID, use that; otherwise check if there's tax amount
             if (invoiceRecord?.tax_rate_id) {
               const savedTaxRate = (savedTaxRates as TaxRate[]).find((r: TaxRate) => r.id === invoiceRecord.tax_rate_id);
               setSelectedTaxRate(savedTaxRate || null);
+            } else if (invoiceRecord?.tax_amount && invoiceRecord.tax_amount > 0) {
+              // If there's tax amount but no rate ID, try to find a matching rate or use default
+              setSelectedTaxRate((savedTaxRates as TaxRate[]).find((r: TaxRate) => r.isDefault) || null);
             } else {
-              setSelectedTaxRate((savedTaxRates as TaxRate[]).find((r: TaxRate) => r.isDefault) || (savedTaxRates as TaxRate[])[0]);
+              // No tax rate ID and no tax amount, so no tax is selected
+              setSelectedTaxRate(null);
             }
           }
 
@@ -141,12 +150,16 @@ export const EditInvoicePage = () => {
           const savedShippingRates = await sqliteService.getSetting('shipping_rates');
           if (savedShippingRates) {
             setShippingRates(savedShippingRates as ShippingRate[]);
-            // If invoice has a saved shipping rate ID, use that; otherwise use default
+            // If invoice has a saved shipping rate ID, use that; otherwise check if there's shipping amount
             if (invoiceRecord?.shipping_rate_id) {
               const savedShippingRate = (savedShippingRates as ShippingRate[]).find((r: ShippingRate) => r.id === invoiceRecord.shipping_rate_id);
               setSelectedShippingRate(savedShippingRate || null);
+            } else if (invoiceRecord?.shipping_amount && invoiceRecord.shipping_amount > 0) {
+              // If there's shipping amount but no rate ID, try to find a matching rate or use default
+              setSelectedShippingRate((savedShippingRates as ShippingRate[]).find((r: ShippingRate) => r.isDefault) || null);
             } else {
-              setSelectedShippingRate((savedShippingRates as ShippingRate[]).find((r: ShippingRate) => r.isDefault) || (savedShippingRates as ShippingRate[])[0]);
+              // No shipping rate ID and no shipping amount, so no shipping is selected
+              setSelectedShippingRate(null);
             }
           }
 
@@ -176,39 +189,15 @@ export const EditInvoicePage = () => {
     }
   }, [invoiceData, selectedClient, invoice, lineItems]);
 
-  // Helper function to map InvoiceItem to LineItem format for validation
-  const mapInvoiceItemsToLineItems = (items: InvoiceItem[]) => {
-    return items.map(item => ({
-      id: item.id?.toString() || '1',
-      description: item.description,
-      quantity: item.quantity,
-      rate: item.unit_price,
-      amount: item.total
-    }));
-  };
 
   // Validation functions
   const isValidForSave = () => {
-    const invoiceItems = lineItems.map(item => ({
-      id: item.id,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total: item.total
-    }));
-    const validation = validateInvoiceForSave(invoiceData, selectedClient, invoiceItems);
+    const validation = validateInvoiceForSave(invoiceData, selectedClient, lineItems);
     return validation.isValid;
   };
 
   const isValidForSend = () => {
-    const invoiceItems = lineItems.map(item => ({
-      id: item.id,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total: item.total
-    }));
-    const validation = validateInvoiceForSend(invoiceData, selectedClient, invoiceItems);
+    const validation = validateInvoiceForSend(invoiceData, selectedClient, lineItems);
     return validation.canSend;
   };
 
@@ -224,6 +213,14 @@ export const EditInvoicePage = () => {
 
     setIsSaving(true);
     try {
+      // Auto-fill due date if not set (same logic as handleSendInvoice)
+      const updatedInvoiceData = { ...invoiceData };
+      if (!updatedInvoiceData.due_date || updatedInvoiceData.due_date.trim() === '') {
+        updatedInvoiceData.due_date = new Date().toISOString().split('T')[0];
+        // Update the state so user sees the auto-filled date
+        setInvoiceData(updatedInvoiceData);
+      }
+
       // Calculate total amount from line items
       const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
       const taxAmount = selectedTaxRate ? (subtotal * selectedTaxRate.rate) / 100 : 0;
@@ -231,13 +228,13 @@ export const EditInvoicePage = () => {
       const total = subtotal + taxAmount + shippingAmount;
 
       const updatedInvoice = {
-        invoice_number: invoiceData.invoice_number,
+        invoice_number: updatedInvoiceData.invoice_number,
         client_id: selectedClient.id,
         template_id: invoice.template_id,
         amount: subtotal,
         total_amount: total,
-        status: invoiceData.status,
-        due_date: invoiceData.due_date,
+        status: updatedInvoiceData.status,
+        due_date: updatedInvoiceData.due_date,
         description: lineItems.map(item => item.description).join(', '),
         stripe_invoice_id: invoice.stripe_invoice_id,
         type: invoice.type,
@@ -272,7 +269,7 @@ export const EditInvoicePage = () => {
   };
 
   const handleSendInvoice = async () => {
-    if (!isValidForSend() || isSending) {
+    if (isSending) {
       return;
     }
 
@@ -356,7 +353,8 @@ export const EditInvoicePage = () => {
   };
 
   const handlePrintInvoice = async () => {
-    if (!isValidForSave()) {
+    // In edit mode, invoice always exists, so we can always print
+    if (!invoice?.id) {
       return;
     }
 
@@ -511,7 +509,7 @@ export const EditInvoicePage = () => {
                       return (
                         <button
                           onClick={handleSendInvoice}
-                          disabled={!isValidForSend() || isSending}
+                          disabled={isSending}
                           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
                         >
                           <Send className="h-4 w-4 mr-2" />
@@ -533,7 +531,7 @@ export const EditInvoicePage = () => {
                         <div className="relative group">
                           <button
                             onClick={handlePrintInvoice}
-                            disabled={!isValidForSave()}
+                            disabled={false}
                             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center"
                           >
                             <Printer className="h-4 w-4 mr-2" />
@@ -742,9 +740,9 @@ export const EditInvoicePage = () => {
             </div>
           </div>
 
-          {/* Thank You Message */}
+          {/* Thank You Message/Notes */}
           <div className="border-t-2 border-border dark:border-gray-500 pt-6">
-            <label className="block text-sm font-medium text-card-foreground mb-2">Thank You Message</label>
+            <label className="block text-sm font-medium text-card-foreground mb-2">Note</label>
             <textarea
               value={thankYouMessage}
               onChange={(e) => setThankYouMessage(e.target.value)}
