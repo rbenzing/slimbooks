@@ -36,6 +36,7 @@ import {
   MAX_PAGE_NUMBERS_OPTIONS
 } from '@/utils/paginationSettings';
 import { validatePaginationSettings } from '@/utils/settingsValidation';
+import { getToken } from '@/utils/api';
 import type { DateTimeSettings, InvoiceNumberSettings, PaginationSettings, CurrencySettings } from '@/types';
 import type { SettingsTabRef } from '../Settings';
 
@@ -137,7 +138,7 @@ export const GeneralSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ settings: settingsToSave })
       });

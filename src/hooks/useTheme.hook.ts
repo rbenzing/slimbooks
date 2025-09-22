@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getToken } from '@/utils/api';
 
 export type ThemeType = 'light' | 'dark' | 'system';
 
@@ -92,7 +93,7 @@ export const useTheme = () => {
       initializationPromise = (async () => {
         try {
           // Check if user is authenticated before trying to load from database
-          const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          const authToken = getToken();
           
           if (!authToken) {
             console.log('useTheme: No auth token found, using localStorage fallback');
@@ -181,7 +182,7 @@ export const useTheme = () => {
         const { sqliteService } = await import('@/services/sqlite.svc');
         console.log('useTheme: Saving theme to database:', newTheme);
         console.log('useTheme: Checking authentication token...');
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const token = getToken();
         console.log('useTheme: Auth token available:', !!token);
         if (token) {
           console.log('useTheme: Token length:', token.length);

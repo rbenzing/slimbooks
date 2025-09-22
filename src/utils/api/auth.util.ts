@@ -3,7 +3,15 @@ const REFRESH_TOKEN_KEY = 'refresh_token';
 
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+
+  // Check localStorage first (for "remember me" tokens)
+  const localToken = localStorage.getItem(TOKEN_KEY);
+  const sessionToken = sessionStorage.getItem(TOKEN_KEY);
+
+  if (localToken) return localToken;
+
+  // Fall back to sessionStorage (for session-only tokens)
+  return sessionToken;
 };
 
 export const setToken = (token: string): void => {
@@ -18,7 +26,12 @@ export const removeToken = (): void => {
 
 export const getRefreshToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  // Check localStorage first (for "remember me" tokens)
+  const localToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (localToken) return localToken;
+
+  // Fall back to sessionStorage (for session-only tokens)
+  return sessionStorage.getItem(REFRESH_TOKEN_KEY);
 };
 
 export const setRefreshToken = (token: string): void => {
@@ -92,45 +105,5 @@ export class AuthUtils {
       isValid: errors.length === 0,
       errors
     };
-  }
-
-  static async hashPassword(password: string): Promise<string> {
-    // For security, password hashing should be done on the backend
-    // This is just a placeholder that should not be used for actual hashing
-    // The frontend should send plain password to backend for proper bcrypt hashing
-    return password; // Backend will hash this properly
-  }
-
-  static generateEmailToken(email: string, userId: number): string {
-    // Generate a simple token for email verification
-    // In production, this should be done on the backend with proper JWT signing
-    const payload = { email, userId, exp: Date.now() + 24 * 60 * 60 * 1000 }; // 24 hours
-    return btoa(JSON.stringify(payload));
-  }
-
-  static generateAccessToken(payload: any, rememberMe: boolean = false): string {
-    // Frontend should not generate tokens - this should be done by backend
-    // This is a placeholder to prevent errors
-    const expiry = rememberMe ? Date.now() + 7 * 24 * 60 * 60 * 1000 : Date.now() + 2 * 60 * 60 * 1000;
-    return btoa(JSON.stringify({ ...payload, exp: expiry }));
-  }
-
-  static generateRefreshToken(payload: any, rememberMe: boolean = false): string {
-    // Frontend should not generate tokens - this should be done by backend
-    // This is a placeholder to prevent errors
-    const expiry = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-    return btoa(JSON.stringify({ ...payload, exp: expiry, type: 'refresh' }));
-  }
-
-  static verifyEmailToken(token: string): any {
-    try {
-      const payload = JSON.parse(atob(token));
-      if (payload.exp && payload.exp < Date.now()) {
-        return null; // Token expired
-      }
-      return payload;
-    } catch {
-      return null; // Invalid token
-    }
   }
 }

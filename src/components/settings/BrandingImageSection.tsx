@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { CompanySettings } from '@/types';
 import { toast } from 'sonner';
+import { getToken } from '@/utils/api';
 
 interface BrandingImageSectionProps {
   settings: CompanySettings;
@@ -41,7 +42,7 @@ export const BrandingImageSection: React.FC<BrandingImageSectionProps> = ({
       const formData = new FormData();
       formData.append('logo', file);
 
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
 
       const response = await fetch('/api/settings/company/logo', {
         method: 'POST',
@@ -75,7 +76,7 @@ export const BrandingImageSection: React.FC<BrandingImageSectionProps> = ({
     setIsDeleting(true);
 
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
 
       const response = await fetch('/api/settings/company/logo', {
         method: 'DELETE',

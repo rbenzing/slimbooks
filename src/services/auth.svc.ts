@@ -68,18 +68,8 @@ export class AuthService {
         return { success: false, message: 'Failed to create user' };
       }
 
-      // Send verification email if email verification is required
-      if (DEFAULT_SECURITY_SETTINGS.require_email_verification) {
-        try {
-          const verificationToken = AuthUtils.generateEmailToken(user.email, user.id);
-
-          // TODO: Send verification email using email service
-          // In development, verification tokens would be logged here
-        } catch (emailError) {
-          console.error('Failed to send verification email:', emailError);
-          // Don't fail registration if email sending fails
-        }
-      }
+      // Email verification is handled by the backend
+      // The server will send verification emails if configured
 
       return {
         success: true,
@@ -148,21 +138,8 @@ export class AuthService {
     this.currentUser = user;
   }
 
-  // Note: Token generation should be handled entirely by the backend
-  // This method is kept for compatibility but should not be used
-  private generateTokens(user: User, rememberMe: boolean = false): { accessToken: string; refreshToken: string } {
-    console.warn('Frontend should not generate tokens. This is handled by the backend.');
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role
-    };
-
-    return {
-      accessToken: AuthUtils.generateAccessToken(payload, rememberMe),
-      refreshToken: AuthUtils.generateRefreshToken(payload, rememberMe)
-    };
-  }
+  // Token generation is handled entirely by the backend via JWT
+  // This ensures proper security and prevents client-side token forgery
 
   // Get current user
   getCurrentUser(): User | null {

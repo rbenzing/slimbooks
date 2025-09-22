@@ -51,8 +51,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       return;
     }
     
-    // TODO: Implement JWT verification when JWT is fully implemented
-    // For now, we'll use a simple token validation
+    // Verify JWT token
     try {
       const decoded = jwt.verify(token, authConfig.jwtSecret) as JWTPayload;
 

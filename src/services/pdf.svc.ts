@@ -3,6 +3,7 @@
 
 import { envConfig } from '@/lib/env-config';
 import { PDFGenerationOptions } from '@/types';
+import { getToken } from '@/utils/api';
 
 // PDFGenerationOptions moved to @/types/common.types.ts
 
@@ -18,7 +19,7 @@ class PDFService {
    */
   async generateInvoicePDF(invoiceId: number, options?: PDFGenerationOptions): Promise<Blob> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${this.baseUrl}/invoice/${invoiceId}/download`, {
         method: 'GET',
         headers: {
@@ -105,7 +106,7 @@ class PDFService {
    */
   async generatePagePDF(url: string, filename?: string, options?: PDFGenerationOptions): Promise<Blob> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${this.baseUrl}/page`, {
         method: 'POST',
         headers: {
@@ -199,7 +200,7 @@ class PDFService {
    */
   async getServiceStatus(): Promise<{ status: string; message?: string }> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${this.baseUrl}/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -222,7 +223,7 @@ class PDFService {
    */
   async generatePublicInvoiceToken(invoiceId: number): Promise<string> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${this.baseUrl.replace('/pdf', '')}/invoices/${invoiceId}/public-token`, {
         method: 'POST',
         headers: {

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme.hook';
+import { getToken } from '@/utils/api';
 import type { SettingsTabRef } from '../Settings';
 
 export const AppearanceSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
@@ -39,7 +40,7 @@ export const AppearanceSettingsTab = forwardRef<SettingsTabRef>((props, ref) => 
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ settings: settingsToSave })
       });

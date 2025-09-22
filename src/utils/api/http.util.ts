@@ -32,6 +32,14 @@ export const authenticatedFetch = async (
   const baseUrl = getBaseUrl();
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
+  // Debug logging
+  console.log('AuthenticatedFetch Debug:', {
+    url: fullUrl,
+    hasToken: !!token,
+    tokenLength: token?.length || 0,
+    tokenStart: token?.substring(0, 20) + '...' || 'null'
+  });
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -39,6 +47,8 @@ export const authenticatedFetch = async (
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('No token found for authenticated request to:', fullUrl);
   }
 
   const config: RequestInit = {

@@ -14,6 +14,7 @@ import {
 } from '@/types';
 import type { ApiResponse } from '@/types/shared/common.types';
 import { parseProjectSettingsWithDefaults, validateProjectSettings } from '@/utils/settingsValidation';
+import { getToken } from '@/utils/api';
 class SQLiteService {
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -99,7 +100,7 @@ class SQLiteService {
     };
 
     // Add authorization header if token is available
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const token = getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -609,7 +610,8 @@ class SQLiteService {
       };
 
       // Add authorization header if token is available
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const { getToken } = await import('@/utils/api/auth.util');
+      const token = getToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -639,7 +641,8 @@ class SQLiteService {
       const headers: Record<string, string> = {};
 
       // Add authorization header if token is available
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const { getToken } = await import('@/utils/api/auth.util');
+      const token = getToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

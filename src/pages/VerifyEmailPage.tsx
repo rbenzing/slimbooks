@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Mail, ArrowLeft } from 'lucide-react';
-import { AuthUtils } from '@/utils/api';
 
 export const VerifyEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -21,16 +20,7 @@ export const VerifyEmailPage: React.FC = () => {
       }
 
       try {
-        // Verify the token
-        const payload = AuthUtils.verifyEmailToken(token);
-        
-        if (!payload) {
-          setStatus('expired');
-          setMessage('This verification link has expired. Please request a new verification email.');
-          return;
-        }
-
-        // Call the API to verify the email
+        // Call the API to verify the email - backend validates the token
         const response = await fetch(`/api/auth/verify-email`, {
           method: 'POST',
           headers: {

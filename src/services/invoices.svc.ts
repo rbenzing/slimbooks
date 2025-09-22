@@ -6,6 +6,7 @@ import { EmailService } from './email.svc';
 import { generateInvoiceToken } from '@/utils/invoiceTokens';
 import { sqliteService } from './sqlite.svc';
 import { formatClientAddressSingleLine, formatClientAddress } from '@/utils/formatting';
+import { getToken } from '@/utils/api';
 import {
   InvoiceEmailData,
   CompanySettings,
@@ -813,7 +814,7 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async generateInvoiceNumber(): Promise<string> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch('/api/invoices/generate-number', {
         method: 'POST',
         headers: {
@@ -844,7 +845,7 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async previewNextInvoiceNumber(): Promise<string> {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch('/api/invoices/preview-number', {
         method: 'GET',
         headers: {
