@@ -8,7 +8,7 @@ import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults } from '@/utils/data';
-import { getInvoiceStatusPermissions } from '@/utils/business';
+import { getInvoiceStatusPermissions } from '@/utils/business/invoice.util';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
 import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
@@ -76,28 +76,34 @@ export const EditInvoicePage = () => {
               try {
                 const parsedLineItems = JSON.parse(lineItemsData);
                 // Ensure all line items have proper format and calculated totals
-                const lineItemsWithTotal = parsedLineItems.map((item, index) => ({
-                  id: item.id || (index + 1),
-                  description: item.description || '',
-                  quantity: item.quantity || 1,
-                  unit_price: item.unit_price || 0,
-                  total: item.total || (item.quantity * item.unit_price) || 0
-                }));
-                setLineItems(lineItemsWithTotal.length > 0 ? lineItemsWithTotal : [
-                  { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
-                ]);
+                const lineItemsWithTotal = parsedLineItems.map((item, index) => {
+                  // Handle multiple possible field names for flexibility
+                  const quantity = parseFloat(item.quantity || item.qty || 1);
+                  const unit_price = parseFloat(item.unit_price || item.price || item.rate || item.unitPrice || 0);
+                  const amount = parseFloat(item.amount || item.total || item.lineTotal || 0);
+
+                  // Calculate total if not provided or if calculated value makes more sense
+                  const calculatedTotal = quantity * unit_price;
+                  const finalTotal = amount > 0 ? amount : calculatedTotal;
+
+                  // Ensure we don't have NaN values
+                  return {
+                    id: item.id || (index + 1),
+                    description: item.description || item.desc || '',
+                    quantity: isNaN(quantity) ? 1 : quantity,
+                    unit_price: isNaN(unit_price) ? 0 : unit_price,
+                    total: isNaN(finalTotal) ? 0 : finalTotal
+                  };
+                });
+                // Filter out completely invalid line items (those with no description and 0 amounts)
+                const validLineItems = lineItemsWithTotal.filter(item =>
+                  item.description.trim() !== '' || item.unit_price > 0 || item.total > 0
+                );
+                // Use parsed line items
+                setLineItems(recalculateLineItemTotals(validLineItems));
               } catch (e) {
-                console.warn('Failed to parse line items, using fallback:', e);
-                // Fallback to single line item from description and amount
-                setLineItems([
-                  { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
-                ]);
+                console.error('Failed to parse line items:', e);
               }
-            } else {
-              // Fallback to single line item from description and amount (subtotal)
-              setLineItems([
-                { id: 1, description: invoiceRecord.description || '', quantity: 1, unit_price: invoiceRecord.amount || 0, total: invoiceRecord.amount || 0 }
-              ]);
             }
 
             // Set thank you message
@@ -386,28 +392,39 @@ export const EditInvoicePage = () => {
     }
   };
 
+  // Helper function to recalculate all line item totals
+  const recalculateLineItemTotals = (items: InvoiceItem[]) => {
+    return items.map(item => ({
+      ...item,
+      total: (parseFloat(String(item.quantity)) || 0) * (parseFloat(String(item.unit_price)) || 0)
+    }));
+  };
+
   // Helper functions for line items
   const updateLineItem = (id: number, field: keyof InvoiceItem, value: string | number) => {
     setLineItems(items => items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         if (field === 'quantity' || field === 'unit_price') {
-          updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
+          updatedItem.total = (parseFloat(String(updatedItem.quantity)) || 0) * (parseFloat(String(updatedItem.unit_price)) || 0);
         }
         return updatedItem;
       }
       return item;
     }));
+    setIsDirty(true);
   };
 
   const addLineItem = () => {
     const newId = lineItems.length + 1;
     setLineItems([...lineItems, { id: newId, description: '', quantity: 1, unit_price: 0, total: 0 }]);
+    setIsDirty(true);
   };
 
   const removeLineItem = (id: number) => {
     if (lineItems.length > 1) {
       setLineItems(lineItems.filter(item => item.id !== id));
+      setIsDirty(true);
     }
   };
 
@@ -733,9 +750,21 @@ export const EditInvoicePage = () => {
 
               <div className="border-t-2 border-border dark:border-gray-500 pt-2 mt-2">
                 <div className="flex justify-between items-center font-bold text-lg">
-                  <span className="text-card-foreground">Total:</span>
+                  <span className="text-card-foreground">Invoice Total:</span>
                   <span className="text-card-foreground">{formatCurrencySync(total || 0)}</span>
                 </div>
+                {invoiceData.status === 'paid' && (
+                  <div className="flex justify-between items-center font-bold text-lg mt-2 text-green-600">
+                    <span>Amount Due:</span>
+                    <span>{formatCurrencySync(0)}</span>
+                  </div>
+                )}
+                {(invoiceData.status === 'sent' || invoiceData.status === 'overdue') && (
+                  <div className="flex justify-between items-center font-bold text-lg mt-2 text-orange-600">
+                    <span>Amount Due:</span>
+                    <span>{formatCurrencySync(total || 0)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
