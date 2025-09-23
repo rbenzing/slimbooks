@@ -1,4 +1,5 @@
 import { getToken } from './auth.util';
+import { log, warn } from '@/utils/logger.util';
 
 interface ApiResponse<T = any> {
   data?: T;
@@ -33,7 +34,7 @@ export const authenticatedFetch = async (
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
   // Debug logging
-  console.log('AuthenticatedFetch Debug:', {
+  log('AuthenticatedFetch Debug:', {
     url: fullUrl,
     hasToken: !!token,
     tokenLength: token?.length || 0,
@@ -48,7 +49,7 @@ export const authenticatedFetch = async (
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   } else {
-    console.warn('No token found for authenticated request to:', fullUrl);
+    warn('No token found for authenticated request to:', fullUrl);
   }
 
   const config: RequestInit = {

@@ -162,7 +162,7 @@ export const expenseOperations = {
     await ensureInitialized();
     return await sqliteService.createExpense(expenseData);
   },
-  bulkImport: async (expenses: any[]): Promise<ImportResult<any>> => {
+  bulkImport: async (expenses: Partial<Expense>[]): Promise<ImportResult<Expense>> => {
     await ensureInitialized();
     return await sqliteService.bulkImportExpenses(expenses);
   },
@@ -266,7 +266,7 @@ export const reportOperations = {
     const expenses = await sqliteService.getExpenses(startDate, endDate);
 
     // Helper function to safely convert to number
-    const toNumber = (value: any): number => {
+    const toNumber = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       const num = typeof value === 'string' ? parseFloat(value) : Number(value);
       return isNaN(num) ? 0 : num;
@@ -276,7 +276,7 @@ export const reportOperations = {
     const generatePeriodColumns = () => {
       const startDateObj = new Date(startDate);
       const endDateObj = new Date(endDate);
-      const columns: any[] = [];
+      const columns: Array<{ period: string; invoiceRevenue: number; expenseTotal: number; profit: number; expensesByCategory: Record<string, number> }> = [];
 
       // For yearly reports, use the existing quarterly/monthly logic
       if (preset === 'this-year' || preset === 'last-year') {
@@ -412,21 +412,21 @@ export const reportOperations = {
         });
 
         // Calculate revenue for this period
-        const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+        const periodInvoiceRevenue = periodInvoices.reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
         const periodPaidRevenue = periodInvoices
-          .filter((invoice: any) => invoice.status === 'paid')
-          .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+          .filter((invoice: Invoice) => invoice.status === 'paid')
+          .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
         
         const periodRecognizedRevenue = accountingMethod === 'cash' ? periodPaidRevenue : periodInvoiceRevenue;
 
         // Calculate expenses by category for this period
-        const periodExpensesByCategory = periodExpenses.reduce((acc: any, expense: any) => {
+        const periodExpensesByCategory = periodExpenses.reduce((acc: Record<string, number>, expense: Expense) => {
           const category = expense.category || 'Uncategorized';
           acc[category] = (acc[category] || 0) + toNumber(expense.amount);
           return acc;
         }, {});
 
-        const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
+        const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
 
         columns.push({
           label: periodLabel,
@@ -444,13 +444,13 @@ export const reportOperations = {
     };
 
     // Calculate revenue with proper type conversion
-    const totalInvoiceRevenue = invoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+    const totalInvoiceRevenue = invoices.reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
     const paidRevenue = invoices
-      .filter((invoice: any) => invoice.status === 'paid')
-      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      .filter((invoice: Invoice) => invoice.status === 'paid')
+      .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
     const pendingRevenue = invoices
-      .filter((invoice: any) => invoice.status !== 'paid') // All non-paid invoices
-      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      .filter((invoice: Invoice) => invoice.status !== 'paid') // All non-paid invoices
+      .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
 
     // Choose revenue recognition method based on accounting method
     const recognizedRevenue = accountingMethod === 'cash' ? paidRevenue : totalInvoiceRevenue;
@@ -508,25 +508,25 @@ export const reportOperations = {
     const expenses = await sqliteService.getExpenses(startDate, endDate);
 
     // Helper function to safely convert to number
-    const toNumber = (value: any): number => {
+    const toNumber = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       const num = typeof value === 'string' ? parseFloat(value) : Number(value);
       return isNaN(num) ? 0 : num;
     };
 
-    const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
+    const expensesByCategory = expenses.reduce((acc: any, expense: Expense) => {
       const category = expense.category || 'Uncategorized';
       acc[category] = (acc[category] || 0) + toNumber(expense.amount);
       return acc;
     }, {});
 
-    const expensesByStatus = expenses.reduce((acc: any, expense: any) => {
+    const expensesByStatus = expenses.reduce((acc: any, expense: Expense) => {
       const status = expense.status || 'pending';
       acc[status] = (acc[status] || 0) + toNumber(expense.amount);
       return acc;
     }, {});
 
-    const totalAmount = expenses.reduce((sum: number, expense: any) => sum + toNumber(expense.amount), 0);
+    const totalAmount = expenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
 
     return {
       expenses,
@@ -543,7 +543,7 @@ export const reportOperations = {
 
     // Get all invoices and filter by date range
     const allInvoices = await sqliteService.getInvoices();
-    const invoices = allInvoices.filter((invoice: any) => {
+    const invoices = allInvoices.filter((invoice: Invoice) => {
       const invoiceDate = new Date(invoice.created_at);
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -551,34 +551,34 @@ export const reportOperations = {
     });
 
     // Helper function to safely convert to number
-    const toNumber = (value: any): number => {
+    const toNumber = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       const num = typeof value === 'string' ? parseFloat(value) : Number(value);
       return isNaN(num) ? 0 : num;
     };
 
-    const invoicesByStatus = invoices.reduce((acc: any, invoice: any) => {
+    const invoicesByStatus = invoices.reduce((acc: any, invoice: Invoice) => {
       const status = invoice.status || 'draft';
       acc[status] = (acc[status] || 0) + toNumber(invoice.amount);
       return acc;
     }, {});
 
-    const invoicesByClient = invoices.reduce((acc: any, invoice: any) => {
+    const invoicesByClient = invoices.reduce((acc: any, invoice: Invoice) => {
       const clientName = invoice.client_name || 'Unknown Client';
       acc[clientName] = (acc[clientName] || 0) + toNumber(invoice.amount);
       return acc;
     }, {});
 
-    const totalAmount = invoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+    const totalAmount = invoices.reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
     const paidAmount = invoices
-      .filter((invoice: any) => invoice.status === 'paid')
-      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      .filter((invoice: Invoice) => invoice.status === 'paid')
+      .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
     const pendingAmount = invoices
-      .filter((invoice: any) => invoice.status !== 'paid') // All non-paid invoices are pending
-      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      .filter((invoice: Invoice) => invoice.status !== 'paid') // All non-paid invoices are pending
+      .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
     const overdueAmount = invoices
-      .filter((invoice: any) => invoice.status === 'overdue')
-      .reduce((sum: number, invoice: any) => sum + toNumber(invoice.amount), 0);
+      .filter((invoice: Invoice) => invoice.status === 'overdue')
+      .reduce((sum: number, invoice: Invoice) => sum + toNumber(invoice.amount), 0);
 
     return {
       invoices,
@@ -625,7 +625,7 @@ export const reportOperations = {
     }
 
     // Helper function to safely convert to number
-    const toNumber = (value: any): number => {
+    const toNumber = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       const num = typeof value === 'string' ? parseFloat(value) : Number(value);
       return isNaN(num) ? 0 : num;

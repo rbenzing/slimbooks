@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { getToken as getAuthToken } from '@/utils/api';
+import { debug, warn } from '@/utils/logger.util';
 
 // Global cache to prevent multiple API calls for the same settings across all component instances
 const globalSettingsCache = new Map<string, {
@@ -24,14 +25,14 @@ const getOrCreateCacheEntry = (key: string) => {
 
 // Global function to clear all settings cache (useful for development)
 export const clearAllSettingsCache = () => {
-  console.debug('[useSettings] Clearing all settings cache');
+  debug('[useSettings] Clearing all settings cache');
   globalSettingsCache.clear();
 };
 
 // Global function to invalidate specific cache entry
 export const invalidateSettingsCache = (settingsKey: string, category: string = 'general', apiEndpoint?: string) => {
   const cacheKey = `${settingsKey}-${category}-${apiEndpoint || 'service'}`;
-  console.debug(`[useSettings] Invalidating cache for key: ${cacheKey}`);
+  debug(`[useSettings] Invalidating cache for key: ${cacheKey}`);
   globalSettingsCache.delete(cacheKey);
 };
 
@@ -90,7 +91,7 @@ export function useSettings<T extends Record<string, unknown>>({
 
     // If already loaded globally, use cached data
     if (cacheEntry.hasLoaded) {
-      console.debug(`[useSettings] Using cached data for ${settingsKey}`);
+      debug(`[useSettings] Using cached data for ${settingsKey}`);
       if (cacheEntry.data) {
         const loadedSettings = transformLoad ? transformLoad(cacheEntry.data) : cacheEntry.data as T;
         setSettingsState(loadedSettings);
@@ -104,7 +105,7 @@ export function useSettings<T extends Record<string, unknown>>({
 
     // If currently loading by another instance, wait for that promise
     if (cacheEntry.isLoading && cacheEntry.promise) {
-      console.debug(`[useSettings] Waiting for existing load for ${settingsKey}`);
+      debug(`[useSettings] Waiting for existing load for ${settingsKey}`);
       setIsLoading(true);
       try {
         const result = await cacheEntry.promise;
@@ -126,7 +127,7 @@ export function useSettings<T extends Record<string, unknown>>({
     }
 
     // Start loading
-    console.debug(`[useSettings] Starting fresh load for ${settingsKey} from ${apiEndpoint || 'service'}`);
+    debug(`[useSettings] Starting fresh load for ${settingsKey} from ${apiEndpoint || 'service'}`);
     cacheEntry.isLoading = true;
     setIsLoading(true);
     setError(null);
@@ -157,17 +158,17 @@ export function useSettings<T extends Record<string, unknown>>({
               if (result.success) {
                 savedSettings = result.value || result.settings;
                 apiCallSucceeded = true;
-                console.debug(`[useSettings] API call succeeded for ${settingsKey}`, savedSettings ? 'with data' : 'with no data');
+                debug(`[useSettings] API call succeeded for ${settingsKey}`, savedSettings ? 'with data' : 'with no data');
               }
             }
           } catch (apiError) {
-            console.warn(`API endpoint ${apiEndpoint} failed, falling back to service:`, apiError);
+            warn(`API endpoint ${apiEndpoint} failed, falling back to service:`, apiError);
           }
         }
 
         // Only fallback to service if no API endpoint was provided OR the API call failed
         if (!apiEndpoint || (!apiCallSucceeded && !savedSettings)) {
-          console.debug(`[useSettings] Falling back to sqliteService.getSetting for ${settingsKey}`);
+          debug(`[useSettings] Falling back to sqliteService.getSetting for ${settingsKey}`);
           savedSettings = await sqliteService.getSetting(settingsKey);
         }
 
@@ -224,7 +225,7 @@ export function useSettings<T extends Record<string, unknown>>({
 
       // Debug logging for company settings
       if (settingsKey === 'company_settings') {
-        console.debug('[useCompanySettings] Saving settings:', {
+        debug('[useCompanySettings] Saving settings:', {
           hasBrandingImage: !!(dataToSave as any)?.brandingImage,
           brandingImageLength: ((dataToSave as any)?.brandingImage?.length || 0),
           allKeys: Object.keys(dataToSave as any)
@@ -350,7 +351,7 @@ export function useCompanySettings() {
     defaultSettings: defaultCompanySettings,
     transformLoad: (data: unknown) => {
       if (!data || typeof data !== 'object') {
-        console.debug('[useCompanySettings] No data found, using defaults');
+        debug('[useCompanySettings] No data found, using defaults');
         return defaultCompanySettings;
       }
       const saved = data as Record<string, unknown>;
@@ -367,7 +368,7 @@ export function useCompanySettings() {
         brandingImage: typeof saved.brandingImage === 'string' ? saved.brandingImage : defaultCompanySettings.brandingImage
       };
 
-      console.debug('[useCompanySettings] Loaded settings:', {
+      debug('[useCompanySettings] Loaded settings:', {
         hasBrandingImage: !!transformedSettings.brandingImage,
         brandingImageLength: transformedSettings.brandingImage?.length || 0,
         originalBrandingImage: typeof saved.brandingImage,

@@ -5,7 +5,7 @@ import DashboardChart from './DashboardChart';
 import { authenticatedFetch } from '@/utils/api';
 import { themeClasses, getIconColorClasses, getStatusColor } from '@/utils/themeUtils.util';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { TimePeriod } from '@/types';
+import { TimePeriod, Invoice, Expense } from '@/types';
 
 export const DashboardOverview = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
@@ -20,11 +20,11 @@ export const DashboardOverview = () => {
     draftInvoices: 0,
     totalExpenses: 0,
     creditsRefunds: 0,
-    recentInvoices: [] as any[],
-    allInvoices: [] as any[],
-    allExpenses: [] as any[],
-    filteredInvoices: [] as any[],
-    filteredExpenses: [] as any[]
+    recentInvoices: [] as Invoice[],
+    allInvoices: [] as Invoice[],
+    allExpenses: [] as Expense[],
+    filteredInvoices: [] as Invoice[],
+    filteredExpenses: [] as Expense[]
   });
   
   const timePeriodOptions = [

@@ -16,7 +16,7 @@ import {
   saveInvoiceNumberSettings,
   getInvoiceNumberPreview,
   getSuggestedPrefixes
-} from '@/utils/invoiceNumbering';
+} from '@/utils/business/numbering.util';
 import {
   getCurrencySettings,
   saveCurrencySettings,
@@ -34,7 +34,7 @@ import {
   MAX_ITEMS_PER_PAGE_OPTIONS,
   AVAILABLE_PAGE_SIZES_OPTIONS,
   MAX_PAGE_NUMBERS_OPTIONS
-} from '@/utils/paginationSettings';
+} from '@/utils/pagination.util';
 import { validatePaginationSettings } from '@/utils/settingsValidation';
 import { getToken } from '@/utils/api';
 import type { DateTimeSettings, InvoiceNumberSettings, PaginationSettings, CurrencySettings } from '@/types';

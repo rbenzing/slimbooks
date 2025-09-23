@@ -11,7 +11,7 @@ import { getStatusColor } from '@/utils/themeUtils.util';
 import { filterByDateRange, getDateRangeForPeriod } from '@/utils/data';
 import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
-import { createPaymentForInvoice } from '@/utils/paymentHelpers';
+import { createPaymentForInvoice } from '@/utils/payment.util';
 import { toast } from 'sonner';
 import { TimePeriod, DateRange } from '@/types';
 

@@ -108,16 +108,8 @@ export interface TwoFactorSetup {
   backup_codes: string[];
 }
 
-export interface EmailSettings {
-  smtp_host: string;
-  smtp_port: number;
-  smtp_secure: boolean;
-  smtp_user: string;
-  smtp_password: string;
-  from_email: string;
-  from_name: string;
-  isEnabled?: boolean;
-}
+// EmailSettings moved to domain/settings.types.ts to avoid duplication
+// Import if needed: import { EmailSettings } from './settings.types';
 
 export interface PasswordRequirements {
   min_length: number;

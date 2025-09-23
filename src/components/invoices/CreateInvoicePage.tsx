@@ -10,7 +10,7 @@ import { themeClasses } from '@/utils/themeUtils.util';
 import { validateInvoiceForSave, validateInvoiceForSend, getAvailableInvoiceActions } from '@/utils/data';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
-import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
+import { getEmailConfigurationStatus } from '@/utils/emailConfig.util';
 import { EmailConfigStatus } from '@/types';
 import { EmailStatus } from '@/types/domain/invoice.types';
 import { toast } from 'sonner';

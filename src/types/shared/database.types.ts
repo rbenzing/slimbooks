@@ -38,7 +38,7 @@ export interface SortOptions {
 }
 
 export interface FilterOptions {
-  [key: string]: any;
+  [key: string]: string | number | boolean | Date | null | undefined;
 }
 
 export interface QueryOptions extends PaginationOptions {

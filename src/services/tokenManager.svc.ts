@@ -1,4 +1,5 @@
 // Activity-aware token expiry monitoring service with smart session management
+import { log, warn } from '@/utils/logger.util';
 export class TokenManagerService {
   private static instance: TokenManagerService;
   private checkInterval: NodeJS.Timeout | null = null;
@@ -84,7 +85,7 @@ export class TokenManagerService {
     // Simple JWT payload decode without verification
     const payload = this.decodeJWTPayload(token);
     if (!payload || !payload.exp) {
-      console.warn('Invalid token format - no expiry found');
+      warn('Invalid token format - no expiry found');
       return;
     }
 
@@ -94,7 +95,7 @@ export class TokenManagerService {
 
     if (timeUntilExpiry <= 0) {
       // Token has expired - redirect to login
-      console.log('Token expired, redirecting to login');
+      log('Token expired, redirecting to login');
       this.handleTokenExpiration();
     } else if (timeUntilExpiry <= this.WARNING_THRESHOLD_MS) {
       // Token will expire soon - check if user is active
@@ -102,7 +103,7 @@ export class TokenManagerService {
       
       if (timeSinceActivity <= this.ACTIVITY_THRESHOLD_MS) {
         // User is active, silently refresh token
-        console.log('User is active during warning period, refreshing token silently');
+        log('User is active during warning period, refreshing token silently');
         this.handleActivityBasedRefresh();
       } else if (this.onTokenWarning && !this.hasShownWarning) {
         // User is not active, show warning
@@ -139,7 +140,7 @@ export class TokenManagerService {
       
       return JSON.parse(decodedPayload);
     } catch (error) {
-      console.warn('Failed to decode JWT payload:', error);
+      warn('Failed to decode JWT payload:', error);
       return null;
     }
   }
@@ -157,7 +158,7 @@ export class TokenManagerService {
    * Handle token warning (close to expiration)
    */
   private handleTokenWarning(minutesLeft: number) {
-    console.log(`Token will expire in ${minutesLeft} minutes`);
+    log(`Token will expire in ${minutesLeft} minutes`);
     this.hasShownWarning = true;
     
     if (this.onTokenWarning) {
@@ -173,7 +174,7 @@ export class TokenManagerService {
       // Check if user became active during warning period
       const timeSinceActivity = Date.now() - this.lastActivityTime;
       if (timeSinceActivity <= this.ACTIVITY_THRESHOLD_MS) {
-        console.log('User became active during warning period, refreshing token');
+        log('User became active during warning period, refreshing token');
         this.handleActivityBasedRefresh();
       }
     }, 10000); // Check every 10 seconds during warning period
@@ -221,7 +222,7 @@ export class TokenManagerService {
     try {
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
-        console.warn('No refresh token available');
+        warn('No refresh token available');
         return false;
       }
 
@@ -234,7 +235,7 @@ export class TokenManagerService {
       });
 
       if (!response.ok) {
-        console.warn('Token refresh failed:', response.status);
+        warn('Token refresh failed:', response.status);
         return false;
       }
 
@@ -335,7 +336,7 @@ export class TokenManagerService {
     
     // If we're in warning period and user becomes active, handle refresh
     if (this.hasShownWarning) {
-      console.log('Activity detected during warning period');
+      log('Activity detected during warning period');
       // Small delay to avoid rapid refreshes
       setTimeout(() => {
         if (this.hasShownWarning && Date.now() - this.lastActivityTime < 1000) {
@@ -352,7 +353,7 @@ export class TokenManagerService {
     try {
       const success = await this.refreshToken();
       if (success) {
-        console.log('Token refreshed due to user activity');
+        log('Token refreshed due to user activity');
         this.hasShownWarning = false;
         
         if (this.warningTimeoutId) {

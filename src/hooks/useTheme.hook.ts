@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getToken } from '@/utils/api';
+import { log } from '@/utils/logger.util';
 
 export type ThemeType = 'light' | 'dark' | 'system';
 
@@ -16,7 +17,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (event) => {
     // Only reset if this is a real page reload (not navigation)
     if (event.persisted === false && performance.navigation.type === 1) {
-      console.log('useTheme: Actual page reload detected, resetting theme initialization');
       isThemeInitialized = false;
       initializationPromise = null;
       isUserSetTheme = false; // Reset user theme flag on actual reload
@@ -31,12 +31,6 @@ export const useTheme = () => {
   // Sync local state with global state on mount
   useEffect(() => {
     if (isThemeInitialized && (theme !== globalTheme || effectiveTheme !== globalEffectiveTheme)) {
-      console.log('useTheme: Syncing local state with global state', { 
-        global: globalTheme, 
-        local: theme,
-        globalEffective: globalEffectiveTheme,
-        localEffective: effectiveTheme
-      });
       setTheme(globalTheme);
       setEffectiveTheme(globalEffectiveTheme);
     }
@@ -65,7 +59,7 @@ export const useTheme = () => {
   useEffect(() => {
     const loadTheme = async () => {
       if (isThemeInitialized) {
-        console.log('useTheme: Already initialized, using global theme:', globalTheme);
+        log('useTheme: Already initialized, using global theme:', globalTheme);
         // Ensure local state matches global state
         setTheme(globalTheme);
         setEffectiveTheme(globalEffectiveTheme);
@@ -74,7 +68,7 @@ export const useTheme = () => {
       
       // If theme was explicitly set by user, don't override with database
       if (isUserSetTheme) {
-        console.log('useTheme: User has explicitly set theme, skipping database load');
+        log('useTheme: User has explicitly set theme, skipping database load');
         setTheme(globalTheme);
         setEffectiveTheme(globalEffectiveTheme);
         return;
@@ -82,7 +76,7 @@ export const useTheme = () => {
       
       // Use a shared initialization promise to prevent race conditions
       if (initializationPromise) {
-        console.log('useTheme: Waiting for existing initialization promise');
+        log('useTheme: Waiting for existing initialization promise');
         await initializationPromise;
         // After waiting, update local state to match global state
         setTheme(globalTheme);
@@ -96,21 +90,21 @@ export const useTheme = () => {
           const authToken = getToken();
           
           if (!authToken) {
-            console.log('useTheme: No auth token found, using localStorage fallback');
+            log('useTheme: No auth token found, using localStorage fallback');
             // Use localStorage immediately if not authenticated
             const localTheme = (localStorage.getItem('theme') as ThemeType) || 'system';
-            console.log('useTheme: LocalStorage theme:', localTheme);
+            log('useTheme: LocalStorage theme:', localTheme);
             
             globalTheme = localTheme;
             setTheme(localTheme);
             applyTheme(localTheme);
             isThemeInitialized = true;
             isUserSetTheme = false; // This is a database load, not user action
-            console.log('useTheme: Theme initialization completed with localStorage fallback');
+            log('useTheme: Theme initialization completed with localStorage fallback');
             return;
           }
           
-          console.log('useTheme: Auth token found, loading from database');
+          log('useTheme: Auth token found, loading from database');
           const { sqliteService } = await import('@/services/sqlite.svc');
           await sqliteService.initialize();
           
@@ -122,7 +116,7 @@ export const useTheme = () => {
           applyTheme(dbTheme);
           isThemeInitialized = true;
           isUserSetTheme = false; // This is a database load, not user action
-          console.log('useTheme: Theme initialization completed successfully from database');
+          log('useTheme: Theme initialization completed successfully from database');
         } catch (error) {
           console.error('useTheme: Failed to load theme from database:', error);
           console.error('useTheme: Database error details:', {
@@ -132,16 +126,16 @@ export const useTheme = () => {
           });
           
           // Fallback to localStorage for migration
-          console.log('useTheme: Falling back to localStorage...');
+          log('useTheme: Falling back to localStorage...');
           const localTheme = (localStorage.getItem('theme') as ThemeType) || 'system';
-          console.log('useTheme: LocalStorage theme:', localTheme);
+          log('useTheme: LocalStorage theme:', localTheme);
           
           globalTheme = localTheme;
           setTheme(localTheme);
           applyTheme(localTheme);
           isThemeInitialized = true;
           isUserSetTheme = false; // This is a database load, not user action
-          console.log('useTheme: Theme initialization completed with fallback');
+          log('useTheme: Theme initialization completed with fallback');
         }
         initializationPromise = null;
       })();
@@ -166,7 +160,7 @@ export const useTheme = () => {
   }, [theme, applyTheme]);
 
   const updateTheme = useCallback(async (newTheme: ThemeType, saveToDb = true) => {
-    console.log('useTheme: updateTheme called', { newTheme, saveToDb, currentGlobal: globalTheme });
+    log('useTheme: updateTheme called', { newTheme, saveToDb, currentGlobal: globalTheme });
     
     // Update global state first
     globalTheme = newTheme;
@@ -180,18 +174,18 @@ export const useTheme = () => {
     if (saveToDb) {
       try {
         const { sqliteService } = await import('@/services/sqlite.svc');
-        console.log('useTheme: Saving theme to database:', newTheme);
-        console.log('useTheme: Checking authentication token...');
+        log('useTheme: Saving theme to database:', newTheme);
+        log('useTheme: Checking authentication token...');
         const token = getToken();
-        console.log('useTheme: Auth token available:', !!token);
+        log('useTheme: Auth token available:', !!token);
         if (token) {
-          console.log('useTheme: Token length:', token.length);
+          log('useTheme: Token length:', token.length);
         }
         
         await sqliteService.setMultipleSettings({
           'theme': { value: newTheme, category: 'appearance' }
         });
-        console.log('useTheme: Theme saved successfully to database');
+        log('useTheme: Theme saved successfully to database');
       } catch (error) {
         console.error('useTheme: Failed to save theme to database:', error);
         console.error('useTheme: Error details:', {

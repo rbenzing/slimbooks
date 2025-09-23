@@ -11,7 +11,7 @@ import { validateInvoiceForSave, validateInvoiceForSend, autoFillInvoiceDefaults
 import { getInvoiceStatusPermissions } from '@/utils/business/invoice.util';
 import { invoiceService } from '@/services/invoices.svc';
 import { pdfService } from '@/services/pdf.svc';
-import { getEmailConfigurationStatus } from '@/utils/emailConfigUtils';
+import { getEmailConfigurationStatus } from '@/utils/emailConfig.util';
 import { EmailConfigStatus } from '@/types';
 import { toast } from 'sonner';
 import { InvoiceItem, Invoice, InvoiceStatus } from '@/types';

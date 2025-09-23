@@ -4,7 +4,7 @@ import {
   getPaginationInfo, 
   generatePageNumbers,
   type PaginationSettings 
-} from '@/utils/paginationSettings';
+} from '@/utils/pagination.util';
 
 interface UsePaginationProps<T> {
   data: T[];

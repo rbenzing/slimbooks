@@ -15,7 +15,7 @@ export * from './business';
 
 // Legacy utilities (will be deprecated)
 export * from './themeUtils.util';
-export * from './emailConfigUtils';
+export * from './emailConfig.util';
 
 // Settings and validation utilities
 export * from './settingsValidation';

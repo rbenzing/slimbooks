@@ -285,11 +285,6 @@ export interface SecurityConfig {
   account_lockout_duration: number;
 }
 
-// Complete project settings type with all required fields for runtime use
-export interface ProjectSettings {
-  google_oauth: GoogleOAuthSettings;
-  stripe: StripeSettings;
-  email: EmailServiceSettings;
-  security: SecurityConfig;
-}
+// ProjectSettings moved to shared/common.types.ts to avoid duplication
+// Import if needed: import { ProjectSettings } from '../shared/common.types';
 

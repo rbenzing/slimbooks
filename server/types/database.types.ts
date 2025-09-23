@@ -1,5 +1,7 @@
 // Database types for server use
-// Copied from shared types to avoid cross-directory import issues
+// Note: These types are duplicated from src/types/shared/database.types.ts
+// This is intentional to avoid cross-directory imports between client and server code
+// The server extends these types with additional database-specific interfaces
 
 // Database connection configuration
 export interface DatabaseConfig {
