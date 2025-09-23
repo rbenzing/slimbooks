@@ -48,7 +48,7 @@ export const EditClientPage = () => {
         try {
           const response = await authenticatedFetch(`/api/clients/${id}`);
           const data = response.ok ? await response.json() : null;
-          const client = data?.client;
+          const client = data?.data;
           if (client) {
             // Use existing first_name and last_name if available, otherwise parse name field
             const first_name = client.first_name || (client.name ? client.name.split(' ')[0] : '') || '';

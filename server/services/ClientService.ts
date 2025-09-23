@@ -38,6 +38,8 @@ export class ClientService {
    */
   async createClient(clientData: {
     name: string;
+    first_name?: string;
+    last_name?: string;
     email?: string;
     phone?: string;
     address?: string;
@@ -82,6 +84,8 @@ export class ClientService {
     const clientRecord = {
       id: nextId,
       name: clientData.name,
+      first_name: clientData.first_name || null,
+      last_name: clientData.last_name || null,
       email: clientData.email || null,
       phone: clientData.phone || null,
       address: clientData.address || null,
@@ -99,13 +103,14 @@ export class ClientService {
     // Create client
     databaseService.executeQuery(`
       INSERT INTO clients (
-        id, name, first_name, last_name, email, phone, company, address, city, state, 
+        id, name, first_name, last_name, email, phone, company, address, city, state,
         zipCode, country, stripe_customer_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      clientRecord.id, clientRecord.name, null, null, clientRecord.email, clientRecord.phone,
-      null, clientRecord.address, clientRecord.city, clientRecord.state, 
-      clientRecord.zipCode, clientRecord.country, null, clientRecord.created_at, clientRecord.updated_at
+      clientRecord.id, clientRecord.name, clientRecord.first_name, clientRecord.last_name,
+      clientRecord.email, clientRecord.phone, clientRecord.company, clientRecord.address,
+      clientRecord.city, clientRecord.state, clientRecord.zipCode, clientRecord.country,
+      null, clientRecord.created_at, clientRecord.updated_at
     ]);
 
     return nextId;
@@ -116,6 +121,8 @@ export class ClientService {
    */
   async updateClient(id: number, clientData: Partial<{
     name: string;
+    first_name: string;
+    last_name: string;
     email: string;
     phone: string;
     address: string;
