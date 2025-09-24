@@ -41,26 +41,25 @@ export interface ToastAction {
   variant?: 'primary' | 'secondary';
 }
 
-// Form component types
-export interface FormFieldProps<T = string> {
-  label: string;
-  name: string;
-  value: T;
-  onChange: (value: T) => void;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  placeholder?: string;
-  helperText?: string;
-}
-
 export interface SelectOption<T = string> {
   value: T;
   label: string;
   disabled?: boolean;
 }
 
-export interface MultiSelectProps<T> extends FormFieldProps<T[]> {
+// Multi-select component props - contains FormFieldProps properties inline to avoid circular imports
+export interface MultiSelectProps<T> {
+  // FormFieldProps<T[]> properties
+  label: string;
+  name: string;
+  value: T[];
+  onChange: (value: T[]) => void;
+  error?: string;
+  required?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
+  helperText?: string;
+  // MultiSelect specific properties
   options: SelectOption<T>[];
   searchable?: boolean;
   clearable?: boolean;

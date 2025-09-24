@@ -74,18 +74,7 @@ export interface StripeConnectionTestResult {
 // Alias for backward compatibility
 export type StripeTestResult = StripeConnectionTestResult;
 
-// Stripe Settings
-export interface StripeSettings {
-  isEnabled: boolean;
-  publishableKey: string;
-  secretKey: string;
-  webhookSecret: string;
-  webhookEndpoint: string;
-  testMode: boolean;
-  accountId?: string;
-  accountName?: string;
-  connectedAt?: string;
-}
+// Note: StripeSettings is now defined in domain/settings.types.ts to avoid duplication
 
 // Stripe Payment Link
 export interface StripePaymentLink {
@@ -128,9 +117,9 @@ export interface StripeOperationResult {
   message: string;
 }
 
-// Stripe settings save result
+// Stripe settings save result - imports StripeSettings from settings.types.ts
 export interface StripeSettingsSaveResult extends StripeOperationResult {
-  settings?: StripeSettings;
+  settings?: import('./settings.types').StripeSettings;
 }
 
 // Stripe Invoice data for creating payment links

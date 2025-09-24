@@ -1,14 +1,6 @@
 // Common types and interfaces used across the application
 
-// Generic API Response structure
-export interface ApiResponse<TData = unknown, TResult = unknown> {
-  success: boolean;
-  data?: TData;
-  result?: TResult;
-  message?: string;
-  error?: string;
-  errors?: ValidationError[];
-}
+// Note: ApiResponse is now defined in shared/api.types.ts to avoid duplication
 
 // Pagination interface
 export interface PaginationParams {
@@ -58,17 +50,8 @@ export interface UploadResponse {
   error?: string;
 }
 
-// Form state types
+// Note: FormState is now defined in shared/form.types.ts to avoid duplication
 export type FormMode = 'create' | 'edit' | 'view';
-
-export interface FormState<T> {
-  data: T;
-  errors: Record<keyof T, string>;
-  touched: Record<keyof T, boolean>;
-  isValid: boolean;
-  isSubmitting: boolean;
-  isDirty: boolean;
-}
 
 // Table/List view types
 export interface TableColumn<T> {

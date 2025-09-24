@@ -39,32 +39,8 @@ export interface ImportExportProps {
   onImportComplete: () => void;
 }
 
-// Client import specific types
-export interface ClientImportData {
-  name: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  country?: string;
-  company?: string;
-  notes?: string;
-}
-
-// Expense import specific types
-export interface ExpenseImportData {
-  date: string;
-  merchant: string;
-  amount: number;
-  category?: string;
-  description?: string;
-  reference?: string;
-  tax_amount?: number;
-}
+// Note: ClientImportData and ExpenseImportData are now defined in their respective domain types
+// to avoid duplication and keep domain-specific types together
 
 // Field definition interface for import/export fields
 export interface ImportField {

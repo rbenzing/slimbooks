@@ -52,23 +52,3 @@ export {
 // === Shared Common Types ===
 // Common types that may be used across multiple domains
 export * from './shared/common.types';
-
-// === Type Guards and Utilities ===
-// Common type guard functions for runtime type checking
-export const isValidEmail = (email: string): email is EmailString => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-export const isValidURL = (url: string): url is URLString => {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-export const isNonNullable = <T>(value: T | null | undefined): value is T => {
-  return value !== null && value !== undefined;
-};

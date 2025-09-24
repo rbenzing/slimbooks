@@ -1,14 +1,9 @@
 // Authentication types and interfaces
 // Consolidated from both frontend and backend type definitions
 
-// Base entity interface for database entities
-export interface BaseEntity {
-  id: number;
-  created_at: string;
-  updated_at: string;
-}
+import type { BaseEntity } from '../shared/common.types';
 
-// User entity with all possible fields
+// User entity with all possible fields - BaseEntity is imported from shared/common.types.ts
 export interface User extends BaseEntity {
   name: string;
   email: string;
