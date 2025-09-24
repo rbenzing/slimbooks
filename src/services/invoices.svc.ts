@@ -5,7 +5,7 @@ import { invoiceOperations } from '@/lib/database';
 import { EmailService } from './email.svc';
 import { generateInvoiceToken } from '@/utils/invoiceTokens';
 import { sqliteService } from './sqlite.svc';
-import { formatClientAddressSingleLine, formatClientAddress } from '@/utils/formatting';
+import { formatClientAddressSingleLine } from '@/utils/formatting';
 import { getToken } from '@/utils/api';
 import {
   InvoiceEmailData,

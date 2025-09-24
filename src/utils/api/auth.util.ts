@@ -106,4 +106,83 @@ export class AuthUtils {
       errors
     };
   }
+
+  static calculatePasswordStrength(password: string): { score: number; level: string; feedback: string[] } {
+    let score = 0;
+    const feedback: string[] = [];
+
+    if (!password) {
+      return { score: 0, level: 'weak', feedback: ['Enter a password'] };
+    }
+
+    // Length scoring
+    if (password.length >= 8) score += 25;
+    else feedback.push('Use at least 8 characters');
+
+    if (password.length >= 12) score += 10;
+    if (password.length >= 16) score += 5;
+
+    // Character variety
+    if (/[a-z]/.test(password)) score += 15;
+    else feedback.push('Add lowercase letters');
+
+    if (/[A-Z]/.test(password)) score += 15;
+    else feedback.push('Add uppercase letters');
+
+    if (/\d/.test(password)) score += 15;
+    else feedback.push('Add numbers');
+
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 20;
+    else feedback.push('Add special characters');
+
+    // Patterns and repetition
+    if (!/(.)\1{2,}/.test(password)) score += 10;
+    else feedback.push('Avoid repeating characters');
+
+    // Determine level
+    let level: string;
+    if (score < 30) level = 'weak';
+    else if (score < 60) level = 'fair';
+    else if (score < 90) level = 'good';
+    else level = 'strong';
+
+    return { score, level, feedback };
+  }
+
+  static verifyPasswordResetToken(token: string): { email: string } | null {
+    try {
+      // Decode the JWT token
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const payload = JSON.parse(atob(parts[1]));
+
+      // Check if token has expired
+      const currentTime = Date.now() / 1000;
+      if (payload.exp && payload.exp < currentTime) {
+        return null;
+      }
+
+      // Check if it's a password reset token
+      if (payload.type !== 'password_reset') {
+        return null;
+      }
+
+      // Return the email from the token payload
+      return { email: payload.email };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async hashPassword(password: string): Promise<string> {
+    // Use Web Crypto API for hashing
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 }

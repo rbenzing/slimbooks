@@ -264,8 +264,10 @@ export interface GoogleOAuthSettings {
 
 export interface StripeSettings {
   enabled: boolean;
-  publishable_key: string;
-  secret_key?: string;
+  publishableKey: string;
+  secretKey?: string;
+  webhookSecret?: string;
+  testMode?: boolean;
   configured: boolean;
 }
 

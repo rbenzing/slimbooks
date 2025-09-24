@@ -290,9 +290,6 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         const result = await response.json();
         const createdInvoice = result.data;
 
-        // Update editingInvoice state so the UI knows it's saved
-        setEditingInvoice(createdInvoice);
-
         toast.success('Invoice saved successfully');
       }
 

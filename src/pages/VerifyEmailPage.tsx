@@ -34,14 +34,14 @@ export const VerifyEmailPage: React.FC = () => {
         if (result.success) {
           setStatus('success');
           setMessage('Your email has been successfully verified! You can now log in to your account.');
-          setEmail(payload.email || '');
-          
+          setEmail(result.data?.email || '');
+
           // Redirect to login page after 3 seconds
           setTimeout(() => {
-            navigate('/login', { 
-              state: { 
+            navigate('/login', {
+              state: {
                 message: 'Email verified successfully! You can now log in.',
-                email: payload.email 
+                email: result.data?.email
               }
             });
           }, 3000);

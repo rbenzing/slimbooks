@@ -130,6 +130,16 @@ export const updateProjectSettings = asyncHandler(async (req: Request<object, ob
         configured: false,
         ...settings.stripe
       },
+      email: {
+        enabled: false,
+        smtp_host: '',
+        smtp_port: 587,
+        smtp_user: '',
+        smtp_pass: '',
+        email_from: '',
+        configured: false,
+        ...settings.email
+      },
       security: {
         require_email_verification: false,
         max_failed_login_attempts: 5,
@@ -137,6 +147,23 @@ export const updateProjectSettings = asyncHandler(async (req: Request<object, ob
         ...settings.security
       }
     };
+
+    // Validate email verification dependency
+    if (projectSettings.security.require_email_verification && (!projectSettings.email.configured || !projectSettings.email.enabled)) {
+      throw new ValidationError('Email must be configured and enabled before enabling email verification');
+    }
+
+    // Update email configured status based on required fields
+    if (projectSettings.email.enabled) {
+      const requiredFields = ['smtp_host', 'smtp_user', 'smtp_pass', 'email_from'];
+      const hasAllRequiredFields = requiredFields.every(field => {
+        const value = projectSettings.email[field as keyof typeof projectSettings.email];
+        return value && typeof value === 'string' && value.trim() !== '';
+      });
+      projectSettings.email.configured = hasAllRequiredFields && projectSettings.email.smtp_port > 0;
+    } else {
+      projectSettings.email.configured = false;
+    }
     
     await settingsService.updateProjectSettings(projectSettings);
     res.json({ success: true, message: 'Project settings updated successfully' });

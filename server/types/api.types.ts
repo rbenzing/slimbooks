@@ -362,6 +362,15 @@ export interface ProjectSettingsRequest {
       publishable_key?: string;
       configured?: boolean;
     };
+    email?: {
+      enabled?: boolean;
+      smtp_host?: string;
+      smtp_port?: number;
+      smtp_user?: string;
+      smtp_pass?: string;
+      email_from?: string;
+      configured?: boolean;
+    };
     security?: {
       require_email_verification?: boolean;
       max_failed_login_attempts?: number;

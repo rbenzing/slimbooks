@@ -92,7 +92,7 @@ export class StripeService {
     try {
       const settings = await this.loadSettings();
 
-      if (!settings || !settings.isEnabled) {
+      if (!settings || !settings.enabled) {
         return {
           success: false,
           message: 'Stripe is not enabled or configured'
@@ -155,7 +155,7 @@ export class StripeService {
     try {
       const settings = await this.loadSettings();
 
-      if (!settings || !settings.isEnabled) {
+      if (!settings || !settings.enabled) {
         return {
           success: false,
           message: 'Stripe is not enabled'
@@ -195,7 +195,7 @@ export class StripeService {
     try {
       const settings = await this.loadSettings();
 
-      if (!settings || !settings.isEnabled) {
+      if (!settings || !settings.enabled) {
         return {
           success: false,
           message: 'Stripe is not enabled'
@@ -235,7 +235,7 @@ export class StripeService {
     try {
       const settings = await this.loadSettings();
 
-      if (!settings || !settings.isEnabled) {
+      if (!settings || !settings.enabled) {
         return {
           success: false,
           message: 'Stripe is not enabled'
@@ -262,7 +262,7 @@ export class StripeService {
     try {
       const settings = await this.loadSettings();
 
-      if (!settings || !settings.isEnabled) {
+      if (!settings || !settings.enabled) {
         return {
           success: false,
           message: 'Stripe is not enabled'
@@ -394,6 +394,6 @@ export class StripeService {
    */
   async isConfigured(): Promise<boolean> {
     const settings = await this.loadSettings();
-    return !!(settings?.isEnabled && settings?.publishableKey && settings?.secretKey);
+    return !!(settings?.enabled && settings?.publishableKey && settings?.secretKey);
   }
 }

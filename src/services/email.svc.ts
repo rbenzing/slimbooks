@@ -31,10 +31,21 @@ export class EmailService {
       const { sqliteService } = await import('./sqlite.svc');
       if (sqliteService.isReady()) {
         const settings = await sqliteService.getSetting('email_settings');
-        // Type guard to ensure we have a valid EmailSettings object
-        if (settings && typeof settings === 'object' && 
+        // Convert snake_case to camelCase and validate required fields
+        if (settings && typeof settings === 'object' &&
             'smtp_host' in settings && 'smtp_port' in settings) {
-          return settings as EmailSettings;
+          const rawSettings = settings as any;
+          return {
+            smtpHost: rawSettings.smtp_host || '',
+            smtpPort: Number(rawSettings.smtp_port) || 587,
+            smtpUsername: rawSettings.smtp_username || rawSettings.smtp_user || '',
+            smtpPassword: rawSettings.smtp_password || '',
+            smtpSecure: rawSettings.smtp_secure || 'STARTTLS',
+            fromEmail: rawSettings.from_email || '',
+            fromName: rawSettings.from_name || '',
+            replyToEmail: rawSettings.reply_to_email || rawSettings.from_email || '',
+            isEnabled: Boolean(rawSettings.is_enabled || rawSettings.isEnabled)
+          };
         }
       }
     } catch (error) {
@@ -57,7 +68,7 @@ export class EmailService {
         };
       }
 
-      if (!settings.smtp_host || !settings.smtp_user || !settings.smtp_password) {
+      if (!settings.smtpHost || !settings.smtpUsername || !settings.smtpPassword) {
         return {
           success: false,
           message: 'Missing required SMTP configuration'
@@ -65,9 +76,9 @@ export class EmailService {
       }
 
       // Simulate success/failure based on basic validation
-      const isValidConfig = settings.smtp_host.includes('.') &&
-                           settings.smtp_port > 0 &&
-                           settings.smtp_user.includes('@');
+      const isValidConfig = settings.smtpHost.includes('.') &&
+                           settings.smtpPort > 0 &&
+                           settings.smtpUsername.includes('@');
 
       if (isValidConfig) {
         return {
@@ -295,7 +306,7 @@ export class EmailService {
     }
 
     return await this.sendEmail(
-      this.emailSettings.from_email,
+      this.emailSettings.fromEmail,
       'Slimbooks Email Test',
       '<h2>Email Configuration Test</h2><p>If you receive this email, your email configuration is working correctly!</p>',
       'Email Configuration Test\n\nIf you receive this email, your email configuration is working correctly!'

@@ -1,5 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Globe, CreditCard, Shield, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Globe, CreditCard, Shield, AlertTriangle, CheckCircle, Eye, EyeOff, Mail } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { ProjectSettings } from '@/types';
@@ -314,6 +314,137 @@ export const ProjectSettingsTab = forwardRef<ProjectSettingsRef>((props, ref) =>
       </div>
 
 
+      {/* Email Configuration */}
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Mail className="h-5 w-5 text-primary mr-2" />
+            <h4 className="text-md font-medium text-card-foreground">Email Configuration</h4>
+            {settings?.email?.configured && (
+              <CheckCircle className="h-4 w-4 text-green-500 ml-2" />
+            )}
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings?.email?.enabled || false}
+              onChange={() => handleToggleEnabled('email')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        {!settings?.email?.configured && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
+              <p className="text-sm text-yellow-800">
+                Email must be configured before enabling. Complete all required fields below.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                SMTP Host *
+              </label>
+              <input
+                type="text"
+                value={settings?.email?.smtp_host || ''}
+                onChange={(e) => handleInputChange('email', 'smtp_host', e.target.value)}
+                placeholder="smtp.gmail.com"
+                className={themeClasses.input}
+                disabled={!settings?.email?.enabled}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                SMTP Port *
+              </label>
+              <input
+                type="number"
+                value={settings?.email?.smtp_port || 587}
+                onChange={(e) => handleInputChange('email', 'smtp_port', parseInt(e.target.value) || 587)}
+                placeholder="587"
+                className={themeClasses.input}
+                disabled={!settings?.email?.enabled}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Username *
+              </label>
+              <input
+                type="text"
+                value={settings?.email?.smtp_user || ''}
+                onChange={(e) => handleInputChange('email', 'smtp_user', e.target.value)}
+                placeholder="your-email@gmail.com"
+                className={themeClasses.input}
+                disabled={!settings?.email?.enabled}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Password *
+              </label>
+              <input
+                type="password"
+                value={settings?.email?.smtp_pass || ''}
+                onChange={(e) => handleInputChange('email', 'smtp_pass', e.target.value)}
+                placeholder="App password or account password"
+                className={themeClasses.input}
+                disabled={!settings?.email?.enabled}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              From Email *
+            </label>
+            <input
+              type="email"
+              value={settings?.email?.email_from || ''}
+              onChange={(e) => handleInputChange('email', 'email_from', e.target.value)}
+              placeholder="invoices@yourcompany.com"
+              className={themeClasses.input}
+              disabled={!settings?.email?.enabled}
+            />
+          </div>
+
+          {settings?.email?.enabled && (
+            <div className="flex space-x-3 pt-4 border-t border-border">
+              <button
+                onClick={async () => {
+                  try {
+                    // Save settings first, then test
+                    await saveSettings();
+                    toast.success('Settings saved. Please use the Email Settings tab to test the connection.');
+                  } catch (error) {
+                    toast.error('Failed to save settings');
+                  }
+                }}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors"
+              >
+                Save & Test in Email Settings
+              </button>
+              <div className="text-sm text-muted-foreground py-2">
+                After saving, use the dedicated Email Settings tab to test your connection and verify it works before enabling email verification.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Security Settings */}
       <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <div className="flex items-center mb-4">
@@ -326,15 +457,25 @@ export const ProjectSettingsTab = forwardRef<ProjectSettingsRef>((props, ref) =>
             <div>
               <label className="text-sm font-medium text-card-foreground">Require Email Verification</label>
               <p className="text-sm text-muted-foreground">Users must verify their email before accessing the application</p>
+              {!settings?.email?.configured && (
+                <p className="text-sm text-amber-600 mt-1">⚠️ Email must be configured and tested first</p>
+              )}
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings?.security?.require_email_verification || false}
-                onChange={(e) => handleInputChange('security', 'require_email_verification', e.target.checked)}
-                className="sr-only peer"
+                onChange={(e) => {
+                  if (e.target.checked && !settings?.email?.configured) {
+                    toast.error('Please configure and test email settings first');
+                    return;
+                  }
+                  handleInputChange('security', 'require_email_verification', e.target.checked);
+                }}
+                disabled={!settings?.email?.configured}
+                className="sr-only peer disabled:opacity-50"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!settings?.email?.configured ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
             </label>
           </div>
 

@@ -19,7 +19,11 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState<any>(null);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    level: string;
+    feedback: string[];
+  } | null>(null);
 
   const { register } = useAuth();
   const navigate = useNavigate();
