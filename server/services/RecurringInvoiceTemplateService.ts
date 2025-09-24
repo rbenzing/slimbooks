@@ -10,6 +10,8 @@ interface RecurringInvoiceTemplate {
   id: number;
   name: string;
   client_id: number;
+  client_name?: string;
+  client_email?: string;
   amount: number;
   description?: string;
   frequency: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
@@ -56,7 +58,10 @@ export class RecurringInvoiceTemplateService {
    */
   async getAllRecurringTemplates(): Promise<RecurringInvoiceTemplate[]> {
     return databaseService.getMany<RecurringInvoiceTemplate>(
-      'SELECT * FROM recurring_invoice_templates ORDER BY name ASC'
+      `SELECT rt.*, c.name as client_name, c.email as client_email
+       FROM recurring_invoice_templates rt
+       LEFT JOIN clients c ON rt.client_id = c.id
+       ORDER BY rt.name ASC`
     );
   }
 
@@ -65,7 +70,11 @@ export class RecurringInvoiceTemplateService {
    */
   async getActiveRecurringTemplates(): Promise<RecurringInvoiceTemplate[]> {
     return databaseService.getMany<RecurringInvoiceTemplate>(
-      'SELECT * FROM recurring_invoice_templates WHERE is_active = 1 ORDER BY name ASC'
+      `SELECT rt.*, c.name as client_name, c.email as client_email
+       FROM recurring_invoice_templates rt
+       LEFT JOIN clients c ON rt.client_id = c.id
+       WHERE rt.is_active = 1
+       ORDER BY rt.name ASC`
     );
   }
 

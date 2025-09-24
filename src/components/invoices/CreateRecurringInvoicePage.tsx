@@ -40,7 +40,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
   const [taxRates, setTaxRates] = useState<any[]>([]);
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [thankYouMessage, setThankYouMessage] = useState('Thank you for your business!');
-  const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [loadedTemplate, setLoadedTemplate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -86,6 +86,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
           setShippingRates(rates);
           setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
         }
+
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -344,22 +345,22 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
               <h2 className="text-3xl font-bold text-card-foreground mb-2">RECURRING TEMPLATE</h2>
               <div className="space-y-1">
                 <div>
-                  <label className="text-sm text-muted-foreground">Template Name *</label>
+                  <label className={themeClasses.label}>Template Name *</label>
                   <input
                     type="text"
                     value={templateData.name}
                     onChange={(e) => setTemplateData({...templateData, name: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                    className={themeClasses.input}
                     placeholder="Enter template name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Frequency</label>
+                  <label className={themeClasses.label}>Frequency</label>
                   <select
                     value={templateData.frequency}
                     onChange={(e) => setTemplateData({...templateData, frequency: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                    className={`block w-full ${themeClasses.select}`}
                   >
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
@@ -368,11 +369,11 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Payment Terms</label>
+                  <label className={themeClasses.label}>Payment Terms</label>
                   <select
                     value={templateData.payment_terms}
                     onChange={(e) => setTemplateData({...templateData, payment_terms: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground"
+                    className={`block w-full ${themeClasses.select}`}
                   >
                     <option value="due_on_receipt">Due on Receipt</option>
                     <option value="net_15">Net 15</option>
@@ -382,12 +383,12 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Next Invoice Date</label>
+                  <label className={themeClasses.label}>Next Invoice Date</label>
                   <input
                     type="date"
                     value={templateData.next_invoice_date}
                     onChange={(e) => setTemplateData({...templateData, next_invoice_date: e.target.value})}
-                    className="block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark]"
+                    className={themeClasses.dateInput}
                   />
                 </div>
               </div>

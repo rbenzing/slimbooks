@@ -25,7 +25,7 @@ export const TemplatesTab = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await authenticatedFetch('/api/recurring-templates');
+      const response = await authenticatedFetch('/api/recurring-templates/active');
       if (response.ok) {
         const data = await response.json();
         setTemplates(data.data || []);
@@ -43,7 +43,7 @@ export const TemplatesTab = () => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (template.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    // Since templateOperations.getAll() only returns active templates, we'll treat all as active
+    // Since API returns only active templates, all templates match status filter
     const matchesStatus = statusFilter === 'all' || statusFilter === 'active';
     const matchesFrequency = frequencyFilter === 'all' || template.frequency === frequencyFilter;
     const matchesClient = clientFilter === 'all' || template.client_name === clientFilter;
@@ -56,7 +56,7 @@ export const TemplatesTab = () => {
   const uniqueFrequencies = [...new Set(templates.map(template => template.frequency))];
 
   // Calculate statistics
-  // Note: templateOperations.getAll() already filters to only active templates (is_active: true)
+  // Note: API call to /active endpoint already filters to only active templates (is_active: true)
   const totalTemplates = templates.length;
   const activeTemplates = templates.length; // All returned templates are active
 
@@ -80,8 +80,8 @@ export const TemplatesTab = () => {
   // Calculate Net MRR (assuming all active templates contribute positively)
   const netMRR = totalMRR; // In a real app, this might subtract churned MRR
 
-  // Calculate Average Template Value
-  const avgTemplateValue = activeTemplates > 0 ? totalMRR / activeTemplates : 0;
+  // Calculate Average Template Value (actual template amounts, not monthly normalized)
+  const avgTemplateValue = activeTemplates > 0 ? templates.reduce((sum, template) => sum + (template.amount || 0), 0) / activeTemplates : 0;
 
   const handleSave = async (templateData: any) => {
     try {
