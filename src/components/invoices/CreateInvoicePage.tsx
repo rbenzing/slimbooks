@@ -33,7 +33,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
   const [invoiceData, setInvoiceData] = useState({
     invoice_number: '',
     due_date: '',
-    status: 'draft'
+    status: 'draft',
+    payment_terms: 'net_30'
   });
   const [lineItems, setLineItems] = useState<InvoiceItem[]>([
     { id: 1, description: '', quantity: 1, unit_price: 0, total: 0 }
@@ -104,7 +105,8 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           setInvoiceData({
             invoice_number: editingInvoice.invoice_number || '',
             due_date: editingInvoice.due_date || '',
-            status: editingInvoice.status || 'draft'
+            status: editingInvoice.status || 'draft',
+            payment_terms: editingInvoice.payment_terms || 'net_30'
           });
 
           // Find and set the client
@@ -237,6 +239,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         type: 'one-time' as InvoiceType,
         status: updatedInvoiceData.status as InvoiceStatus,
         due_date: updatedInvoiceData.due_date,
+        payment_terms: updatedInvoiceData.payment_terms,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -326,6 +329,7 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
         issue_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
         description: lineItems.map(item => item.description).join(', '),
         type: 'one-time' as InvoiceType,
+        payment_terms: updatedInvoiceData.payment_terms,
         client_name: selectedClient.name,
         client_email: selectedClient.email,
         client_phone: selectedClient.phone,
@@ -551,6 +555,21 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
                     className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground [color-scheme:light] dark:[color-scheme:dark] ${viewOnly ? 'bg-muted' : ''}`}
                     disabled={viewOnly}
                   />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Payment Terms</label>
+                  <select
+                    value={invoiceData.payment_terms}
+                    onChange={(e) => !viewOnly && setInvoiceData({...invoiceData, payment_terms: e.target.value})}
+                    className={`block w-full border-0 border-b border-border focus:border-primary focus:ring-0 text-right bg-transparent text-card-foreground ${viewOnly ? 'bg-muted' : ''}`}
+                    disabled={viewOnly}
+                  >
+                    <option value="due_on_receipt" className="bg-background text-foreground">Due on Receipt</option>
+                    <option value="net_15" className="bg-background text-foreground">Net 15</option>
+                    <option value="net_30" className="bg-background text-foreground">Net 30</option>
+                    <option value="net_60" className="bg-background text-foreground">Net 60</option>
+                    <option value="net_90" className="bg-background text-foreground">Net 90</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Status</label>
