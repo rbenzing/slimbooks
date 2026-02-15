@@ -3,6 +3,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
@@ -58,6 +59,7 @@ export const createApp = async () => {
   // Body parsing middleware with size limits
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
+  app.use(cookieParser());
 
   // Multer configuration for file uploads
   const projectRoot = join(__dirname, '..');

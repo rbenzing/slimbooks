@@ -2,6 +2,7 @@
 // Centralized table creation and schema management
 
 import type { IDatabase, TableSchema } from '../../types/database.types.js';
+import { createTokenTables } from './tokenTables.schema.js';
 
 /**
  * User authentication and management table
@@ -293,15 +294,18 @@ export const createTables = (db: IDatabase): void => {
     const columnDefs = schema.columns
       .map(col => `${col.name} ${col.type} ${col.constraints?.join(' ') || ''}`)
       .join(', ');
-    
-    const constraints = schema.constraints 
+
+    const constraints = schema.constraints
       ? ', ' + schema.constraints.join(', ')
       : '';
 
     const createTableSQL = `CREATE TABLE IF NOT EXISTS ${schema.name} (${columnDefs}${constraints})`;
-    
+
     db.executeQuery(createTableSQL);
   });
+
+  // Create token tables for password reset and email verification
+  createTokenTables(db);
 };
 
 /**

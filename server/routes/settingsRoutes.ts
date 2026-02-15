@@ -5,7 +5,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, resolve, extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import {
   getAllSettings,
@@ -32,7 +32,7 @@ const imageStorage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const uniqueName = `logo-${uuidv4()}${extname(file.originalname)}`;
+    const uniqueName = `logo-${randomUUID()}${extname(file.originalname)}`;
     cb(null, uniqueName);
   }
 });

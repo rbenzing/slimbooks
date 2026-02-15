@@ -217,7 +217,7 @@ export interface InvoiceWithClient extends Invoice {
   client_address?: string;
   client_city?: string;
   client_state?: string;
-  client_zipCode?: string;
+  client_zip?: string;
   client_country?: string;
   client_phone?: string;
 }

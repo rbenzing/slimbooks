@@ -104,7 +104,7 @@ export class ClientService {
     databaseService.executeQuery(`
       INSERT INTO clients (
         id, name, first_name, last_name, email, phone, company, address, city, state,
-        zipCode, country, stripe_customer_id, created_at, updated_at
+        zip, country, stripe_customer_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       clientRecord.id, clientRecord.name, clientRecord.first_name, clientRecord.last_name,
@@ -166,8 +166,8 @@ export class ClientService {
 
     // Filter allowed fields
     const allowedFields = [
-      'name', 'first_name', 'last_name', 'email', 'phone', 'company', 'address', 'city', 'state', 
-      'zipCode', 'country', 'stripe_customer_id'
+      'name', 'first_name', 'last_name', 'email', 'phone', 'company', 'address', 'city', 'state',
+      'zip', 'country', 'stripe_customer_id'
     ];
     
     const updateData: Record<string, any> = {};

@@ -277,21 +277,4 @@ const getAccountLockoutSettings = (): AccountLockoutSettings => {
   }
 };
 
-/**
- * Update user login attempts and lock account if necessary
- * @param userId - User ID
- * @param success - Whether login was successful
- */
-export const updateLoginAttempts = (userId: number, success = false): void => {
-  try {
-    if (success) {
-      // This would need to be replaced with proper service call
-      console.log(`Login successful for user ${userId}, resetting attempts`);
-    } else {
-      // This would need to be replaced with proper service call
-      console.log(`Login failed for user ${userId}, incrementing attempts`);
-    }
-  } catch (error) {
-    console.error('Error updating login attempts:', error);
-  }
-};
+// updateLoginAttempts has been removed - use authService.updateLoginAttempts directly

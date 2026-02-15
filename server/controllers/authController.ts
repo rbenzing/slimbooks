@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { authConfig } from '../config/index.js';
 import { authService } from '../services/AuthService.js';
+import { tokenService } from '../services/TokenService.js';
 import { 
   AppError, 
   NotFoundError, 
@@ -140,23 +141,18 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
 
   if (!user) {
     // Don't reveal if user exists or not for security
-    res.json({ 
-      success: true, 
-      message: 'If an account with that email exists, we have sent a password reset link.' 
+    res.json({
+      success: true,
+      message: 'If an account with that email exists, we have sent a password reset link.'
     });
     return;
   }
 
-  // Generate password reset token
-  const tokenPayload = {
-    email: user.email,
-    userId: user.id,
-    type: 'password_reset',
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + Math.floor(authConfig.passwordResetExpiry / 1000)
-  };
-
-  const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
+  // Generate cryptographically secure password reset token
+  const token = await tokenService.createPasswordResetToken(
+    user.id,
+    authConfig.passwordResetExpiry
+  );
 
   // TODO: Send password reset email here
   // For now, we'll just return success
@@ -179,38 +175,30 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response): P
     throw new ValidationError('Token and password are required');
   }
 
-  // Verify the token
-  try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString());
+  // Verify token using secure token service
+  const userId = await tokenService.verifyPasswordResetToken(token);
 
-    if (payload.exp && Date.now() > payload.exp * 1000) {
-      throw new ValidationError('Reset token has expired');
-    }
-
-    if (payload.type !== 'password_reset') {
-      throw new ValidationError('Invalid token type');
-    }
-
-    // Verify user exists and matches payload
-    const user = await authService.getUserByEmail(payload.email);
-    if (!user || user.id !== payload.userId) {
-      throw new NotFoundError('User');
-    }
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
-
-    // Update user password using service (this also resets failed login attempts)
-    await authService.updateUserPassword(user.id, hashedPassword);
-    await authService.updateLoginAttempts(user.id, true); // Reset failed attempts
-
-    res.json({ 
-      success: true, 
-      message: 'Password reset successfully' 
-    });
-  } catch (tokenError) {
-    throw new ValidationError('Invalid or expired token');
+  if (!userId) {
+    throw new ValidationError('Invalid or expired reset token');
   }
+
+  // Get user
+  const user = await authService.getUserById(userId);
+  if (!user) {
+    throw new NotFoundError('User');
+  }
+
+  // Hash the new password
+  const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
+
+  // Update user password using service (this also resets failed login attempts)
+  await authService.updateUserPassword(user.id, hashedPassword);
+  await authService.updateLoginAttempts(user.id, true); // Reset failed attempts
+
+  res.json({
+    success: true,
+    message: 'Password reset successfully'
+  });
 });
 
 /**
@@ -225,22 +213,23 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response): Pro
 
   // Verify the token
   try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString());
+    // Verify token using secure token service
+    const userId = await tokenService.verifyEmailVerificationToken(token);
 
-    if (payload.exp && Date.now() > payload.exp * 1000) {
-      throw new ValidationError('Token has expired');
+    if (!userId) {
+      throw new ValidationError('Invalid or expired verification token');
     }
 
-    const user = await authService.getUserByEmail(payload.email);
+    const user = await authService.getUserById(userId);
 
     if (!user) {
       throw new NotFoundError('User');
     }
 
     if (user.email_verified) {
-      res.json({ 
-        success: true, 
-        message: 'Email already verified' 
+      res.json({
+        success: true,
+        message: 'Email already verified'
       });
       return;
     }
@@ -248,9 +237,9 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response): Pro
     // Update user as verified using service
     await authService.verifyUserEmail(user.id);
 
-    res.json({ 
-      success: true, 
-      message: 'Email verified successfully' 
+    res.json({
+      success: true,
+      message: 'Email verified successfully'
     });
   } catch (tokenError) {
     throw new ValidationError('Invalid or expired token');

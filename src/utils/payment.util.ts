@@ -67,39 +67,3 @@ export const createPaymentForInvoice = async (
     return false;
   }
 };
-
-/**
- * Show a payment form dialog for marking an invoice as paid
- */
-export const showPaymentFormForInvoice = (
-  invoice: Invoice,
-  onComplete: () => void
-): void => {
-  // This would open a payment form modal pre-filled with invoice data
-  // For now, we'll use the default payment creation
-  createPaymentForInvoice(invoice).then(success => {
-    if (success) {
-      onComplete();
-    }
-  });
-};
-
-/**
- * Create a payment data object pre-filled from invoice information
- */
-export const createPaymentDataFromInvoice = (
-  invoice: Invoice,
-  overrides: Partial<PaymentFormData> = {}
-): PaymentFormData => {
-  return {
-    date: new Date().toISOString().split('T')[0],
-    client_name: invoice.client_name || 'Unknown Client',
-    invoice_id: invoice.id,
-    amount: invoice.total_amount,
-    method: 'bank_transfer',
-    reference: `AUTO-${invoice.invoice_number}`,
-    description: `Payment for ${invoice.invoice_number}`,
-    status: 'received',
-    ...overrides
-  };
-};

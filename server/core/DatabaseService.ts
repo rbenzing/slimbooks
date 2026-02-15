@@ -3,6 +3,7 @@
 
 import type { IDatabase, QueryOptions, ServiceOptions } from '../types/database.types.js';
 import { db } from '../database/index.js';
+import { validateTableName } from './TableValidator.js';
 
 /**
  * Base Database Service
@@ -94,6 +95,7 @@ export class DatabaseService {
    * Soft delete a record (if table has deleted_at column)
    */
   public softDelete(table: string, id: number): boolean {
+    validateTableName(table);
     try {
       const result = this.executeQuery(
         `UPDATE ${table} SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
@@ -111,6 +113,7 @@ export class DatabaseService {
    * Hard delete a record
    */
   public hardDelete(table: string, id: number): boolean {
+    validateTableName(table);
     const result = this.executeQuery(`DELETE FROM ${table} WHERE id = ?`, [id]);
     return result.changes > 0;
   }
@@ -119,22 +122,23 @@ export class DatabaseService {
    * Update a record with automatic timestamp
    */
   public updateRecord(table: string, id: number, data: Record<string, unknown>): boolean {
+    validateTableName(table);
     const keys = Object.keys(data);
     const values = Object.values(data);
-    
+
     if (keys.length === 0) {
       throw new Error('No data provided for update');
     }
-    
+
     // Add updated_at timestamp
     keys.push('updated_at');
     values.push(new Date().toISOString());
-    
+
     const setClause = keys.map(key => `${key} = ?`).join(', ');
     const query = `UPDATE ${table} SET ${setClause} WHERE id = ?`;
-    
+
     values.push(id);
-    
+
     const result = this.executeQuery(query, values);
     return result.changes > 0;
   }
@@ -143,17 +147,18 @@ export class DatabaseService {
    * Insert a record with automatic timestamps
    */
   public insertRecord(table: string, data: Record<string, unknown>): number {
+    validateTableName(table);
     const keys = Object.keys(data);
     const values = Object.values(data);
-    
+
     // Add timestamps
     const now = new Date().toISOString();
     keys.push('created_at', 'updated_at');
     values.push(now, now);
-    
+
     const placeholders = keys.map(() => '?').join(', ');
     const query = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders})`;
-    
+
     const result = this.executeQuery(query, values);
     return result.lastInsertRowid;
   }
@@ -221,6 +226,7 @@ export class DatabaseService {
    * Check if a record exists with specific criteria
    */
   public exists(table: string, column: string, value: unknown): boolean {
+    validateTableName(table);
     const result = this.getOne(`SELECT 1 FROM ${table} WHERE ${column} = ?`, [value]);
     return result !== null;
   }

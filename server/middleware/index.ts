@@ -10,8 +10,7 @@ export {
   optionalAuth,
   generateToken,
   verifyToken,
-  isAccountLocked,
-  updateLoginAttempts
+  isAccountLocked
 } from './auth.js';
 
 // Validation middleware

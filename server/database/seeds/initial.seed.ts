@@ -127,7 +127,10 @@ export const initializeSettings = (db: IDatabase): void => {
  */
 export const initializeSampleClients = (db: IDatabase): void => {
   if (process.env.NODE_ENV === 'production') return;
-  
+
+  const clientCheck = db.getOne<{ count: number }>('SELECT COUNT(*) as count FROM clients');
+  if (clientCheck && clientCheck.count > 0) return;
+
   const sampleClients: SeedData = {
     table: 'clients',
     data: [
@@ -179,7 +182,10 @@ export const initializeSampleClients = (db: IDatabase): void => {
  */
 export const initializeSampleInvoices = (db: IDatabase): void => {
   if (process.env.NODE_ENV === 'production') return;
-  
+
+  const invoiceCheck = db.getOne<{ count: number }>('SELECT COUNT(*) as count FROM invoices');
+  if (invoiceCheck && invoiceCheck.count > 0) return;
+
   const sampleInvoices: SeedData = {
     table: 'invoices',
     data: [
@@ -216,7 +222,10 @@ export const initializeSampleInvoices = (db: IDatabase): void => {
  */
 export const initializeSamplePayments = (db: IDatabase): void => {
   if (process.env.NODE_ENV === 'production') return;
-  
+
+  const paymentCheck = db.getOne<{ count: number }>('SELECT COUNT(*) as count FROM payments');
+  if (paymentCheck && paymentCheck.count > 0) return;
+
   const samplePayments: SeedData = {
     table: 'payments',
     data: [

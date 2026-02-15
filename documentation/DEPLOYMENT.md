@@ -41,7 +41,7 @@ Your Slimbooks application has been hardened with the following security measure
 
 ```bash
 # Download and run the setup script
-curl -fsSL https://raw.githubusercontent.com/yourusername/slimbooks/main/scripts/setup-raspberry-pi.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rbenzing/slimbooks/main/scripts/setup-raspberry-pi.sh | bash
 
 # Reboot to ensure all changes take effect
 sudo reboot
@@ -52,7 +52,7 @@ sudo reboot
 ```bash
 # Clone your repository
 cd /opt/slimbooks
-git clone https://github.com/yourusername/slimbooks.git .
+git clone https://github.com/rbenzing/slimbooks.git .
 
 # Generate secure secrets
 ./scripts/generate-secrets.sh
@@ -103,7 +103,7 @@ sudo chown $USER:$USER /opt/slimbooks
 cd /opt/slimbooks
 
 # Clone repository
-git clone https://github.com/yourusername/slimbooks.git .
+git clone https://github.com/rbenzing/slimbooks.git .
 
 # Create secure environment configuration
 cp .env.example .env

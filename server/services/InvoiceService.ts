@@ -90,7 +90,7 @@ export class InvoiceService {
     return databaseService.getOne<InvoiceWithClient>(`
       SELECT i.*, c.name as client_name, c.email as client_email, c.company as client_company,
              c.address as client_address, c.city as client_city, c.state as client_state,
-             c.zipCode as client_zipCode, c.country as client_country, c.phone as client_phone
+             c.zip as client_zip, c.country as client_country, c.phone as client_phone
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       WHERE i.id = ?
