@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DollarSign, Users, FileText, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import DashboardChart from './DashboardChart';
 import { authenticatedFetch } from '@/utils/api';
@@ -9,22 +9,10 @@ import { TimePeriod, Invoice, Expense } from '@/types';
 
 export const DashboardOverview = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('year-to-date');
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    totalClients: 0,
-    totalInvoices: 0,
-    pendingInvoices: 0,
-    sentInvoices: 0,
-    paidInvoices: 0,
-    overdueInvoices: 0,
-    draftInvoices: 0,
-    totalExpenses: 0,
-    creditsRefunds: 0,
-    recentInvoices: [] as Invoice[],
+  const [loadedData, setLoadedData] = useState({
     allInvoices: [] as Invoice[],
     allExpenses: [] as Expense[],
-    filteredInvoices: [] as Invoice[],
-    filteredExpenses: [] as Expense[]
+    totalClients: 0
   });
   
   const timePeriodOptions = [
@@ -42,29 +30,26 @@ export const DashboardOverview = () => {
         authenticatedFetch('/api/clients'),
         authenticatedFetch('/api/expenses')
       ]);
-      
+
       const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { data: { invoices: [] } };
       const clientsData = clientsResponse.ok ? await clientsResponse.json() : { data: [] };
       const expensesData = expensesResponse.ok ? await expensesResponse.json() : { data: { data: [] } };
-      
+
       const invoices = invoicesData.data?.invoices || [];
       const clients = clientsData.data || [];
       const expenses = expensesData.data?.data || [];
 
-      setStats(prevStats => ({
-        ...prevStats,
+      setLoadedData({
         totalClients: clients.length,
         allInvoices: invoices,
-        allExpenses: expenses,
-        filteredInvoices: invoices,
-        filteredExpenses: expenses
-      }));
+        allExpenses: expenses
+      });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
   };
 
-  const filterDataByPeriod = useCallback(() => {
+  const dateRange = useMemo(() => {
     const currentDate = new Date();
     let startDate: Date;
     let endDate: Date = currentDate;
@@ -75,15 +60,11 @@ export const DashboardOverview = () => {
         startDate.setDate(currentDate.getDate() - 7);
         break;
       case 'last-month':
-        // Set to first day of last month
         startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-        // Set end date to last day of last month
         endDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0, 23, 59, 59);
         break;
       case 'last-year':
-        // Set to January 1st of last year
         startDate = new Date(currentDate.getFullYear() - 1, 0, 1);
-        // Set end date to December 31st of last year
         endDate = new Date(currentDate.getFullYear() - 1, 11, 31, 23, 59, 59);
         break;
       case 'year-to-date':
@@ -96,19 +77,24 @@ export const DashboardOverview = () => {
         startDate = new Date(currentDate.getFullYear(), 0, 1);
     }
 
-    // Filter invoices by date range
-    const filteredInvoices = stats.allInvoices.filter(invoice => {
+    return { startDate, endDate };
+  }, [selectedPeriod]);
+
+  const filteredInvoices = useMemo(() => {
+    return loadedData.allInvoices.filter(invoice => {
       const invoiceDate = new Date(invoice.created_at);
-      return invoiceDate >= startDate && invoiceDate <= endDate;
+      return invoiceDate >= dateRange.startDate && invoiceDate <= dateRange.endDate;
     });
+  }, [loadedData.allInvoices, dateRange]);
 
-    // Filter expenses by date range
-    const filteredExpenses = stats.allExpenses.filter(expense => {
+  const filteredExpenses = useMemo(() => {
+    return loadedData.allExpenses.filter(expense => {
       const expenseDate = new Date(expense.created_at);
-      return expenseDate >= startDate && expenseDate <= endDate;
+      return expenseDate >= dateRange.startDate && expenseDate <= dateRange.endDate;
     });
+  }, [loadedData.allExpenses, dateRange]);
 
-    // Calculate filtered statistics
+  const stats = useMemo(() => {
     const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
       const amount = parseFloat(invoice.amount) || 0;
       return amount > 0 ? sum + amount : sum;
@@ -128,9 +114,9 @@ export const DashboardOverview = () => {
     const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const recentInvoices = filteredInvoices.slice(0, 5);
 
-    setStats(prevStats => ({
-      ...prevStats,
+    return {
       totalRevenue,
+      totalClients: loadedData.totalClients,
       totalInvoices: filteredInvoices.length,
       pendingInvoices,
       sentInvoices,
@@ -139,21 +125,13 @@ export const DashboardOverview = () => {
       draftInvoices,
       totalExpenses,
       creditsRefunds,
-      recentInvoices,
-      filteredInvoices,
-      filteredExpenses
-    }));
-  }, [selectedPeriod, stats.allInvoices, stats.allExpenses]);
+      recentInvoices
+    };
+  }, [filteredInvoices, filteredExpenses, loadedData.totalClients]);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
-
-  useEffect(() => {
-    if (stats.allInvoices.length > 0 || stats.allExpenses.length > 0) {
-      filterDataByPeriod();
-    }
-  }, [filterDataByPeriod, stats.allInvoices.length, stats.allExpenses.length]);
 
   return (
     <div className={themeClasses.page}>
@@ -296,7 +274,7 @@ export const DashboardOverview = () => {
         {/* Chart and Recent Invoices */}
         <div className={themeClasses.contentGrid}>
           <div className={themeClasses.card}>
-            <DashboardChart invoices={stats.filteredInvoices} title="Revenue Trend" selectedPeriod={selectedPeriod} />
+            <DashboardChart invoices={filteredInvoices} title="Revenue Trend" selectedPeriod={selectedPeriod} />
           </div>
 
           <div className={themeClasses.card}>

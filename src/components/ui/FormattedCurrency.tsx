@@ -9,9 +9,9 @@ interface FormattedCurrencyProps {
   className?: string;
 }
 
-export const FormattedCurrency: React.FC<FormattedCurrencyProps> = ({ 
-  amount, 
-  customSettings, 
+export const FormattedCurrency = React.memo<FormattedCurrencyProps>(({
+  amount,
+  customSettings,
   fallback = '$0.00',
   className = ''
 }) => {
@@ -32,7 +32,7 @@ export const FormattedCurrency: React.FC<FormattedCurrencyProps> = ({
   }, [amount, customSettings, fallback]);
 
   return <span className={className}>{formattedAmount}</span>;
-};
+});
 
 // Simple synchronous currency formatter for basic cases
 export const formatCurrencySyncComponent = (amount: number | undefined | null, currency: string = 'USD'): string => {

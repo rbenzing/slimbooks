@@ -12,12 +12,29 @@ import { themeClasses, getButtonClasses, getIconColorClasses } from '@/utils/the
 import { Client, ClientFormData } from '@/types';
 
 export const ClientManagement: React.FC = () => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [uiState, setUiState] = useState({
+    showCreateForm: false,
+    showImportExport: false,
+    viewMode: 'panel' as 'panel' | 'table'
+  });
+
+  const [filters, setFilters] = useState({
+    searchTerm: ''
+  });
+
+  const [activeItem, setActiveItem] = useState<{
+    editing: Client | null;
+  }>({
+    editing: null
+  });
+
   const [clients, setClients] = useState<Client[]>([]);
-  const [showImportExport, setShowImportExport] = useState(false);
-  const [viewMode, setViewMode] = useState<'panel' | 'table'>('panel');
+
+  const updateUiState = (updates: Partial<typeof uiState>) =>
+    setUiState(prev => ({ ...prev, ...updates }));
+
+  const updateFilters = (updates: Partial<typeof filters>) =>
+    setFilters(prev => ({ ...prev, ...updates }));
 
   useEffect(() => {
     loadClients();
@@ -39,33 +56,33 @@ export const ClientManagement: React.FC = () => {
   };
 
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.company.toLowerCase().includes(searchTerm.toLowerCase())
+    client.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+    client.company.toLowerCase().includes(filters.searchTerm.toLowerCase())
   );
 
   // Use pagination hook
   const pagination = usePagination({
     data: filteredClients,
-    searchTerm,
+    searchTerm: filters.searchTerm,
     filters: {}
   });
 
   const handleCreateClient = () => {
-    setEditingClient(null);
-    setShowCreateForm(true);
+    setActiveItem({ editing: null });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleEditClient = (client: Client) => {
-    setEditingClient(client);
-    setShowCreateForm(true);
+    setActiveItem({ editing: client });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleSaveClient = async (clientData: ClientFormData) => {
     try {
       let response;
-      if (editingClient) {
-        response = await authenticatedFetch(`/api/clients/${editingClient.id}`, {
+      if (activeItem.editing) {
+        response = await authenticatedFetch(`/api/clients/${activeItem.editing.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clientData })
@@ -88,8 +105,8 @@ export const ClientManagement: React.FC = () => {
         }
       }
       await loadClients();
-      setShowCreateForm(false);
-      setEditingClient(null);
+      updateUiState({ showCreateForm: false });
+      setActiveItem({ editing: null });
     } catch (error) {
       toast.error('Failed to save client');
       console.error('Error saving client:', error);
@@ -178,8 +195,8 @@ export const ClientManagement: React.FC = () => {
   );
 
   const handleCloseForm = () => {
-    setShowCreateForm(false);
-    setEditingClient(null);
+    updateUiState({ showCreateForm: false });
+    setActiveItem({ editing: null });
   };
 
   const renderPanelView = () => (
@@ -236,10 +253,10 @@ export const ClientManagement: React.FC = () => {
     </div>
   );
 
-  if (showCreateForm) {
+  if (uiState.showCreateForm) {
     return (
-      <ClientForm 
-        client={editingClient}
+      <ClientForm
+        client={activeItem.editing}
         onSave={handleSaveClient}
         onCancel={handleCloseForm}
       />
@@ -257,7 +274,7 @@ export const ClientManagement: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => setShowImportExport(true)}
+              onClick={() => updateUiState({ showImportExport: true })}
               className={getButtonClasses('secondary')}
             >
               <Building className={themeClasses.iconButton} />
@@ -323,17 +340,17 @@ export const ClientManagement: React.FC = () => {
                 type="text"
                 placeholder="Search clients..."
                 className={themeClasses.searchInput}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.searchTerm}
+                onChange={(e) => updateFilters({ searchTerm: e.target.value })}
               />
             </div>
 
             {/* Right section - View Toggle */}
             <div className="flex space-x-2">
               <button
-                onClick={() => setViewMode('panel')}
+                onClick={() => updateUiState({ viewMode: 'panel' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'panel'
+                  uiState.viewMode === 'panel'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -342,9 +359,9 @@ export const ClientManagement: React.FC = () => {
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setViewMode('table')}
+                onClick={() => updateUiState({ viewMode: 'table' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'table'
+                  uiState.viewMode === 'table'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -357,7 +374,7 @@ export const ClientManagement: React.FC = () => {
         </div>
 
         {/* Clients Display */}
-        {viewMode === 'panel' ? renderPanelView() : renderTableView()}
+        {uiState.viewMode === 'panel' ? renderPanelView() : renderTableView()}
 
         {/* Pagination Controls */}
         <PaginationControls
@@ -385,15 +402,15 @@ export const ClientManagement: React.FC = () => {
             <div className="text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                {searchTerm ? 'No clients found' : 'No clients yet'}
+                {filters.searchTerm ? 'No clients found' : 'No clients yet'}
               </h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm
+                {filters.searchTerm
                   ? 'Try adjusting your search terms'
                   : 'Add your first client to get started'
                 }
               </p>
-              {!searchTerm && (
+              {!filters.searchTerm && (
                 <button
                   onClick={handleCreateClient}
                   className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
@@ -407,9 +424,9 @@ export const ClientManagement: React.FC = () => {
         )}
 
         {/* Import/Export Modal */}
-        {showImportExport && (
+        {uiState.showImportExport && (
           <ClientImportExport
-            onClose={() => setShowImportExport(false)}
+            onClose={() => updateUiState({ showImportExport: false })}
             onImportComplete={loadClients}
           />
         )}

@@ -36,19 +36,37 @@ import { Payment } from '@/types';
 import { TimePeriod, DateRange } from '@/types';
 
 export const PaymentManagement: React.FC = () => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [methodFilter, setMethodFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<TimePeriod>('this-month');
-  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+  const [uiState, setUiState] = useState({
+    showCreateForm: false,
+    showImportExport: false,
+    isViewModalOpen: false,
+    viewMode: 'table' as 'panel' | 'table',
+    loading: false
+  });
+
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    methodFilter: 'all',
+    statusFilter: 'all',
+    dateFilter: 'this-month' as TimePeriod,
+    customDateRange: undefined as DateRange | undefined
+  });
+
+  const [activeItem, setActiveItem] = useState<{
+    editing: Payment | null;
+    viewing: Payment | null;
+  }>({
+    editing: null,
+    viewing: null
+  });
+
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [viewingPayment, setViewingPayment] = useState<Payment | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'panel' | 'table'>('table');
-  const [loading, setLoading] = useState(false);
-  const [showImportExport, setShowImportExport] = useState(false);
+
+  const updateUiState = (updates: Partial<typeof uiState>) =>
+    setUiState(prev => ({ ...prev, ...updates }));
+
+  const updateFilters = (updates: Partial<typeof filters>) =>
+    setFilters(prev => ({ ...prev, ...updates }));
 
   useEffect(() => {
     loadPayments();
@@ -56,24 +74,21 @@ export const PaymentManagement: React.FC = () => {
 
   const loadPayments = async () => {
     try {
-      setLoading(true);
+      updateUiState({ loading: true });
       const response = await authenticatedFetch('/api/payments');
       const data = await response.json();
-      
-      
+
+
       if (data.success) {
         setPayments(data.data?.payments || []);
       } else {
-        console.error('API returned success: false. Message:', data.message);
-        console.error('Full API response:', data);
         throw new Error(data.message || 'Failed to load payments');
       }
     } catch (error) {
-      console.error('Error loading payments:', error);
       toast.error('Failed to load payments');
       setPayments([]);
     } finally {
-      setLoading(false);
+      updateUiState({ loading: false });
     }
   };
 
@@ -86,22 +101,22 @@ export const PaymentManagement: React.FC = () => {
     const method = payment.method || '';
     const status = payment.status || '';
 
-    const matchesSearch = 
-      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reference.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMethod = methodFilter === 'all' || method === methodFilter;
-    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    const matchesSearch =
+      clientName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      reference.toLowerCase().includes(filters.searchTerm.toLowerCase());
+    const matchesMethod = filters.methodFilter === 'all' || method === filters.methodFilter;
+    const matchesStatus = filters.statusFilter === 'all' || status === filters.statusFilter;
 
     return matchesSearch && matchesMethod && matchesStatus;
   });
 
   // Apply date filtering
   const dateFilteredPayments = (() => {
-    if (dateFilter === 'custom' && customDateRange) {
-      return filterByDateRange(filteredPayments, customDateRange, 'date');
+    if (filters.dateFilter === 'custom' && filters.customDateRange) {
+      return filterByDateRange(filteredPayments, filters.customDateRange, 'date');
     } else {
-      const dateRange = getDateRangeForPeriod(dateFilter);
+      const dateRange = getDateRangeForPeriod(filters.dateFilter);
       return filterByDateRange(filteredPayments, dateRange, 'date');
     }
   })();
@@ -109,8 +124,8 @@ export const PaymentManagement: React.FC = () => {
   // Use pagination hook
   const pagination = usePagination({
     data: dateFilteredPayments,
-    searchTerm,
-    filters: { methodFilter, statusFilter, dateFilter }
+    searchTerm: filters.searchTerm,
+    filters: { methodFilter: filters.methodFilter, statusFilter: filters.statusFilter, dateFilter: filters.dateFilter }
   });
 
   const totalAmount = dateFilteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -119,30 +134,29 @@ export const PaymentManagement: React.FC = () => {
   const failedCount = dateFilteredPayments.filter(p => p.status === 'failed').length;
 
   const handleDateFilterChange = (period: TimePeriod, customRange?: DateRange) => {
-    setDateFilter(period);
-    setCustomDateRange(customRange);
+    updateFilters({ dateFilter: period, customDateRange: customRange });
   };
 
   const handleCreatePayment = () => {
-    setEditingPayment(null);
-    setShowCreateForm(true);
+    setActiveItem({ editing: null, viewing: null });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleEditPayment = (payment: Payment) => {
-    setEditingPayment(payment);
-    setShowCreateForm(true);
+    setActiveItem({ editing: payment, viewing: null });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleViewPayment = (payment: Payment) => {
-    setViewingPayment(payment);
-    setIsViewModalOpen(true);
+    setActiveItem(prev => ({ ...prev, viewing: payment }));
+    updateUiState({ isViewModalOpen: true });
   };
 
   const handleSavePayment = async (paymentData: Omit<Payment, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const url = editingPayment ? `/api/payments/${editingPayment.id}` : '/api/payments';
-      const method = editingPayment ? 'PUT' : 'POST';
-      
+      const url = activeItem.editing ? `/api/payments/${activeItem.editing.id}` : '/api/payments';
+      const method = activeItem.editing ? 'PUT' : 'POST';
+
       const response = await authenticatedFetch(url, {
         method,
         headers: {
@@ -150,14 +164,14 @@ export const PaymentManagement: React.FC = () => {
         },
         body: JSON.stringify({ paymentData })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        toast.success(editingPayment ? 'Payment updated successfully' : 'Payment created successfully');
+        toast.success(activeItem.editing ? 'Payment updated successfully' : 'Payment created successfully');
         await loadPayments();
-        setShowCreateForm(false);
-        setEditingPayment(null);
+        updateUiState({ showCreateForm: false });
+        setActiveItem({ editing: null, viewing: null });
       } else {
         throw new Error(data.message || 'Failed to save payment');
       }
@@ -254,8 +268,8 @@ export const PaymentManagement: React.FC = () => {
   };
 
   const handleCloseForm = () => {
-    setShowCreateForm(false);
-    setEditingPayment(null);
+    updateUiState({ showCreateForm: false });
+    setActiveItem({ editing: null, viewing: null });
   };
 
   const renderPanelView = () => (
@@ -330,10 +344,10 @@ export const PaymentManagement: React.FC = () => {
     </div>
   );
 
-  if (showCreateForm) {
+  if (uiState.showCreateForm) {
     return (
-      <PaymentForm 
-        payment={editingPayment}
+      <PaymentForm
+        payment={activeItem.editing}
         onSave={handleSavePayment}
         onCancel={handleCloseForm}
       />
@@ -351,7 +365,7 @@ export const PaymentManagement: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => setShowImportExport(true)}
+              onClick={() => updateUiState({ showImportExport: true })}
               className={getButtonClasses('secondary')}
             >
               <FileSpreadsheet className={themeClasses.iconButton} />
@@ -420,14 +434,14 @@ export const PaymentManagement: React.FC = () => {
                   type="text"
                   placeholder="Search payments..."
                   className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={filters.searchTerm}
+                  onChange={(e) => updateFilters({ searchTerm: e.target.value })}
                 />
               </div>
               <select
                 className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                value={methodFilter}
-                onChange={(e) => setMethodFilter(e.target.value)}
+                value={filters.methodFilter}
+                onChange={(e) => updateFilters({ methodFilter: e.target.value })}
               >
                 <option value="all">All Methods</option>
                 <option value="cash">Cash</option>
@@ -439,8 +453,8 @@ export const PaymentManagement: React.FC = () => {
               </select>
               <select
                 className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={filters.statusFilter}
+                onChange={(e) => updateFilters({ statusFilter: e.target.value })}
               >
                 <option value="all">All Status</option>
                 <option value="received">Received</option>
@@ -449,8 +463,8 @@ export const PaymentManagement: React.FC = () => {
                 <option value="refunded">Refunded</option>
               </select>
               <DateRangeFilter
-                value={dateFilter}
-                customRange={customDateRange}
+                value={filters.dateFilter}
+                customRange={filters.customDateRange}
                 onChange={handleDateFilterChange}
                 className="max-w-xs"
               />
@@ -459,9 +473,9 @@ export const PaymentManagement: React.FC = () => {
             {/* Right section - View Toggle (20%) */}
             <div className="flex space-x-2">
               <button
-                onClick={() => setViewMode('panel')}
+                onClick={() => updateUiState({ viewMode: 'panel' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'panel'
+                  uiState.viewMode === 'panel'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -470,9 +484,9 @@ export const PaymentManagement: React.FC = () => {
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setViewMode('table')}
+                onClick={() => updateUiState({ viewMode: 'table' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'table'
+                  uiState.viewMode === 'table'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -485,14 +499,14 @@ export const PaymentManagement: React.FC = () => {
         </div>
 
         {/* Payments Display */}
-        {loading ? (
+        {uiState.loading ? (
           <div className="bg-card rounded-lg shadow-sm border border-border p-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading payments...</p>
             </div>
           </div>
-        ) : viewMode === 'panel' ? renderPanelView() : (
+        ) : uiState.viewMode === 'panel' ? renderPanelView() : (
           <PaymentsList
             payments={pagination.paginatedData}
             onEditPayment={handleEditPayment}
@@ -525,13 +539,13 @@ export const PaymentManagement: React.FC = () => {
         />
 
         {/* Empty State */}
-        {!loading && dateFilteredPayments.length === 0 && (
+        {!uiState.loading && dateFilteredPayments.length === 0 && (
           <div className="bg-card rounded-lg shadow-sm border border-border p-12">
             <div className="text-center">
               <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No payments found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || methodFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'this-month'
+                {filters.searchTerm || filters.methodFilter !== 'all' || filters.statusFilter !== 'all' || filters.dateFilter !== 'this-month'
                   ? 'Try adjusting your search or filters'
                   : 'Add your first payment to get started'
                 }
@@ -542,18 +556,18 @@ export const PaymentManagement: React.FC = () => {
 
         {/* Payment View Modal */}
         <PaymentViewModal
-          payment={viewingPayment}
-          isOpen={isViewModalOpen}
+          payment={activeItem.viewing}
+          isOpen={uiState.isViewModalOpen}
           onClose={() => {
-            setIsViewModalOpen(false);
-            setViewingPayment(null);
+            updateUiState({ isViewModalOpen: false });
+            setActiveItem(prev => ({ ...prev, viewing: null }));
           }}
         />
 
         {/* Import/Export Modal */}
-        {showImportExport && (
+        {uiState.showImportExport && (
           <PaymentImportExport
-            onClose={() => setShowImportExport(false)}
+            onClose={() => updateUiState({ showImportExport: false })}
             onImportComplete={loadPayments}
           />
         )}

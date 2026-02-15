@@ -36,18 +36,36 @@ import { Expense } from '@/types';
 import { TimePeriod, DateRange } from '@/types';
 
 export const ExpenseManagement: React.FC = () => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<TimePeriod>('this-month');
-  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+  const [uiState, setUiState] = useState({
+    showCreateForm: false,
+    showImportExport: false,
+    isViewModalOpen: false,
+    viewMode: 'table' as 'panel' | 'table'
+  });
+
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    categoryFilter: 'all',
+    statusFilter: 'all',
+    dateFilter: 'this-month' as TimePeriod,
+    customDateRange: undefined as DateRange | undefined
+  });
+
+  const [activeItem, setActiveItem] = useState<{
+    editing: Expense | null;
+    viewing: Expense | null;
+  }>({
+    editing: null,
+    viewing: null
+  });
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [showImportExport, setShowImportExport] = useState(false);
-  const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'panel' | 'table'>('table');
+
+  const updateUiState = (updates: Partial<typeof uiState>) =>
+    setUiState(prev => ({ ...prev, ...updates }));
+
+  const updateFilters = (updates: Partial<typeof filters>) =>
+    setFilters(prev => ({ ...prev, ...updates }));
 
   useEffect(() => {
     loadExpenses();
@@ -86,20 +104,20 @@ export const ExpenseManagement: React.FC = () => {
     const category = expense.category || '';
     const status = expense.status || '';
 
-    const matchesSearch = vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    const matchesSearch = vendor.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                         description.toLowerCase().includes(filters.searchTerm.toLowerCase());
+    const matchesCategory = filters.categoryFilter === 'all' || category === filters.categoryFilter;
+    const matchesStatus = filters.statusFilter === 'all' || status === filters.statusFilter;
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Apply date filtering
   const dateFilteredExpenses = (() => {
-    if (dateFilter === 'custom' && customDateRange) {
-      return filterByDateRange(filteredExpenses, customDateRange, 'date');
+    if (filters.dateFilter === 'custom' && filters.customDateRange) {
+      return filterByDateRange(filteredExpenses, filters.customDateRange, 'date');
     } else {
-      const dateRange = getDateRangeForPeriod(dateFilter);
+      const dateRange = getDateRangeForPeriod(filters.dateFilter);
       return filterByDateRange(filteredExpenses, dateRange, 'date');
     }
   })();
@@ -107,8 +125,8 @@ export const ExpenseManagement: React.FC = () => {
   // Use pagination hook
   const pagination = usePagination({
     data: dateFilteredExpenses,
-    searchTerm,
-    filters: { categoryFilter, statusFilter, dateFilter }
+    searchTerm: filters.searchTerm,
+    filters: { categoryFilter: filters.categoryFilter, statusFilter: filters.statusFilter, dateFilter: filters.dateFilter }
   });
 
   const totalExpenses = dateFilteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -117,29 +135,28 @@ export const ExpenseManagement: React.FC = () => {
   const reimbursedCount = dateFilteredExpenses.filter(exp => exp.status === 'reimbursed').length;
 
   const handleDateFilterChange = (period: TimePeriod, customRange?: DateRange) => {
-    setDateFilter(period);
-    setCustomDateRange(customRange);
+    updateFilters({ dateFilter: period, customDateRange: customRange });
   };
 
   const handleCreateExpense = () => {
-    setEditingExpense(null);
-    setShowCreateForm(true);
+    setActiveItem({ editing: null, viewing: null });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleEditExpense = (expense: Expense) => {
-    setEditingExpense(expense);
-    setShowCreateForm(true);
+    setActiveItem({ editing: expense, viewing: null });
+    updateUiState({ showCreateForm: true });
   };
 
   const handleViewExpense = (expense: Expense) => {
-    setViewingExpense(expense);
-    setIsViewModalOpen(true);
+    setActiveItem(prev => ({ ...prev, viewing: expense }));
+    updateUiState({ isViewModalOpen: true });
   };
 
   const handleSaveExpense = async (expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      if (editingExpense) {
-        const response = await apiPut(`/api/expenses/${editingExpense.id}`, { expenseData });
+      if (activeItem.editing) {
+        const response = await apiPut(`/api/expenses/${activeItem.editing.id}`, { expenseData });
         if (response.success) {
           toast.success('Expense updated successfully');
         } else {
@@ -154,8 +171,8 @@ export const ExpenseManagement: React.FC = () => {
         }
       }
       await loadExpenses();
-      setShowCreateForm(false);
-      setEditingExpense(null);
+      updateUiState({ showCreateForm: false });
+      setActiveItem({ editing: null, viewing: null });
     } catch (error) {
       console.error('Error saving expense:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save expense');
@@ -299,10 +316,10 @@ export const ExpenseManagement: React.FC = () => {
     </div>
   );
 
-  if (showCreateForm) {
+  if (uiState.showCreateForm) {
     return (
       <ExpenseForm 
-        expense={editingExpense}
+        expense={activeItem.editing}
         onSave={handleSaveExpense}
         onCancel={handleCloseForm}
       />
@@ -320,7 +337,7 @@ export const ExpenseManagement: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => setShowImportExport(true)}
+              onClick={() => updateUiState({ showImportExport: true })}
               className={getButtonClasses('secondary')}
             >
               <Upload className={themeClasses.iconButton} />
@@ -389,14 +406,14 @@ export const ExpenseManagement: React.FC = () => {
                   type="text"
                   placeholder="Search expenses..."
                   className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={filters.searchTerm}
+                  onChange={(e) => updateFilters({ searchTerm: e.target.value })}
                 />
               </div>
               <select
                 className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                value={filters.categoryFilter}
+                onChange={(e) => updateFilters({ categoryFilter: e.target.value })}
               >
                 <option value="all">All Categories</option>
                 <option value="Office Supplies">Office Supplies</option>
@@ -408,8 +425,8 @@ export const ExpenseManagement: React.FC = () => {
               </select>
               <select
                 className="px-4 py-2 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={filters.statusFilter}
+                onChange={(e) => updateFilters({ statusFilter: e.target.value })}
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -417,8 +434,8 @@ export const ExpenseManagement: React.FC = () => {
                 <option value="reimbursed">Reimbursed</option>
               </select>
               <DateRangeFilter
-                value={dateFilter}
-                customRange={customDateRange}
+                value={filters.dateFilter}
+                customRange={filters.customDateRange}
                 onChange={handleDateFilterChange}
                 className="max-w-xs"
               />
@@ -427,9 +444,9 @@ export const ExpenseManagement: React.FC = () => {
             {/* Right section - View Toggle (20%) */}
             <div className="flex space-x-2">
               <button
-                onClick={() => setViewMode('panel')}
+                onClick={() => updateUiState({ viewMode: 'panel' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'panel'
+                  uiState.viewMode === 'panel'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -438,9 +455,9 @@ export const ExpenseManagement: React.FC = () => {
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setViewMode('table')}
+                onClick={() => updateUiState({ viewMode: 'table' })}
                 className={`p-2 rounded-lg border ${
-                  viewMode === 'table'
+                  uiState.viewMode === 'table'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
                 }`}
@@ -454,7 +471,7 @@ export const ExpenseManagement: React.FC = () => {
 
         {/* Expenses Display */}
         <div>
-          {viewMode === 'panel' ? renderPanelView() : (
+          {uiState.viewMode === 'panel' ? renderPanelView() : (
             <ExpensesList
               expenses={pagination.paginatedData}
               onEditExpense={handleEditExpense}
@@ -495,7 +512,7 @@ export const ExpenseManagement: React.FC = () => {
               <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No expenses found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'this-month'
+                {filters.searchTerm || filters.categoryFilter !== 'all' || filters.statusFilter !== 'all' || filters.dateFilter !== 'this-month'
                   ? 'Try adjusting your search or filters'
                   : 'Add your first expense to get started'
                 }
@@ -505,20 +522,20 @@ export const ExpenseManagement: React.FC = () => {
         )}
 
         {/* Import/Export Modal */}
-        {showImportExport && (
+        {uiState.showImportExport && (
           <ExpenseImportExport
-            onClose={() => setShowImportExport(false)}
+            onClose={() => updateUiState({ showImportExport: false })}
             onImportComplete={loadExpenses}
           />
         )}
 
         {/* Expense View Modal */}
         <ExpenseViewModal
-          expense={viewingExpense}
-          isOpen={isViewModalOpen}
+          expense={activeItem.viewing}
+          isOpen={uiState.isViewModalOpen}
           onClose={() => {
-            setIsViewModalOpen(false);
-            setViewingExpense(null);
+            updateUiState({ isViewModalOpen: false });
+            setActiveItem(prev => ({ ...prev, viewing: null }));
           }}
         />
       </div>

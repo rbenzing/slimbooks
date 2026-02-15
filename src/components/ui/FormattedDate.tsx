@@ -8,10 +8,10 @@ interface FormattedDateProps {
   fallback?: string;
 }
 
-export const FormattedDate: React.FC<FormattedDateProps> = ({ 
-  date, 
-  customFormat, 
-  fallback = 'Invalid Date' 
+export const FormattedDate = React.memo<FormattedDateProps>(({
+  date,
+  customFormat,
+  fallback = 'Invalid Date'
 }) => {
   const [formattedDate, setFormattedDate] = useState<string>(fallback);
 
@@ -30,7 +30,7 @@ export const FormattedDate: React.FC<FormattedDateProps> = ({
   }, [date, customFormat, fallback]);
 
   return <>{formattedDate}</>;
-};
+});
 
 // Simple synchronous date formatter for basic cases
 export const formatDateSync = (date: Date | string): string => {
