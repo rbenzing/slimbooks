@@ -136,6 +136,7 @@ describe('Type Validation - Expense', () => {
     const minimalExpense: Expense = {
       id: 1,
       date: '2026-02-16',
+      vendor: 'Test Vendor',
       amount: 100,
       description: 'Test expense',
       created_at: '2026-02-16',
@@ -171,7 +172,8 @@ describe('Type Guards - Runtime Type Checking', () => {
     const payment = {
       id: 1,
       amount: 100,
-      date: '2026-02-16'
+      date: '2026-02-16',
+      method: 'bank_transfer'
     };
 
     expect(isPayment(payment)).toBe(true);

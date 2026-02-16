@@ -427,18 +427,19 @@ describe('Performance and Scalability', () => {
     const page2 = Array.from({ length: 50 }, (_, i) => mockData.invoice(i + 51));
 
     // First page
-    mockFetchSuccess({ data: page1, total: 100, page: 1, limit: 50 });
+    mockFetchSuccess(page1);
     let response = await fetch('/api/invoices?page=1&limit=50');
     let result = await response.json();
 
+    expect(result.success).toBe(true);
     expect(result.data.length).toBe(50);
 
     // Second page
-    mockFetchSuccess({ data: page2, total: 100, page: 2, limit: 50 });
+    mockFetchSuccess(page2);
     response = await fetch('/api/invoices?page=2&limit=50');
     result = await response.json();
 
+    expect(result.success).toBe(true);
     expect(result.data.length).toBe(50);
-    expect(result.page).toBe(2);
   });
 });

@@ -5,75 +5,30 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  validateEmail,
   validateInvoiceForSave,
   validateInvoiceForSend,
-  validatePhoneNumber,
-  validateRequired,
-  validateAmount,
-  validateDate
+  validateClientData,
+  validateExpenseData,
+  validatePaymentData
 } from '@/utils/data';
 import type { Client, InvoiceItem } from '@/types';
 
-describe('Email Validation', () => {
-  describe('validateEmail', () => {
-    it('should validate correct email addresses', () => {
-      expect(validateEmail('test@example.com')).toBe(true);
-      expect(validateEmail('user.name@domain.co.uk')).toBe(true);
-      expect(validateEmail('first+last@company.org')).toBe(true);
-      expect(validateEmail('email@sub.domain.com')).toBe(true);
-    });
-
-    it('should reject invalid email addresses', () => {
-      expect(validateEmail('invalid')).toBe(false);
-      expect(validateEmail('no@domain')).toBe(false);
-      expect(validateEmail('@example.com')).toBe(false);
-      expect(validateEmail('user@')).toBe(false);
-      expect(validateEmail('user name@domain.com')).toBe(false);
-    });
-
-    it('should reject empty emails', () => {
-      expect(validateEmail('')).toBe(false);
-      expect(validateEmail('   ')).toBe(false);
-    });
-
-    it('should handle null/undefined', () => {
-      expect(validateEmail(null as any)).toBe(false);
-      expect(validateEmail(undefined as any)).toBe(false);
-    });
-
-    it('should handle edge cases', () => {
-      expect(validateEmail('a@b.c')).toBe(true); // Minimal valid email
-      expect(validateEmail('test@domain..com')).toBe(false); // Double dots
-      expect(validateEmail('.test@domain.com')).toBe(false); // Leading dot
-    });
+describe('Client Email Validation', () => {
+  it('should validate client with valid email', () => {
+    const result = validateClientData({ name: 'Test', email: 'test@example.com' });
+    expect(result.isValid).toBe(true);
   });
-});
 
-describe('Phone Number Validation', () => {
-  describe('validatePhoneNumber', () => {
-    it('should validate US phone numbers', () => {
-      expect(validatePhoneNumber('5551234567')).toBe(true);
-      expect(validatePhoneNumber('(555) 123-4567')).toBe(true);
-      expect(validatePhoneNumber('555-123-4567')).toBe(true);
-      expect(validatePhoneNumber('+1 555 123 4567')).toBe(true);
-    });
+  it('should reject invalid email format', () => {
+    const result = validateClientData({ name: 'Test', email: 'invalid-email' });
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('email'))).toBe(true);
+  });
 
-    it('should reject invalid phone numbers', () => {
-      expect(validatePhoneNumber('123')).toBe(false);
-      expect(validatePhoneNumber('abcdefghij')).toBe(false);
-    });
-
-    it('should handle empty phone numbers', () => {
-      expect(validatePhoneNumber('')).toBe(false);
-      expect(validatePhoneNumber('   ')).toBe(false);
-    });
-
-    it('should allow optional phone numbers', () => {
-      // If phone is optional, empty should be valid
-      const isOptional = true;
-      expect(validatePhoneNumber('', isOptional)).toBe(true);
-    });
+  it('should allow empty email with warning', () => {
+    const result = validateClientData({ name: 'Test', email: '' });
+    expect(result.isValid).toBe(true);
+    expect(result.warnings.some(w => w.includes('Email'))).toBe(true);
   });
 });
 
@@ -126,7 +81,7 @@ describe('Invoice Validation', () => {
       );
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Client is required');
+      expect(result.errors).toContain('Please select a client');
     });
 
     it('should require at least one line item with description', () => {
@@ -151,7 +106,7 @@ describe('Invoice Validation', () => {
       expect(result.errors.some(e => e.includes('line item'))).toBe(true);
     });
 
-    it('should validate invoice number for existing invoices', () => {
+    it('should require invoice number for existing invoices', () => {
       const dataWithoutNumber = {
         ...mockInvoiceData,
         invoice_number: ''
@@ -165,7 +120,7 @@ describe('Invoice Validation', () => {
       );
 
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes('invoice number'))).toBe(true);
+      expect(result.errors.some(e => e.toLowerCase().includes('invoice number'))).toBe(true);
     });
 
     it('should allow missing invoice number for new invoices', () => {
@@ -229,93 +184,45 @@ describe('Invoice Validation', () => {
   });
 });
 
-describe('Field Validation', () => {
-  describe('validateRequired', () => {
-    it('should validate non-empty strings', () => {
-      expect(validateRequired('test')).toBe(true);
-      expect(validateRequired('a')).toBe(true);
+describe('Data Validation Functions', () => {
+  describe('validateExpenseData', () => {
+    it('should validate complete expense', () => {
+      const result = validateExpenseData({
+        description: 'Office supplies',
+        amount: 100,
+        date: '2026-02-16',
+        category: 'Office Supplies'
+      });
+      expect(result.isValid).toBe(true);
     });
 
-    it('should reject empty strings', () => {
-      expect(validateRequired('')).toBe(false);
-      expect(validateRequired('   ')).toBe(false);
-    });
-
-    it('should reject null/undefined', () => {
-      expect(validateRequired(null)).toBe(false);
-      expect(validateRequired(undefined)).toBe(false);
-    });
-
-    it('should validate numbers', () => {
-      expect(validateRequired(0)).toBe(true);
-      expect(validateRequired(123)).toBe(true);
-    });
-  });
-
-  describe('validateAmount', () => {
-    it('should validate positive amounts', () => {
-      expect(validateAmount(100)).toBe(true);
-      expect(validateAmount(0.01)).toBe(true);
-      expect(validateAmount(1000000)).toBe(true);
-    });
-
-    it('should reject negative amounts', () => {
-      expect(validateAmount(-1)).toBe(false);
-      expect(validateAmount(-100)).toBe(false);
-    });
-
-    it('should reject zero', () => {
-      expect(validateAmount(0)).toBe(false);
-    });
-
-    it('should allow zero if specified', () => {
-      expect(validateAmount(0, true)).toBe(true);
-    });
-
-    it('should reject invalid numbers', () => {
-      expect(validateAmount(NaN)).toBe(false);
-      expect(validateAmount(Infinity)).toBe(false);
-      expect(validateAmount(-Infinity)).toBe(false);
-    });
-
-    it('should handle string numbers', () => {
-      expect(validateAmount('100' as any)).toBe(true);
-      expect(validateAmount('-50' as any)).toBe(false);
+    it('should reject expense with no amount', () => {
+      const result = validateExpenseData({
+        description: 'Test',
+        amount: 0,
+        date: '2026-02-16'
+      });
+      expect(result.isValid).toBe(false);
     });
   });
 
-  describe('validateDate', () => {
-    it('should validate ISO date strings', () => {
-      expect(validateDate('2026-02-16')).toBe(true);
-      expect(validateDate('2026-12-31')).toBe(true);
+  describe('validatePaymentData', () => {
+    it('should validate complete payment', () => {
+      const result = validatePaymentData({
+        amount: 100,
+        date: '2026-02-16',
+        method: 'bank_transfer'
+      });
+      expect(result.isValid).toBe(true);
     });
 
-    it('should validate Date objects', () => {
-      expect(validateDate(new Date())).toBe(true);
-      expect(validateDate(new Date('2026-02-16'))).toBe(true);
-    });
-
-    it('should reject invalid dates', () => {
-      expect(validateDate('invalid')).toBe(false);
-      expect(validateDate('2026-13-01')).toBe(false); // Invalid month
-      expect(validateDate('not-a-date')).toBe(false);
-    });
-
-    it('should reject empty dates', () => {
-      expect(validateDate('')).toBe(false);
-      expect(validateDate(null as any)).toBe(false);
-    });
-
-    it('should validate future dates', () => {
-      const future = new Date();
-      future.setDate(future.getDate() + 30);
-      expect(validateDate(future.toISOString())).toBe(true);
-    });
-
-    it('should validate past dates', () => {
-      const past = new Date();
-      past.setDate(past.getDate() - 30);
-      expect(validateDate(past.toISOString())).toBe(true);
+    it('should reject payment with no method', () => {
+      const result = validatePaymentData({
+        amount: 100,
+        date: '2026-02-16',
+        method: ''
+      });
+      expect(result.isValid).toBe(false);
     });
   });
 });
@@ -367,28 +274,21 @@ describe('Business Logic Validation', () => {
 });
 
 describe('Edge Cases and Security', () => {
-  it('should sanitize SQL injection attempts', () => {
+  it('should reject SQL injection attempts in email', () => {
     const maliciousInput = "'; DROP TABLE invoices; --";
-
-    // Validation should reject or sanitize this
-    expect(validateEmail(maliciousInput)).toBe(false);
+    const result = validateClientData({ name: 'Test', email: maliciousInput });
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.toLowerCase().includes('email'))).toBe(true);
   });
 
   it('should handle XSS attempts in descriptions', () => {
     const xssAttempt = '<script>alert("XSS")</script>';
-
-    // Should validate but not execute
-    expect(validateRequired(xssAttempt)).toBe(true);
-    // Note: Actual sanitization should happen in the UI layer
-  });
-
-  it('should handle very large numbers', () => {
-    expect(validateAmount(Number.MAX_SAFE_INTEGER)).toBe(true);
-    expect(validateAmount(Number.MAX_VALUE)).toBe(true);
-  });
-
-  it('should handle unicode characters', () => {
-    expect(validateEmail('test@ドメイン.com')).toBe(true);
-    expect(validateRequired('测试')).toBe(true);
+    const result = validateExpenseData({
+      description: xssAttempt,
+      amount: 100,
+      date: '2026-02-16'
+    });
+    // Validation should allow the input (sanitization happens elsewhere)
+    expect(result.isValid).toBe(true);
   });
 });

@@ -1,9 +1,9 @@
 /**
  * ClientSelector Component Tests
- * Tests the client selection dropdown component
+ * Tests the client selection component (uses standard HTML select element)
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ClientSelector } from '@/components/invoices/ClientSelector';
 import type { Client } from '@/types';
@@ -36,261 +36,157 @@ describe('ClientSelector Component', () => {
     mockOnClientSelect.mockClear();
   });
 
-  it('should render without crashing', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+  describe('Rendering', () => {
+    it('should render without crashing', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
-    expect(screen.getByText(/select.*client/i)).toBeInTheDocument();
-  });
+      expect(screen.getByText(/bill to/i)).toBeInTheDocument();
+    });
 
-  it('should display all clients in dropdown', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+    it('should show select dropdown when no client selected', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
-    // Open dropdown
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
+      const select = screen.getByRole('combobox');
+      expect(select).toBeInTheDocument();
+      expect(screen.getByText(/select a client/i)).toBeInTheDocument();
+    });
 
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-    expect(screen.getByText('Test Inc')).toBeInTheDocument();
-  });
-
-  it('should show selected client', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={mockClients[0]}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-  });
-
-  it('should call onClientSelect when client is chosen', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    // Open dropdown
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
-
-    // Select first client
-    const option = screen.getByText('Acme Corp');
-    fireEvent.click(option);
-
-    expect(mockOnClientSelect).toHaveBeenCalledWith(mockClients[0]);
-  });
-
-  it('should be disabled when disabled prop is true', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-        disabled={true}
-      />
-    );
-
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    expect(dropdown).toBeDisabled();
-  });
-
-  it('should handle empty client list', () => {
-    render(
-      <ClientSelector
-        clients={[]}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    expect(screen.getByText(/no clients|select.*client/i)).toBeInTheDocument();
-  });
-
-  it('should display client details in dropdown options', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
-
-    // Should show email or company info
-    const hasDetails =
-      screen.queryByText(/acme.com/i) ||
-      screen.queryByText(/Acme Corporation/i);
-
-    expect(hasDetails).toBeTruthy();
-  });
-
-  it('should allow clearing selection', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={mockClients[0]}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    // Look for clear button (X icon or Clear text)
-    const clearButton = screen.queryByText(/clear/i) ||
-                       screen.queryByLabelText(/clear/i);
-
-    if (clearButton) {
-      fireEvent.click(clearButton);
-      expect(mockOnClientSelect).toHaveBeenCalledWith(null);
-    }
-  });
-
-  it('should support keyboard navigation', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-
-    // Test keyboard interaction
-    fireEvent.keyDown(dropdown, { key: 'Enter' });
-    fireEvent.keyDown(dropdown, { key: 'ArrowDown' });
-    fireEvent.keyDown(dropdown, { key: 'Enter' });
-
-    // Should have called the callback
-    expect(mockOnClientSelect).toHaveBeenCalled();
-  });
-
-  it('should display placeholder text when no client selected', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    expect(screen.getByText(/select/i)).toBeInTheDocument();
-  });
-
-  it('should filter clients by search', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
-
-    // If the component has search functionality
-    const searchInput = screen.queryByPlaceholderText(/search/i);
-
-    if (searchInput) {
-      fireEvent.change(searchInput, { target: { value: 'Acme' } });
+    it('should display selected client info', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={mockClients[0]}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-      expect(screen.queryByText('Test Inc')).not.toBeInTheDocument();
-    }
+      expect(screen.getByText('Acme Corporation')).toBeInTheDocument();
+      expect(screen.getByText('contact@acme.com')).toBeInTheDocument();
+    });
+
+    it('should handle empty client list', () => {
+      render(
+        <ClientSelector
+          clients={[]}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
+
+      expect(screen.getByText(/no clients found/i)).toBeInTheDocument();
+    });
   });
 
-  it('should handle very long client names gracefully', () => {
-    const longNameClient: Client = {
-      ...mockClients[0],
-      name: 'A'.repeat(100),
-      company: 'B'.repeat(100)
-    };
+  describe('Selection Behavior', () => {
+    it('should call onClientSelect when client is chosen from select', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
-    render(
-      <ClientSelector
-        clients={[longNameClient]}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+      const select = screen.getByRole('combobox') as HTMLSelectElement;
+      fireEvent.change(select, { target: { value: '1' } });
 
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
+      expect(mockOnClientSelect).toHaveBeenCalledWith(mockClients[0]);
+    });
 
-    // Should render without breaking layout
-    expect(screen.getByText(/A{10,}/)).toBeInTheDocument();
+    it('should clear selection when Change button clicked', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={mockClients[0]}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
+
+      const changeButton = screen.getByText(/change/i);
+      fireEvent.click(changeButton);
+
+      expect(mockOnClientSelect).toHaveBeenCalledWith(null);
+    });
   });
 
-  it('should show client count when multiple clients', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+  describe('Disabled State', () => {
+    it('should disable select when disabled prop is true', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+          disabled={true}
+        />
+      );
 
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
+      const select = screen.getByRole('combobox');
+      expect(select).toBeDisabled();
+    });
 
-    // Should show number of clients available
-    const hasCount = screen.queryByText(/2.*client/i);
-    // This is optional, depends on implementation
+    it('should not show Change button when disabled', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={mockClients[0]}
+          onClientSelect={mockOnClientSelect}
+          disabled={true}
+        />
+      );
+
+      expect(screen.queryByText(/change/i)).not.toBeInTheDocument();
+    });
   });
 
-  it('should maintain focus after selection', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+  describe('Client Display', () => {
+    it('should display all clients in select options', () => {
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={null}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-    fireEvent.click(dropdown);
+      const select = screen.getByRole('combobox') as HTMLSelectElement;
+      const options = Array.from(select.options).map(opt => opt.textContent);
 
-    const option = screen.getByText('Acme Corp');
-    fireEvent.click(option);
+      expect(options).toContain('Acme Corp - Acme Corporation');
+      expect(options).toContain('Test Inc - Test Incorporated');
+    });
 
-    // Dropdown should close after selection
-    expect(screen.queryByText('Test Inc')).not.toBeInTheDocument();
-  });
+    it('should show client address when selected', () => {
+      const clientWithAddress: Client = {
+        ...mockClients[0],
+        address: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001'
+      };
 
-  it('should handle rapid selection changes', () => {
-    render(
-      <ClientSelector
-        clients={mockClients}
-        selectedClient={null}
-        onClientSelect={mockOnClientSelect}
-      />
-    );
+      render(
+        <ClientSelector
+          clients={mockClients}
+          selectedClient={clientWithAddress}
+          onClientSelect={mockOnClientSelect}
+        />
+      );
 
-    const dropdown = screen.getByRole('combobox') || screen.getByRole('button');
-
-    // Rapidly select different clients
-    fireEvent.click(dropdown);
-    fireEvent.click(screen.getByText('Acme Corp'));
-
-    fireEvent.click(dropdown);
-    fireEvent.click(screen.getByText('Test Inc'));
-
-    expect(mockOnClientSelect).toHaveBeenCalledTimes(2);
-    expect(mockOnClientSelect).toHaveBeenLastCalledWith(mockClients[1]);
+      expect(screen.getByText('123 Main St')).toBeInTheDocument();
+      expect(screen.getByText(/New York.*NY.*10001/)).toBeInTheDocument();
+    });
   });
 });

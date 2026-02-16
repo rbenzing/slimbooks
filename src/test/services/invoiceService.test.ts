@@ -19,8 +19,14 @@ vi.mock('@/services/email.svc', () => ({
 
 // Mock API fetch
 vi.mock('@/utils/api', () => ({
-  authenticatedFetch: vi.fn((url: string, options?: RequestInit) => {
-    return global.fetch(url, options);
+  authenticatedFetch: vi.fn(async (url: string, options?: RequestInit) => {
+    const response = await global.fetch(url, options);
+    // Mimic real authenticatedFetch behavior - throw on error responses
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response;
   }),
   getToken: vi.fn(() => 'mock-token')
 }));
@@ -255,33 +261,33 @@ describe('InvoiceService - Invoice Number Generation', () => {
   });
 
   describe('generateInvoiceNumber', () => {
-    it('should generate sequential invoice numbers', async () => {
-      mockFetchSuccess([
-        { invoice_number: 'INV-001' },
-        { invoice_number: 'INV-002' }
-      ]);
+    it('should generate invoice number from server', async () => {
+      mockFetchSuccess({ invoice_number: 'INV-003' });
 
       const number = await invoiceService.generateInvoiceNumber();
 
       expect(number).toBeTruthy();
       expect(typeof number).toBe('string');
+      expect(number).toBe('INV-003');
     });
 
-    it('should handle empty invoice list', async () => {
-      mockFetchSuccess([]);
+    it('should handle server generation', async () => {
+      mockFetchSuccess({ invoice_number: 'INV-001' });
 
       const number = await invoiceService.generateInvoiceNumber();
 
-      expect(number).toBeTruthy();
+      expect(number).toBe('INV-001');
     });
   });
 
   describe('generateTemporaryInvoiceNumber', () => {
-    it('should generate temporary invoice number', async () => {
+    it('should preview next invoice number', async () => {
+      mockFetchSuccess({ invoice_number: 'INV-PREVIEW' });
+
       const tempNumber = await invoiceService.generateTemporaryInvoiceNumber();
 
       expect(tempNumber).toBeTruthy();
-      expect(tempNumber).toContain('TEMP');
+      expect(tempNumber).toBe('INV-PREVIEW');
     });
   });
 });

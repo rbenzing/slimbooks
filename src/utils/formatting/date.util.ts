@@ -156,7 +156,10 @@ export const formatDateRange = async (
   return `${start} - ${end}`;
 };
 
-export const formatDateSync = (date: Date | string): string => {
+export const formatDateSync = (date: Date | string | null | undefined): string => {
+  if (!date) {
+    return 'Invalid Date';
+  }
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(dateObj.getTime())) {
     return 'Invalid Date';

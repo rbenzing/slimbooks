@@ -97,7 +97,7 @@ export const mockData = {
     address: '123 Test St',
     city: 'Test City',
     state: 'TS',
-    zip: '12345',
+    zipCode: '12345',
     country: 'Test Country',
     created_at: '2026-02-16T00:00:00Z',
     updated_at: '2026-02-16T00:00:00Z'
@@ -107,7 +107,8 @@ export const mockData = {
     id,
     invoice_number: `INV-${String(id).padStart(3, '0')}`,
     client_id: clientId,
-    design_template_id: 1,
+    design_template_id: undefined,
+    recurring_template_id: undefined,
     amount: 1000,
     tax_amount: 100,
     total_amount: 1100,
