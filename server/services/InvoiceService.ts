@@ -38,7 +38,7 @@ export class InvoiceService {
     `;
     
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
     
     if (status) {
       conditions.push('i.status = ?');

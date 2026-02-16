@@ -4,16 +4,17 @@ import { X } from 'lucide-react';
 import { authenticatedFetch } from '@/utils/api';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { formatClientAddressSingleLine } from '@/utils/formatting';
+import type { Invoice, InvoiceFormData, Client } from '@/types';
 
 interface InvoiceFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (invoice: any) => void;
-  invoice?: any;
+  onSave: (invoiceData: InvoiceFormData) => void;
+  invoice?: Invoice | null;
 }
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({ isOpen, onClose, onSave, invoice }) => {
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [formData, setFormData] = useState({
     client_id: '',
     amount: '',

@@ -115,3 +115,7 @@ export interface SeedData {
   data: Record<string, any>[];
   truncate?: boolean;
 }
+
+// SQL parameter types for query safety
+export type SQLParameter = string | number | null | boolean;
+export type SQLParams = SQLParameter[];

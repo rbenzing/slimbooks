@@ -12,9 +12,9 @@ export class SettingsService {
   /**
    * Get all settings by category (using key prefix since table doesn't have category column)
    */
-  async getAllSettings(category?: string): Promise<Record<string, any>> {
+  async getAllSettings(category?: string): Promise<Record<string, unknown>> {
     let query = 'SELECT key, value FROM settings';
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (category) {
       // Use key prefix to simulate category filtering
@@ -26,7 +26,7 @@ export class SettingsService {
 
     const results = databaseService.getMany<{key: string, value: string}>(query, params);
     
-    const settings: Record<string, any> = {};
+    const settings: Record<string, unknown> = {};
 
     results.forEach(row => {
       try {
@@ -42,7 +42,7 @@ export class SettingsService {
   /**
    * Get individual setting by key
    */
-  async getSettingByKey(key: string): Promise<any> {
+  async getSettingByKey(key: string): Promise<unknown> {
     if (!key || typeof key !== 'string') {
       throw new Error('Valid setting key is required');
     }
@@ -362,7 +362,7 @@ export class SettingsService {
    */
   async getSettingsCount(category?: string): Promise<number> {
     let query = 'SELECT COUNT(*) as count FROM settings';
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
 
     if (category) {
       query += ' WHERE key LIKE ?';
@@ -378,7 +378,7 @@ export class SettingsService {
    */
   async resetSettings(category?: string): Promise<boolean> {
     let query = 'DELETE FROM settings';
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
 
     if (category) {
       query += ' WHERE key LIKE ?';

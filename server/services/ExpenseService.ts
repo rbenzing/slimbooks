@@ -29,7 +29,7 @@ export class ExpenseService {
     
     let query = 'SELECT * FROM expenses';
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
     
     if (category) {
       conditions.push('category = ?');
@@ -293,7 +293,7 @@ export class ExpenseService {
     const { limit = 100, offset = 0 } = options;
     
     let query = 'SELECT * FROM expenses WHERE is_billable = 1';
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
 
     if (clientId) {
       query += ' AND client_id = ?';
@@ -361,7 +361,7 @@ export class ExpenseService {
     const { date_from, date_to } = filters;
     
     let baseCondition = '';
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
 
     if (date_from || date_to) {
       const conditions: string[] = [];

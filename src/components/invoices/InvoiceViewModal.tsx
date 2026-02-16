@@ -7,12 +7,13 @@ import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { pdfService } from '@/services/pdf.svc';
 import { useCompanySettings } from '@/hooks/useSettings.hook';
 import { formatClientAddress } from '@/utils/formatting';
+import type { Invoice } from '@/types';
 
 interface InvoiceViewModalProps {
-  invoice: any;
+  invoice: Invoice | null;
   isOpen: boolean;
   onClose: () => void;
-  onMarkAsPaid?: (invoice: any) => void;
+  onMarkAsPaid?: (invoice: Invoice) => void;
 }
 
 export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({ invoice, isOpen, onClose, onMarkAsPaid }) => {

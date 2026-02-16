@@ -3,16 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { authenticatedFetch } from '@/utils/api';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
+import type { InvoiceTemplate, InvoiceTemplateFormData, Client } from '@/types';
 
 interface TemplateFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (template: any) => void;
-  template?: any;
+  onSave: (templateData: InvoiceTemplateFormData) => void;
+  template?: InvoiceTemplate | null;
 }
 
 export const TemplateForm: React.FC<TemplateFormProps> = ({ isOpen, onClose, onSave, template }) => {
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     client_id: '',

@@ -14,7 +14,7 @@ import { getEmailConfigurationStatus } from '@/utils/emailConfig.util';
 import { EmailConfigStatus } from '@/types';
 import { EmailStatus } from '@/types/domain/invoice.types';
 import { toast } from 'sonner';
-import { InvoiceType, InvoiceStatus, InvoiceItem } from '@/types';
+import { InvoiceType, InvoiceStatus, InvoiceItem, Invoice } from '@/types';
 import { Client } from '@/types';
 import { TaxRate, ShippingRate } from '@/types';
 import { formatClientAddressSingleLine } from '@/utils/formatting';
@@ -22,7 +22,7 @@ import { formatClientAddressSingleLine } from '@/utils/formatting';
 
 interface CreateInvoicePageProps {
   onBack: () => void;
-  editingInvoice?: any; // TODO: Type this properly based on Invoice interface
+  editingInvoice?: Invoice | null;
   viewOnly?: boolean;
 }
 

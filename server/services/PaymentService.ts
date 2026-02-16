@@ -31,7 +31,7 @@ export class PaymentService {
     
     let query = 'SELECT * FROM payments';
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
     
     if (status) {
       conditions.push('status = ?');
@@ -322,7 +322,7 @@ export class PaymentService {
     const { year, month } = filters;
     
     let dateFilter = '';
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
     
     if (year) {
       if (month) {
@@ -529,7 +529,7 @@ export class PaymentService {
     
     let query = 'SELECT SUM(amount) as total FROM payments';
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | null | boolean)[] = [];
     
     if (status) {
       conditions.push('status = ?');

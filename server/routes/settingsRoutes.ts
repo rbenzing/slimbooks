@@ -131,7 +131,7 @@ router.post('/company/logo', requireAuth, uploadImage.single('logo'), async (req
     const logoPath = `/uploads/logos/${req.file.filename}`;
 
     // Get existing company settings
-    const existingSettings = await settingsService.getSettingByKey('company.company_settings') || {
+    const existingSettings = (await settingsService.getSettingByKey('company.company_settings') as Record<string, string>) || {
       companyName: '',
       ownerName: '',
       address: '',
@@ -182,7 +182,7 @@ router.delete('/company/logo', requireAuth, async (req: Request, res: Response):
     const { settingsService } = await import('../services/SettingsService.js');
 
     // Get existing company settings
-    const existingSettings = await settingsService.getSettingByKey('company.company_settings') || {
+    const existingSettings = (await settingsService.getSettingByKey('company.company_settings') as Record<string, string>) || {
       companyName: '',
       ownerName: '',
       address: '',

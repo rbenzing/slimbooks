@@ -7,6 +7,7 @@ import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
 import { useFormNavigation } from '@/hooks/useFormNavigation';
 import { themeClasses } from '@/utils/themeUtils.util';
+import type { InvoiceTemplate, TaxRate, ShippingRate } from '@/types';
 
 interface LineItem {
   id: string;
@@ -18,7 +19,7 @@ interface LineItem {
 
 interface CreateRecurringInvoicePageProps {
   onBack: () => void;
-  editingTemplate?: any;
+  editingTemplate?: InvoiceTemplate | null;
 }
 
 export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProps> = ({ onBack, editingTemplate }) => {
@@ -76,7 +77,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         if (savedTaxRates) {
           const rates = JSON.parse(savedTaxRates);
           setTaxRates(rates);
-          setSelectedTaxRate(rates.find((r: any) => r.isDefault) || rates[0]);
+          setSelectedTaxRate(rates.find((r: TaxRate) => r.isDefault) || rates[0]);
         }
 
         // Load shipping rates from settings
@@ -84,7 +85,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
         if (savedShippingRates) {
           const rates = JSON.parse(savedShippingRates);
           setShippingRates(rates);
-          setSelectedShippingRate(rates.find((r: any) => r.isDefault) || rates[0]);
+          setSelectedShippingRate(rates.find((r: TaxRate) => r.isDefault) || rates[0]);
         }
 
       } catch (error) {
@@ -159,7 +160,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     if (template && taxRates.length > 0 && shippingRates.length > 0) {
       // Set tax rate if saved in template
       if (template.tax_rate_id) {
-        const savedTaxRate = taxRates.find((r: any) => r.id === template.tax_rate_id);
+        const savedTaxRate = taxRates.find((r: TaxRate) => r.id === template.tax_rate_id);
         if (savedTaxRate) {
           setSelectedTaxRate(savedTaxRate);
         }
@@ -167,7 +168,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
       // Set shipping rate if saved in template
       if (template.shipping_rate_id) {
-        const savedShippingRate = shippingRates.find((r: any) => r.id === template.shipping_rate_id);
+        const savedShippingRate = shippingRates.find((r: ShippingRate) => r.id === template.shipping_rate_id);
         if (savedShippingRate) {
           setSelectedShippingRate(savedShippingRate);
         }
@@ -219,7 +220,7 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     }
   };
 
-  const updateLineItem = (id: string, field: string, value: any) => {
+  const updateLineItem = (id: string, field: string, value: string | number) => {
     setLineItems(lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };

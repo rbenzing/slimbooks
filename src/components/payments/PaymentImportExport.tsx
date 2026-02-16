@@ -102,7 +102,7 @@ export const PaymentImportExport: React.FC<ImportExportProps> = ({ onClose, onIm
     if (csvData.length === 0) return;
 
     const mappedData = csvData.slice(0, 5).map(row => {
-      const mappedRow: any = {};
+      const mappedRow: Record<string, string | number | boolean> = {};
       fieldMappings.forEach(mapping => {
         if (mapping.csvField) {
           let value = row[mapping.csvField] || '';
@@ -176,7 +176,7 @@ export const PaymentImportExport: React.FC<ImportExportProps> = ({ onClose, onIm
 
       for (let i = 0; i < csvData.length; i++) {
         const row = csvData[i];
-        const mappedRow: any = {};
+        const mappedRow: Record<string, string | number | boolean> = {};
         
         fieldMappings.forEach(mapping => {
           if (mapping.csvField) {

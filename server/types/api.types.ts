@@ -169,7 +169,7 @@ export interface UpdatePaymentRequest {
 // Settings API types
 export interface UpdateSettingRequest {
   key: string;
-  value: any; // Will be JSON stringified
+  value: string | number | boolean | object | null; // Will be JSON stringified
   category: 'company' | 'appearance' | 'security' | 'notifications' | 'integrations';
   description?: string;
 }
@@ -304,7 +304,7 @@ export interface ImportRequest {
 // Webhook types
 export interface WebhookEvent {
   type: 'invoice.created' | 'invoice.updated' | 'payment.created' | 'user.created';
-  data: any;
+  data: Record<string, unknown>;
   timestamp: string;
   signature: string;
 }
@@ -324,7 +324,7 @@ export interface ErrorResponse {
   error: string;
   message: string;
   code?: string;
-  details?: any;
+  details?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -333,7 +333,7 @@ export interface ErrorResponse {
  */
 export interface SettingsSaveRequest {
   settings: Record<string, {
-    value: any;
+    value: string | number | boolean | object | null;
     category?: string;
   }>;
 }
@@ -343,7 +343,7 @@ export interface SettingsSaveRequest {
  */
 export interface IndividualSettingSaveRequest {
   key: string;
-  value: any;
+  value: string | number | boolean | object | null;
   category?: string;
 }
 

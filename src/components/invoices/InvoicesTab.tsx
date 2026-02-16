@@ -13,11 +13,11 @@ import { formatDateSync } from '@/components/ui/FormattedDate';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
 import { createPaymentForInvoice } from '@/utils/payment.util';
 import { toast } from 'sonner';
-import { TimePeriod, DateRange } from '@/types';
+import { TimePeriod, DateRange, Invoice, InvoiceFormData } from '@/types';
 
 export const InvoicesTab = () => {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [viewingInvoice, setViewingInvoice] = useState<any>(null);
@@ -92,7 +92,7 @@ export const InvoicesTab = () => {
     setCustomDateRange(customRange);
   };
 
-  const handleSave = async (invoiceData: any) => {
+  const handleSave = async (invoiceData: InvoiceFormData) => {
     try {
       if (editingInvoice) {
         const response = await apiPut(`/api/invoices/${editingInvoice.id}`, { invoiceData });
@@ -136,11 +136,11 @@ export const InvoicesTab = () => {
     }
   };
 
-  const handleEdit = (invoice: any) => {
+  const handleEdit = (invoice: Invoice) => {
     navigate(`/invoices/edit/${invoice.id}`);
   };
 
-  const handleView = (invoice: any) => {
+  const handleView = (invoice: Invoice) => {
     setViewingInvoice(invoice);
     setIsViewModalOpen(true);
   };
@@ -149,7 +149,7 @@ export const InvoicesTab = () => {
     window.location.href = '/invoices/create';
   };
 
-  const handleMarkAsPaid = async (invoice: any) => {
+  const handleMarkAsPaid = async (invoice: Invoice) => {
     try {
       // Create payment and mark invoice as paid
       const success = await createPaymentForInvoice(invoice);

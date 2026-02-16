@@ -108,7 +108,7 @@ export const ClientImportExport: React.FC<ImportExportProps> = ({ onClose, onImp
     if (csvData.length === 0) return;
 
     const mappedData = csvData.slice(0, 5).map(row => {
-      const mappedRow: any = {};
+      const mappedRow: Record<string, string | number | boolean> = {};
       fieldMappings.forEach(mapping => {
         if (mapping.csvField) {
           mappedRow[mapping.dbField] = row[mapping.csvField] || '';
@@ -130,7 +130,7 @@ export const ClientImportExport: React.FC<ImportExportProps> = ({ onClose, onImp
       const validClients = [];
       
       for (const row of csvData) {
-        const mappedRow: any = {};
+        const mappedRow: Record<string, string | number | boolean> = {};
         fieldMappings.forEach(mapping => {
           if (mapping.csvField) {
             mappedRow[mapping.dbField] = row[mapping.csvField] || '';

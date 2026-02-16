@@ -310,9 +310,9 @@ export class PdfService {
       };
 
       // Apply format preference if set
-      if (pdfFormatSettings?.value) {
+      if ((pdfFormatSettings as any)?.value) {
         try {
-          const formatSetting = JSON.parse(pdfFormatSettings.value);
+          const formatSetting = JSON.parse((pdfFormatSettings as any).value);
           if (formatSetting.format) {
             options.format = formatSetting.format;
           }
@@ -323,9 +323,9 @@ export class PdfService {
       }
 
       // Apply company-specific settings if needed
-      if (companySettings?.value) {
+      if ((companySettings as any)?.value) {
         try {
-          const company = JSON.parse(companySettings.value);
+          const company = JSON.parse((companySettings as any).value);
           // Could add company-specific PDF options here
           // e.g., letterhead margins, custom page size, etc.
           if (company.pdfOptions) {
@@ -362,8 +362,8 @@ export class PdfService {
       // Get appearance settings for PDF format preference
       const formatSetting = await settingsService.getSettingByKey('pdf_format');
 
-      if (formatSetting?.value) {
-        const parsed = JSON.parse(formatSetting.value);
+      if ((formatSetting as any)?.value) {
+        const parsed = JSON.parse((formatSetting as any).value);
         return parsed.format || 'A4';
       }
       
@@ -394,8 +394,8 @@ export class PdfService {
     try {
       const companySettings = await settingsService.getSettingByKey('company_settings');
       
-      if (companySettings?.value) {
-        return JSON.parse(companySettings.value);
+      if ((companySettings as any)?.value) {
+        return JSON.parse((companySettings as any).value);
       }
       
       return null;
