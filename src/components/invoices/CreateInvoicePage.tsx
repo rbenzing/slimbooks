@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X, Eye, Send, Printer } from 'lucide-react';
-import { invoiceOperations } from '@/lib/database';
 import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -344,7 +343,10 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
       let invoiceId: number;
 
       if (editingInvoice) {
-        await invoiceOperations.update(editingInvoice.id, invoicePayload);
+        await authenticatedFetch(`/api/invoices/${editingInvoice.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ invoiceData: invoicePayload })
+        });
         invoiceId = editingInvoice.id;
       } else {
         // Generate a proper invoice number when creating new invoices
@@ -353,8 +355,12 @@ export const CreateInvoicePage: React.FC<CreateInvoicePageProps> = ({ onBack, ed
           ...invoicePayload,
           invoice_number: generatedNumber
         };
-        const result = await invoiceOperations.create(finalInvoicePayload);
-        invoiceId = result.lastInsertRowid;
+        const response = await authenticatedFetch('/api/invoices', {
+          method: 'POST',
+          body: JSON.stringify({ invoiceData: finalInvoicePayload })
+        });
+        const result = await response.json();
+        invoiceId = result.data.id;
       }
 
       // Update email status to sending

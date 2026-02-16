@@ -316,15 +316,22 @@ export class StripeService {
    */
   private async handleInvoicePaymentSucceeded(invoice: StripeInvoice): Promise<void> {
     try {
+      const { authenticatedFetch } = await import('@/utils/api');
 
       // Update local invoice status to paid
-      const { invoiceOperations } = await import('@/lib/database');
-      const localInvoices = await invoiceOperations.getAll();
-      const localInvoice = localInvoices.find(inv => inv.stripe_invoice_id === invoice.id);
+      const response = await authenticatedFetch('/api/invoices');
+      const result = await response.json();
+      const localInvoices = result.data;
+      const localInvoice = localInvoices.find((inv: any) => inv.stripe_invoice_id === invoice.id);
 
       if (localInvoice) {
-        await invoiceOperations.update(localInvoice.id, {
-          status: 'paid'
+        await authenticatedFetch(`/api/invoices/${localInvoice.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            invoiceData: {
+              status: 'paid'
+            }
+          })
         });
       }
     } catch (error) {
@@ -337,15 +344,22 @@ export class StripeService {
    */
   private async handleInvoicePaymentFailed(invoice: StripeInvoice): Promise<void> {
     try {
+      const { authenticatedFetch } = await import('@/utils/api');
 
       // Update local invoice status
-      const { invoiceOperations } = await import('@/lib/database');
-      const localInvoices = await invoiceOperations.getAll();
-      const localInvoice = localInvoices.find(inv => inv.stripe_invoice_id === invoice.id);
+      const response = await authenticatedFetch('/api/invoices');
+      const result = await response.json();
+      const localInvoices = result.data;
+      const localInvoice = localInvoices.find((inv: any) => inv.stripe_invoice_id === invoice.id);
 
       if (localInvoice) {
-        await invoiceOperations.update(localInvoice.id, {
-          status: 'overdue'
+        await authenticatedFetch(`/api/invoices/${localInvoice.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            invoiceData: {
+              status: 'overdue'
+            }
+          })
         });
       }
     } catch (error) {

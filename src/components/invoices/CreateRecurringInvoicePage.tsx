@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { invoiceOperations, templateOperations } from '@/lib/database';
 import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -66,9 +65,10 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
 
         // Load template data if editing (from URL parameter)
         if (id) {
-          const template = await templateOperations.getById(parseInt(id));
-          if (template) {
-            setLoadedTemplate(template);
+          const response = await authenticatedFetch(`/api/templates/${id}`);
+          const result = await response.json();
+          if (result.data) {
+            setLoadedTemplate(result.data);
           }
         }
 
@@ -280,9 +280,15 @@ export const CreateRecurringInvoicePage: React.FC<CreateRecurringInvoicePageProp
     try {
       const template = editingTemplate || loadedTemplate;
       if (template) {
-        await templateOperations.update(template.id, templatePayload);
+        await authenticatedFetch(`/api/templates/${template.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ templateData: templatePayload })
+        });
       } else {
-        await templateOperations.create(templatePayload);
+        await authenticatedFetch('/api/templates', {
+          method: 'POST',
+          body: JSON.stringify({ templateData: templatePayload })
+        });
       }
       setIsDirty(false); // Reset dirty state after successful save
       onBack();

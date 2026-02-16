@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Plus, X, Send, Printer } from 'lucide-react';
-import { invoiceOperations } from '@/lib/database';
 import { authenticatedFetch } from '@/utils/api';
 import { ClientSelector } from './ClientSelector';
 import { CompanyHeader } from './CompanyHeader';
@@ -60,7 +59,8 @@ export const EditInvoicePage = () => {
       if (id) {
         try {
           // Load invoice data
-          const invoiceRecord = await invoiceOperations.getById(parseInt(id));
+          const response = await authenticatedFetch(`/api/invoices/${id}`);
+          const invoiceRecord = response.data;
 
           if (invoiceRecord) {
             setInvoice(invoiceRecord);
@@ -257,7 +257,10 @@ export const EditInvoicePage = () => {
         notes: thankYouMessage
       };
 
-      await invoiceOperations.update(parseInt(id!), updatedInvoice);
+      await authenticatedFetch(`/api/invoices/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ invoiceData: updatedInvoice })
+      });
       setIsDirty(false);
       toast.success('Invoice updated successfully');
 
@@ -319,7 +322,10 @@ export const EditInvoicePage = () => {
         notes: thankYouMessage
       };
 
-      await invoiceOperations.update(parseInt(id!), updatedInvoice);
+      await authenticatedFetch(`/api/invoices/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ invoiceData: updatedInvoice })
+      });
 
       // Update email status to sending
       await invoiceService.updateEmailStatus(parseInt(id!), 'sending');
@@ -380,7 +386,9 @@ export const EditInvoicePage = () => {
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
-        await invoiceOperations.delete(parseInt(id!));
+        await authenticatedFetch(`/api/invoices/${id}`, {
+          method: 'DELETE'
+        });
         // Navigate back to the appropriate page based on invoice type
         if (invoice?.design_template_id || invoice?.recurring_template_id) {
           navigate('/invoices#templates');

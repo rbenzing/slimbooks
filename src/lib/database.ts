@@ -14,7 +14,8 @@ import {
   Expense,
   InvoiceTemplate,
   Report,
-  ImportResult
+  ImportResult,
+  ValidationError
 } from '@/types';
 
 // Initialize database
@@ -162,7 +163,7 @@ export const expenseOperations = {
     await ensureInitialized();
     return await sqliteService.createExpense(expenseData);
   },
-  bulkImport: async (expenses: Partial<Expense>[]): Promise<ImportResult<Expense>> => {
+  bulkImport: async (expenses: Partial<Expense>[]): Promise<ImportResult<Expense|ValidationError>> => {
     await ensureInitialized();
     return await sqliteService.bulkImportExpenses(expenses);
   },
@@ -232,11 +233,11 @@ export const reportOperations = {
     accountingMethod: 'cash' | 'accrual';
     invoices: (Invoice & { client_name: string })[];
     periodColumns: Array<{
-      label: string;
-      revenue: number;
-      expenses: number;
+      period: string;
+      invoiceRevenue: number;
+      expenseTotal: number;
       expensesByCategory: Record<string, number>;
-      netIncome: number;
+      profit: number;
     }>;
     hasBreakdown: boolean;
     breakdownPeriod: 'monthly' | 'quarterly';
@@ -367,11 +368,11 @@ export const reportOperations = {
           const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
 
           columns.push({
-            label: periodLabel,
-            revenue: periodRecognizedRevenue,
-            expenses: periodTotalExpenses,
+            period: periodLabel,
+            invoiceRevenue: periodRecognizedRevenue,
+            expenseTotal: periodTotalExpenses,
             expensesByCategory: periodExpensesByCategory,
-            netIncome: periodRecognizedRevenue - periodTotalExpenses
+            profit: periodRecognizedRevenue - periodTotalExpenses
           });
         }
 
@@ -429,11 +430,11 @@ export const reportOperations = {
         const periodTotalExpenses = periodExpenses.reduce((sum: number, expense: Expense) => sum + toNumber(expense.amount), 0);
 
         columns.push({
-          label: periodLabel,
-          revenue: periodRecognizedRevenue,
-          expenses: periodTotalExpenses,
+          period: periodLabel,
+          invoiceRevenue: periodRecognizedRevenue,
+          expenseTotal: periodTotalExpenses,
           expensesByCategory: periodExpensesByCategory,
-          netIncome: periodRecognizedRevenue - periodTotalExpenses
+          profit: periodRecognizedRevenue - periodTotalExpenses
         });
 
         // Move to next month

@@ -6,7 +6,7 @@ export * from './api.types.js';
 
 // Re-export commonly needed types for server use
 export type PaymentStatus = 'received' | 'pending' | 'failed' | 'refunded';
-export type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+export type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'stripe' | 'other';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type UserRole = 'admin' | 'user' | 'viewer';
 

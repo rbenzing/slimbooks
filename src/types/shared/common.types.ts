@@ -32,6 +32,7 @@ export interface Timestamps {
 // Generic entity with ID and timestamps
 export interface BaseEntity extends Timestamps {
   id: number;
+  deleted_at?: Date;
 }
 
 // File upload types

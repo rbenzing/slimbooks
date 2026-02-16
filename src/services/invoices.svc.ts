@@ -1,12 +1,11 @@
 // Unified Invoice Service - combines email, status, and scheduling functionality
 // Consolidates invoiceEmail.svc.ts, invoiceStatus.svc.ts, and scheduledInvoice.svc.ts
 
-import { invoiceOperations } from '@/lib/database';
 import { EmailService } from './email.svc';
 import { generateInvoiceToken } from '@/utils/invoiceTokens';
 import { sqliteService } from './sqlite.svc';
 import { formatClientAddressSingleLine } from '@/utils/formatting';
-import { getToken } from '@/utils/api';
+import { authenticatedFetch, getToken } from '@/utils/api';
 import {
   InvoiceEmailData,
   CompanySettings,
@@ -351,7 +350,10 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
           break;
       }
 
-      await invoiceOperations.update(invoiceId, updateData);
+      await authenticatedFetch(`/api/invoices/${invoiceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ invoiceData: updateData })
+      });
 
       return {
         success: true,
@@ -372,13 +374,18 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
   async markInvoiceAsSent(invoiceId: number): Promise<{ success: boolean; message: string }> {
     try {
       const now = new Date().toISOString();
-      
-      await invoiceOperations.update(invoiceId, {
-        status: 'sent',
-        email_status: 'sent',
-        email_sent_at: now,
-        last_email_attempt: now,
-        email_error: null
+
+      await authenticatedFetch(`/api/invoices/${invoiceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          invoiceData: {
+            status: 'sent',
+            email_status: 'sent',
+            email_sent_at: now,
+            last_email_attempt: now,
+            email_error: null
+          }
+        })
       });
 
       return {
@@ -404,7 +411,9 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
     lastAttempt?: string;
   } | null> {
     try {
-      const invoice = await invoiceOperations.getById(invoiceId);
+      const response = await authenticatedFetch(`/api/invoices/${invoiceId}`);
+      const result = await response.json();
+      const invoice = result.data;
       if (!invoice) {
         return null;
       }
@@ -511,8 +520,13 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async getFailedInvoices(): Promise<Invoice[]> {
     try {
-      const allInvoices = await invoiceOperations.getAll();
-      return allInvoices.filter(invoice => invoice.email_status === 'failed');
+        const allInvoicesResponse = await authenticatedFetch("/api/invoices");
+        if (allInvoicesResponse.ok) {
+          const allInvoices = await allInvoicesResponse.json();
+          return allInvoices.data.filter(invoice => invoice.email_status === 'failed');
+        } else {
+          throw new Error('Failed to load clients');
+        }
     } catch (error) {
       console.error('Error getting failed invoices:', error);
       return [];
@@ -545,8 +559,13 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async clearEmailError(invoiceId: number): Promise<{ success: boolean; message: string }> {
     try {
-      await invoiceOperations.update(invoiceId, {
-        email_error: null
+      await authenticatedFetch(`/api/invoices/${invoiceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          invoiceData: {
+            email_error: null
+          }
+        })
       });
 
       return {
@@ -571,10 +590,12 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
     try {
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-      
+
       // Get all invoices and filter for scheduled ones
-      const allInvoices = await invoiceOperations.getAll();
-      const scheduledInvoices = allInvoices.filter(invoice => 
+      const response = await authenticatedFetch('/api/invoices');
+      const result = await response.json();
+      const allInvoices = result.data;
+      const scheduledInvoices = allInvoices.filter((invoice: Invoice) => 
         invoice.status === 'draft' &&
         new Date(invoice.due_date) <= today &&
         invoice.email_status !== 'sent'
@@ -604,10 +625,12 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
     try {
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
-      
+
       // Get all invoices and filter for overdue ones
-      const allInvoices = await invoiceOperations.getAll();
-      const overdueInvoices = allInvoices.filter(invoice => 
+      const response = await authenticatedFetch('/api/invoices');
+      const result = await response.json();
+      const allInvoices = result.data;
+      const overdueInvoices = allInvoices.filter((invoice: Invoice) => 
         (invoice.status === 'sent' || invoice.status === 'overdue') &&
         new Date(invoice.due_date) < today
       );
@@ -749,7 +772,9 @@ ${company.email ? company.email + '\n' : ''}${company.phone ? company.phone + '\
    */
   async sendScheduledInvoice(invoiceId: number): Promise<{ success: boolean; message: string }> {
     try {
-      const invoice = await invoiceOperations.getById(invoiceId);
+      const response = await authenticatedFetch(`/api/invoices/${invoiceId}`);
+      const result = await response.json();
+      const invoice = result.data;
       if (!invoice) {
         return {
           success: false,

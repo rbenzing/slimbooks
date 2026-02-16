@@ -1,7 +1,7 @@
-import { invoiceOperations } from '@/lib/database';
 import { sqliteService } from '@/services/sqlite.svc';
 import type { InvoiceNumberSettings } from '@/types';
 import { DEFAULT_INVOICE_NUMBER_SETTINGS, SUGGESTED_INVOICE_PREFIXES } from '@/types';
+import { authenticatedFetch } from '../api';
 
 interface NumberingSettings {
   prefix: string;
@@ -185,11 +185,16 @@ export const saveInvoiceNumberSettings = async (settings: InvoiceNumberSettings)
 
 // Check if an invoice number already exists
 export const isInvoiceNumberUnique = async (invoiceNumber: string, excludeId?: number): Promise<boolean> => {
-  const existingInvoices = await invoiceOperations.getAll();
-  return !existingInvoices.some(invoice =>
-    invoice.invoice_number === invoiceNumber &&
-    (excludeId === undefined || invoice.id !== excludeId)
-  );
+  const existingInvoicesResponse = await authenticatedFetch("/api/invoices");
+  if (existingInvoicesResponse.ok) {
+    const existingInvoices = await existingInvoicesResponse.json();
+    return !existingInvoices.data.some(invoice =>
+      invoice.invoice_number === invoiceNumber &&
+      (excludeId === undefined || invoice.id !== excludeId)
+    );
+  } else {
+    throw new Error('Failed to load clients');
+  }  
 };
 
 // Get a preview of how invoice numbers will look with the given prefix
