@@ -99,7 +99,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const isExpired = tokenManager.isTokenExpired();
         
         if (isExpired) {
-          console.log('Found expired token, clearing storage');
           // Clear expired tokens
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');

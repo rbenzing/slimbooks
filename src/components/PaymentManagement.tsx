@@ -177,7 +177,6 @@ export const PaymentManagement: React.FC = () => {
       }
     } catch (error) {
       toast.error('Failed to save payment');
-      console.error('Error saving payment:', error);
     }
   };
 
@@ -197,7 +196,6 @@ export const PaymentManagement: React.FC = () => {
       }
     } catch (error) {
       toast.error('Failed to delete payment');
-      console.error('Error deleting payment:', error);
     }
   };
 
@@ -221,7 +219,6 @@ export const PaymentManagement: React.FC = () => {
       }
     } catch (error) {
       toast.error('Failed to delete payments');
-      console.error('Error deleting payments:', error);
     }
   };
 
@@ -242,7 +239,6 @@ export const PaymentManagement: React.FC = () => {
       await loadPayments();
     } catch (error) {
       toast.error('Failed to update payment status');
-      console.error('Error updating status:', error);
     }
   };
 
@@ -263,7 +259,6 @@ export const PaymentManagement: React.FC = () => {
       await loadPayments();
     } catch (error) {
       toast.error('Failed to update payment method');
-      console.error('Error updating method:', error);
     }
   };
 

@@ -50,7 +50,6 @@ export const ClientManagement: React.FC = () => {
         throw new Error('Failed to load clients');
       }
     } catch (error) {
-      console.error('Error loading clients:', error);
       toast.error('Failed to load clients');
     }
   };
@@ -109,7 +108,6 @@ export const ClientManagement: React.FC = () => {
       setActiveItem({ editing: null });
     } catch (error) {
       toast.error('Failed to save client');
-      console.error('Error saving client:', error);
     }
   };
 
@@ -126,7 +124,6 @@ export const ClientManagement: React.FC = () => {
       }
     } catch (error) {
       toast.error('Failed to delete client');
-      console.error('Error deleting client:', error);
     }
   };
 

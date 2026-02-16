@@ -362,24 +362,20 @@ class SQLiteService {
 
   // Bulk settings operations
   async getAllSettings(category?: string): Promise<Record<string, unknown>> {
-    console.log('sqliteService: getAllSettings called with category:', category);
     try {
       // Map categories to new section-based routes
       if (category === 'appearance') {
         const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/appearance');
-        console.log('sqliteService: Appearance settings loaded from API:', result.data?.settings);
         return result.data?.settings || {};
       }
       if (category === 'general') {
         const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings/general');
-        console.log('sqliteService: General settings loaded from API:', result.data?.settings);
         return result.data?.settings || {};
       }
       
       // Fall back to original query parameter route for other categories
       const params = category ? { category } : {};
       const result = await this.apiCall<{ settings?: Record<string, unknown> }>('/settings', 'GET', params);
-      console.log('sqliteService: Settings loaded from API:', result.data?.settings);
       return result.data?.settings || {};
     } catch (error) {
       console.error('sqliteService: Failed to load settings:', error);
@@ -388,11 +384,9 @@ class SQLiteService {
   }
 
   async setMultipleSettings(settings: Record<string, { value: unknown; category?: string }>): Promise<void> {
-    console.log('sqliteService: setMultipleSettings called with:', settings);
     try {
       // Unified approach: always use the generic bulk settings endpoint
       const result = await this.apiCall('/settings', 'PUT', { settings });
-      console.log('sqliteService: Settings saved successfully, API response:', result);
       // Clear cache for all updated settings to ensure fresh data
       Object.keys(settings).forEach(key => this.clearSettingsCache(key));
     } catch (error) {

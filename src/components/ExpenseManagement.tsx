@@ -90,7 +90,6 @@ export const ExpenseManagement: React.FC = () => {
         throw new Error('Failed to load expenses');
       }
     } catch (error) {
-      console.error('Error loading expenses:', error);
       toast.error('Failed to load expenses');
       setExpenses([]); // Set empty array as fallback
     }
@@ -174,7 +173,6 @@ export const ExpenseManagement: React.FC = () => {
       updateUiState({ showCreateForm: false });
       setActiveItem({ editing: null, viewing: null });
     } catch (error) {
-      console.error('Error saving expense:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save expense');
     }
   };
@@ -189,7 +187,6 @@ export const ExpenseManagement: React.FC = () => {
         throw new Error(response.error || 'Failed to delete expense');
       }
     } catch (error) {
-      console.error('Error deleting expense:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete expense');
     }
   };
@@ -204,7 +201,6 @@ export const ExpenseManagement: React.FC = () => {
         throw new Error(response.error || 'Failed to delete expenses');
       }
     } catch (error) {
-      console.error('Error deleting expenses:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete expenses');
     }
   };
@@ -219,7 +215,6 @@ export const ExpenseManagement: React.FC = () => {
         throw new Error(response.error || 'Failed to categorize expenses');
       }
     } catch (error) {
-      console.error('Error updating categories:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update expense categories');
     }
   };
@@ -234,7 +229,6 @@ export const ExpenseManagement: React.FC = () => {
         throw new Error(response.error || 'Failed to update vendor');
       }
     } catch (error) {
-      console.error('Error updating vendors:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update expense vendors');
     }
   };
