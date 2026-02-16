@@ -14,10 +14,11 @@ export class ClientService {
    */
   async getAllClients(options: ServiceOptions = {}): Promise<Client[]> {
     const { limit = 100, offset = 0 } = options;
-    
+
     return databaseService.getMany<Client>(`
-      SELECT * FROM clients 
-      ORDER BY created_at DESC 
+      SELECT * FROM clients
+      WHERE deleted_at IS NULL
+      ORDER BY created_at DESC
       LIMIT ? OFFSET ?
     `, [limit, offset]);
   }
@@ -30,7 +31,7 @@ export class ClientService {
       throw new Error('Valid client ID is required');
     }
 
-    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ?', [id]);
+    return databaseService.getOne<Client>('SELECT * FROM clients WHERE id = ? AND deleted_at IS NULL', [id]);
   }
 
   /**
@@ -203,15 +204,17 @@ export class ClientService {
 
     // Check if client has associated invoices
     const invoiceCount = databaseService.getOne<{count: number}>(
-      'SELECT COUNT(*) as count FROM invoices WHERE client_id = ?', 
+      'SELECT COUNT(*) as count FROM invoices WHERE client_id = ?',
       [id]
     );
-    
+
     if (invoiceCount && invoiceCount.count > 0) {
       throw new Error('Cannot delete client with existing invoices. Archive the client instead.');
     }
 
-    const success = databaseService.deleteById('clients', id);
+    // Use setting-based delete (checks data.clients_soft_delete_enabled setting)
+    // Default is hard delete if setting doesn't exist
+    const success = databaseService.deleteWithSetting('clients', id, 'clients');
     return success ? 1 : 0;
   }
 
@@ -229,6 +232,7 @@ export class ClientService {
     return databaseService.getMany<Client>(`
       SELECT * FROM clients
       WHERE (name LIKE ? OR email LIKE ? OR company LIKE ? OR phone LIKE ?)
+        AND deleted_at IS NULL
       ORDER BY 
         CASE 
           WHEN name = ? THEN 1

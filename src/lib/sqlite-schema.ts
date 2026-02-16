@@ -28,7 +28,8 @@ export const DATABASE_SCHEMA = {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_number TEXT NOT NULL UNIQUE,
       client_id INTEGER NOT NULL,
-      template_id INTEGER,
+      design_template_id INTEGER,
+      recurring_template_id INTEGER,
       amount REAL NOT NULL,
       tax_amount REAL DEFAULT 0,
       total_amount REAL NOT NULL,
@@ -54,7 +55,8 @@ export const DATABASE_SCHEMA = {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (client_id) REFERENCES clients (id),
-      FOREIGN KEY (template_id) REFERENCES templates (id)
+      FOREIGN KEY (design_template_id) REFERENCES templates (id),
+      FOREIGN KEY (recurring_template_id) REFERENCES recurring_invoice_templates (id)
     )
   `,
 

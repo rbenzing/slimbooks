@@ -119,6 +119,27 @@ export class DatabaseService {
   }
 
   /**
+   * Delete with setting-based behavior (checks soft_delete_enabled setting)
+   * @param table - Table name
+   * @param id - Record ID
+   * @param tableName - Logical name for setting lookup (e.g., 'clients', 'invoices')
+   */
+  public deleteWithSetting(table: string, id: number, tableName?: string): boolean {
+    validateTableName(table);
+
+    // Check if soft delete is enabled for this table
+    const settingKey = `data.${tableName || table}_soft_delete_enabled`;
+    const setting = this.getOne<{ value: string }>(
+      'SELECT value FROM settings WHERE key = ?',
+      [settingKey]
+    );
+
+    const useSoftDelete = setting?.value === 'true' || setting?.value === '1';
+
+    return useSoftDelete ? this.softDelete(table, id) : this.hardDelete(table, id);
+  }
+
+  /**
    * Update a record with automatic timestamp
    */
   public updateRecord(table: string, id: number, data: Record<string, unknown>): boolean {
@@ -209,10 +230,11 @@ export class DatabaseService {
   }
 
   /**
-   * Delete a record by ID (legacy method for compatibility)
+   * Delete a record by ID (hard delete by default)
+   * Use softDelete() method explicitly if soft delete is needed
    */
   public deleteById(table: string, id: number): boolean {
-    return this.softDelete(table, id);
+    return this.hardDelete(table, id);
   }
 
   /**

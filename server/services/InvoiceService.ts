@@ -197,7 +197,8 @@ export class InvoiceService {
   async createInvoice(invoiceData: {
     invoice_number?: string;  // Now optional - will be auto-generated if not provided
     client_id: number;
-    template_id?: number;
+    design_template_id?: number;
+    recurring_template_id?: number;
     amount: number;
     tax_amount?: number;
     total_amount?: number;
@@ -264,7 +265,8 @@ export class InvoiceService {
       id: nextId,
       invoice_number: invoiceNumber,
       client_id: invoiceData.client_id,
-      template_id: invoiceData.template_id || null,
+      design_template_id: invoiceData.design_template_id || null,
+      recurring_template_id: invoiceData.recurring_template_id || null,
       amount: invoiceData.amount,
       tax_amount: invoiceData.tax_amount || 0,
       total_amount: invoiceData.total_amount || invoiceData.amount,
@@ -297,16 +299,16 @@ export class InvoiceService {
     // Create invoice
     databaseService.executeQuery(`
       INSERT INTO invoices (
-        id, invoice_number, client_id, template_id, amount, tax_amount, total_amount,
+        id, invoice_number, client_id, design_template_id, recurring_template_id, amount, tax_amount, total_amount,
         status, due_date, issue_date, description, items, notes, payment_terms,
         stripe_invoice_id, stripe_payment_intent_id, type, client_name, client_email,
         client_phone, client_address, line_items, tax_rate_id, shipping_amount,
         shipping_rate_id, email_status, email_sent_at, email_error, last_email_attempt,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       invoiceRecord.id, invoiceRecord.invoice_number, invoiceRecord.client_id,
-      invoiceRecord.template_id, invoiceRecord.amount, invoiceRecord.tax_amount,
+      invoiceRecord.design_template_id, invoiceRecord.recurring_template_id, invoiceRecord.amount, invoiceRecord.tax_amount,
       invoiceRecord.total_amount, invoiceRecord.status, invoiceRecord.due_date,
       invoiceRecord.issue_date, invoiceRecord.description, invoiceRecord.items,
       invoiceRecord.notes, invoiceRecord.payment_terms, invoiceRecord.stripe_invoice_id,
@@ -327,7 +329,8 @@ export class InvoiceService {
   async updateInvoice(id: number, invoiceData: Partial<{
     invoice_number: string;
     client_id: number;
-    template_id: number;
+    design_template_id: number;
+    recurring_template_id: number;
     amount: number;
     tax_amount: number;
     total_amount: number;
@@ -392,7 +395,7 @@ export class InvoiceService {
 
     // Filter allowed fields
     const allowedFields = [
-      'invoice_number', 'client_id', 'template_id', 'amount', 'tax_amount',
+      'invoice_number', 'client_id', 'design_template_id', 'recurring_template_id', 'amount', 'tax_amount',
       'total_amount', 'status', 'due_date', 'issue_date', 'description',
       'items', 'notes', 'payment_terms', 'stripe_invoice_id', 'stripe_payment_intent_id',
       'type', 'client_name', 'client_email', 'client_phone', 'client_address',

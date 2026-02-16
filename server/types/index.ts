@@ -56,7 +56,8 @@ export interface Client extends BaseEntity {
 export interface Invoice extends BaseEntity {
   invoice_number: string;
   client_id: number;
-  template_id?: number;
+  design_template_id?: number;
+  recurring_template_id?: number;
   amount: number;
   tax_amount: number;
   total_amount: number;
@@ -100,13 +101,17 @@ export interface Template extends BaseEntity {
 }
 
 export interface Expense extends BaseEntity {
-  date: string;
-  merchant: string;
-  category: string;
+  description: string;
   amount: number;
-  description?: string;
+  currency?: string;
+  category?: string;
+  date: string;
+  vendor?: string;
+  notes?: string;
   receipt_url?: string;
-  status: string;
+  is_billable?: boolean;
+  client_id?: number;
+  project?: string;
 }
 
 export interface Payment extends BaseEntity {

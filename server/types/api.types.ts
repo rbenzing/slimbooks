@@ -385,7 +385,8 @@ export interface ProjectSettingsRequest {
 export interface InvoiceRequest {
   invoice_number: string;
   client_id: number;
-  template_id?: number;
+  design_template_id?: number;
+  recurring_template_id?: number;
   amount: number;
   tax_amount?: number;
   total_amount?: number;

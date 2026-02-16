@@ -236,7 +236,8 @@ export const EditInvoicePage = () => {
       const updatedInvoice = {
         invoice_number: updatedInvoiceData.invoice_number,
         client_id: selectedClient.id,
-        template_id: invoice.template_id,
+        design_template_id: invoice.design_template_id,
+        recurring_template_id: invoice.recurring_template_id,
         amount: subtotal,
         total_amount: total,
         status: updatedInvoiceData.status,
@@ -261,7 +262,7 @@ export const EditInvoicePage = () => {
       toast.success('Invoice updated successfully');
 
       // Navigate back to the appropriate page based on invoice type
-      if (invoice.template_id) {
+      if (invoice.design_template_id || invoice.recurring_template_id) {
         navigate('/invoices#templates');
       } else {
         navigate('/invoices');
@@ -298,7 +299,8 @@ export const EditInvoicePage = () => {
       const updatedInvoice = {
         invoice_number: updatedInvoiceData.invoice_number,
         client_id: selectedClient.id,
-        template_id: invoice.template_id,
+        design_template_id: invoice.design_template_id,
+        recurring_template_id: invoice.recurring_template_id,
         amount: total,
         status: 'sent' as InvoiceStatus,
         due_date: updatedInvoiceData.due_date,
@@ -345,7 +347,7 @@ export const EditInvoicePage = () => {
       setIsDirty(false);
 
       // Navigate back to the appropriate page based on invoice type
-      if (invoice.template_id) {
+      if (invoice.design_template_id || invoice.recurring_template_id) {
         navigate('/invoices#templates');
       } else {
         navigate('/invoices');
@@ -380,7 +382,7 @@ export const EditInvoicePage = () => {
       try {
         await invoiceOperations.delete(parseInt(id!));
         // Navigate back to the appropriate page based on invoice type
-        if (invoice.template_id) {
+        if (invoice?.design_template_id || invoice?.recurring_template_id) {
           navigate('/invoices#templates');
         } else {
           navigate('/invoices');
@@ -476,13 +478,13 @@ export const EditInvoicePage = () => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => {
-              const targetPath = invoice.template_id ? '/invoices#templates' : '/invoices';
+              const targetPath = (invoice?.design_template_id || invoice?.recurring_template_id) ? '/invoices#templates' : '/invoices';
               confirmNavigation(targetPath);
             }}
             className="flex items-center text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {invoice.template_id ? 'Back to Templates' : 'Back to Invoices'}
+            {(invoice?.design_template_id || invoice?.recurring_template_id) ? 'Back to Templates' : 'Back to Invoices'}
           </button>
           <div className="flex space-x-3">
             {(() => {
