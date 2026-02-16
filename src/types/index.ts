@@ -52,3 +52,7 @@ export {
 // === Shared Common Types ===
 // Common types that may be used across multiple domains
 export * from './shared/common.types';
+
+// === Component Props Types ===
+// Component-specific prop interfaces
+export * from './components/settings.types';

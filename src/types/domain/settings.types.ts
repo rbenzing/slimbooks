@@ -262,13 +262,26 @@ export interface GoogleOAuthSettings {
   configured: boolean;
 }
 
+/**
+ * Stripe integration settings combining all fields from component and API usage
+ */
 export interface StripeSettings {
-  enabled: boolean;
+  // Core configuration
+  enabled?: boolean; // Also referred to as isEnabled in components
+  isEnabled?: boolean; // Alias for enabled
   publishableKey: string;
   secretKey?: string;
-  webhookSecret?: string;
   testMode?: boolean;
-  configured: boolean;
+  configured?: boolean;
+
+  // Webhook configuration
+  webhookSecret?: string;
+  webhookEndpoint?: string;
+
+  // Account information
+  accountId?: string;
+  accountName?: string;
+  connectedAt?: string;
 }
 
 export interface EmailServiceSettings {

@@ -1,7 +1,5 @@
 // Payment-related types and interfaces
-
-export type PaymentStatus = 'received' | 'pending' | 'failed' | 'refunded';
-export type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+import type { PaymentStatus, PaymentMethod } from '../constants/enums.types';
 
 export interface Payment {
   id: number;

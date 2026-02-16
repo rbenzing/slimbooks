@@ -3,20 +3,7 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle, Copy, ExternalLink, Webhook, Key, Eye, EyeOff } from 'lucide-react';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
-
-interface StripeSettings {
-  webhookSecret: string;
-  webhookEndpoint: string;
-  testMode: boolean;
-  publishableKey: string;
-  secretKey: string;
-  isEnabled: boolean;
-  accountId?: string;
-  accountName?: string;
-  connectedAt?: string;
-}
-
-import type { SettingsTabRef } from '../Settings';
+import type { SettingsTabRef, StripeSettings } from '@/types';
 
 export const StripeSettingsTab = forwardRef<SettingsTabRef>((props, ref) => {
   const [settings, setSettings] = useState<StripeSettings>({

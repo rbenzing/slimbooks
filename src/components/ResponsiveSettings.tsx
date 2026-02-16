@@ -15,12 +15,7 @@ import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
 import { cn } from '@/utils/themeUtils.util';
-
-// Standard interface that all settings tabs should implement
-export interface SettingsTabRef {
-  saveSettings: () => Promise<void>;
-  hasUnsavedChanges?: () => boolean;
-}
+import type { SettingsTabRef } from '@/types';
 
 interface SettingsTab {
   id: string;

@@ -1,6 +1,8 @@
 // Expense-related types and interfaces
+import type { ExpenseStatus } from '../constants/enums.types';
 
-export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'reimbursed';
+// Re-export for backward compatibility
+export { EXPENSE_CATEGORIES, type ExpenseCategory } from '../constants/enums.types';
 
 export interface Expense {
   id: number;
@@ -80,20 +82,3 @@ export interface ExpenseFilters {
   amount_max?: number;
   search?: string;
 }
-
-// Common expense categories
-export const EXPENSE_CATEGORIES = [
-  'Office Supplies',
-  'Travel',
-  'Meals & Entertainment',
-  'Marketing',
-  'Software & Subscriptions',
-  'Equipment',
-  'Professional Services',
-  'Utilities',
-  'Rent',
-  'Insurance',
-  'Other'
-] as const;
-
-export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];

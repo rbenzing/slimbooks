@@ -15,12 +15,7 @@ import { DatabaseBackupSection } from './settings/DatabaseBackupSection';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { useProjectSettings } from '@/hooks/useProjectSettings';
-
-// Standard interface that all settings tabs should implement
-export interface SettingsTabRef {
-  saveSettings: () => Promise<void>;
-  hasUnsavedChanges?: () => boolean;
-}
+import type { SettingsTabRef } from '@/types';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('company');

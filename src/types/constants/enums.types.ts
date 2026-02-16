@@ -33,24 +33,26 @@ export const ExpenseStatus = {
   REIMBURSED: 'reimbursed'
 } as const;
 
-export type ExpenseStatusType = typeof ExpenseStatus[keyof typeof ExpenseStatus];
+export type ExpenseStatus = typeof ExpenseStatus[keyof typeof ExpenseStatus];
 
-export const EXPENSE_STATUSES: ExpenseStatusType[] = Object.values(ExpenseStatus);
+export const EXPENSE_STATUSES: ExpenseStatus[] = Object.values(ExpenseStatus);
 
 // Expense categories
 export const EXPENSE_CATEGORIES = [
   'Office Supplies',
-  'Meals & Entertainment',
   'Travel',
-  'Software',
+  'Meals & Entertainment',
   'Marketing',
-  'Taxes',
-  'Utilities',
+  'Software & Subscriptions',
+  'Equipment',
   'Professional Services',
+  'Utilities',
+  'Rent',
+  'Insurance',
   'Other'
 ] as const;
 
-export type ExpenseCategoryType = typeof EXPENSE_CATEGORIES[number];
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 
 // Invoice related enums
 export const InvoiceStatus = {
