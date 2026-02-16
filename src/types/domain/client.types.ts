@@ -1,7 +1,7 @@
 // Client-related types and interfaces
 // Consolidated from both frontend and backend definitions
 
-import { BaseEntity } from './auth.types';
+import { BaseEntity } from '../shared/common.types'
 
 export interface Client extends BaseEntity {
   name: string;

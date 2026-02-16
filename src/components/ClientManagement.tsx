@@ -79,7 +79,7 @@ export const ClientManagement: React.FC = () => {
 
   const handleSaveClient = async (clientData: ClientFormData) => {
     try {
-      let response;
+      let response: Response;
       if (activeItem.editing) {
         response = await authenticatedFetch(`/api/clients/${activeItem.editing.id}`, {
           method: 'PUT',
