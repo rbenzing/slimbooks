@@ -160,3 +160,17 @@ export interface ScheduledInvoice {
   notes?: string;
   email_status?: EmailStatus;
 }
+// Type guards
+/**
+ * Type guard to check if an object is an Invoice
+ */
+export function isInvoice(obj: unknown): obj is Invoice {
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'client_id' in obj && 'amount' in obj;
+}
+
+/**
+ * Type guard to check if an object is an InvoiceTemplate
+ */
+export function isInvoiceTemplate(obj: unknown): obj is InvoiceTemplate {
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'name' in obj && 'client_id' in obj;
+}

@@ -82,3 +82,10 @@ export interface ExpenseFilters {
   amount_max?: number;
   search?: string;
 }
+// Type guards
+/**
+ * Type guard to check if an object is an Expense
+ */
+export function isExpense(obj: unknown): obj is Expense {
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'amount' in obj && ('vendor' in obj || 'merchant' in obj);
+}

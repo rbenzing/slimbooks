@@ -85,3 +85,10 @@ export interface PaymentsListProps {
   onBulkChangeStatus?: (ids: number[], status: string) => void;
   onBulkChangeMethod?: (ids: number[], method: string) => void;
 }
+// Type guards
+/**
+ * Type guard to check if an object is a Payment
+ */
+export function isPayment(obj: unknown): obj is Payment {
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'amount' in obj && 'method' in obj;
+}

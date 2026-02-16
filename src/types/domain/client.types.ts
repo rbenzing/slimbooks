@@ -83,3 +83,10 @@ export interface ClientFilters {
   created_from?: string;
   created_to?: string;
 }
+// Type guards
+/**
+ * Type guard to check if an object is a Client
+ */
+export function isClient(obj: unknown): obj is Client {
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'name' in obj;
+}
