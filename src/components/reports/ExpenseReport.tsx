@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
-import { reportOperations } from '../../lib/database';
+import { authenticatedFetch } from '@/utils/api';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateSync, formatDateRangeSync } from '@/utils/formatting';
 import { FormattedCurrency, useCurrencyFormatter } from '@/components/ui/FormattedCurrency';
@@ -26,8 +26,19 @@ export const ExpenseReport: React.FC<ExpenseReportProps> = ({ onBack, onSave }) 
   const generateReportData = async () => {
     setLoading(true);
     try {
-      const data = await reportOperations.generateExpenseData(dateRange.start, dateRange.end);
-      setReportData(data);
+      const response = await authenticatedFetch('/api/reports/generate/expense', {
+        method: 'POST',
+        body: JSON.stringify({
+          startDate: dateRange.start,
+          endDate: dateRange.end
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        setReportData(result.data);
+      } else {
+        console.error('Error generating report:', result.error);
+      }
     } catch (error) {
       console.error('Error generating expense report data:', error);
     } finally {

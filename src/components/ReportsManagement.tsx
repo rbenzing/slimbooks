@@ -5,7 +5,7 @@ import { ProfitLossReport } from './reports/ProfitLossReport';
 import { ExpenseReport } from './reports/ExpenseReport';
 import { InvoiceReport } from './reports/InvoiceReport';
 import { ClientReport } from './reports/ClientReport';
-import { reportOperations } from '../lib/database';
+import { authenticatedFetch } from '@/utils/api';
 import { themeClasses } from '@/utils/themeUtils.util';
 import { toast } from 'sonner';
 import { formatDateSync, formatDateRangeSync } from '@/utils/formatting';
@@ -25,8 +25,13 @@ export const ReportsManagement: React.FC = () => {
 
   const loadSavedReports = async () => {
     try {
-      const reports = await reportOperations.getAll();
-      setSavedReports(reports);
+      const response = await authenticatedFetch('/api/reports');
+      const result = await response.json();
+      if (result.success) {
+        setSavedReports(result.data);
+      } else {
+        setSavedReports([]);
+      }
     } catch (error) {
       console.error('Error loading saved reports:', error);
       setSavedReports([]);
@@ -67,15 +72,25 @@ export const ReportsManagement: React.FC = () => {
   const handleSaveReport = async (reportData: any, reportType: ReportType, dateRange: ReportDateRange) => {
     try {
       const reportName = `${reportTypes.find(r => r.id === reportType)?.name} - ${formatDateRangeSync(dateRange.start, dateRange.end)}`;
-      await reportOperations.create({
-        name: reportName,
-        type: reportType,
-        date_range_start: dateRange.start,
-        date_range_end: dateRange.end,
-        data: reportData
+      const response = await authenticatedFetch('/api/reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          reportData: {
+            name: reportName,
+            type: reportType,
+            date_range_start: dateRange.start,
+            date_range_end: dateRange.end,
+            data: reportData
+          }
+        })
       });
-      toast.success('Report saved successfully');
-      await loadSavedReports();
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Report saved successfully');
+        await loadSavedReports();
+      } else {
+        toast.error('Failed to save report');
+      }
     } catch (error) {
       toast.error('Failed to save report');
       console.error('Error saving report:', error);
@@ -85,9 +100,16 @@ export const ReportsManagement: React.FC = () => {
   const handleDeleteReport = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
       try {
-        await reportOperations.delete(id);
-        toast.success('Report deleted successfully');
-        await loadSavedReports();
+        const response = await authenticatedFetch(`/api/reports/${id}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+        if (result.success) {
+          toast.success('Report deleted successfully');
+          await loadSavedReports();
+        } else {
+          toast.error('Failed to delete report');
+        }
       } catch (error) {
         toast.error('Failed to delete report');
         console.error('Error deleting report:', error);

@@ -1,6 +1,9 @@
 // Authentication service for login, registration, and session management
+// TODO: Register method needs refactoring to use backend API endpoint /api/auth/register
+// TODO: completeLogin method needs to be removed or moved to backend
 
-import { userOperations } from '@/lib/database';
+// REMOVED: import { userOperations } from '@/lib/database';
+// Database operations should be done via backend API, not direct DB access
 import { AuthUtils } from '@/utils/api';
 import { envConfig } from '@/lib/env-config';
 import { 
@@ -25,7 +28,7 @@ export class AuthService {
   }
 
 
-  // User registration
+  // User registration - Now uses backend API
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
       // Validate input
@@ -43,39 +46,35 @@ export class AuthService {
         return { success: false, message: passwordValidation.errors.join(', ') };
       }
 
-      // Check if user already exists
-      const existingUser = await userOperations.getByEmail(data.email);
-      if (existingUser) {
-        return { success: false, message: 'User with this email already exists' };
-      }
-
-      // Hash password and create user
-      const hashedPassword = await AuthUtils.hashPassword(data.password);
-      const result = await userOperations.create({
-        name: data.name,
-        email: data.email,
-        username: data.email, // Using email as username for now
-        password_hash: hashedPassword,
-        role: 'user',
-        email_verified: 0,
-        two_factor_enabled: 0,
-        backup_codes: "",
-        failed_login_attempts: 0
+      // Call backend registration API
+      const response = await fetch(`${envConfig.API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          confirm_password: data.confirm_password
+        })
       });
 
-      const user = await userOperations.getById(result.lastInsertRowid);
-      if (!user) {
-        return { success: false, message: 'Failed to create user' };
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Registration failed. Please try again.'
+        };
       }
 
-      // Email verification is handled by the backend
-      // The server will send verification emails if configured
-
+      // Transform backend response to match expected format
       return {
-        success: true,
-        user,
-        message: 'Registration successful. Please check your email for verification instructions.',
-        requires_email_verification: DEFAULT_SECURITY_SETTINGS.require_email_verification
+        success: result.success,
+        user: result.data?.user,
+        message: result.message || 'Registration successful. Please check your email for verification instructions.',
+        requires_email_verification: result.requires_email_verification || DEFAULT_SECURITY_SETTINGS.require_email_verification
       };
     } catch (error) {
       console.error('Registration error:', error);
@@ -131,10 +130,10 @@ export class AuthService {
     }
   }
 
-  // Complete login process (reset failed attempts, update last login)
+  // Complete login process - Backend now handles this
   private async completeLogin(user: User): Promise<void> {
-    await userOperations.updateLoginAttempts(user.id, 0);
-    await userOperations.updateLastLogin(user.id);
+    // Backend API already handles updating login attempts and last login time
+    // No need for frontend to do this directly
     this.currentUser = user;
   }
 

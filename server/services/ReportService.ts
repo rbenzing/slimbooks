@@ -222,6 +222,249 @@ export class ReportService {
     );
     return result?.count || 0;
   }
+
+  /**
+   * Generate Profit & Loss Report Data
+   */
+  async generateProfitLossData(
+    startDate: string,
+    endDate: string,
+    accountingMethod: 'cash' | 'accrual' = 'accrual',
+    preset?: string,
+    breakdownPeriod: 'monthly' | 'quarterly' = 'quarterly'
+  ): Promise<any> {
+    // Get invoices in date range
+    const invoices = databaseService.getMany<any>(`
+      SELECT i.*, c.name as client_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.created_at >= ? AND i.created_at <= ?
+      AND i.deleted_at IS NULL
+      ORDER BY i.created_at DESC
+    `, [startDate, endDate + 'T23:59:59.999Z']);
+
+    // Get expenses in date range
+    const expenses = databaseService.getMany<any>(`
+      SELECT *
+      FROM expenses
+      WHERE date >= ? AND date <= ?
+      AND deleted_at IS NULL
+      ORDER BY date DESC
+    `, [startDate, endDate]);
+
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
+    // Calculate revenue
+    const totalInvoiceRevenue = invoices.reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+    const paidRevenue = invoices
+      .filter((inv: any) => inv.status === 'paid')
+      .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+    const pendingRevenue = invoices
+      .filter((inv: any) => inv.status !== 'paid')
+      .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+
+    const recognizedRevenue = accountingMethod === 'cash' ? paidRevenue : totalInvoiceRevenue;
+
+    // Calculate expenses
+    const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + toNumber(exp.amount), 0);
+    const expensesByCategory = expenses.reduce((acc: Record<string, number>, exp: any) => {
+      const category = exp.category || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + toNumber(exp.amount);
+      return acc;
+    }, {});
+
+    const netProfit = recognizedRevenue - totalExpenses;
+
+    return {
+      revenue: {
+        total: recognizedRevenue,
+        paid: paidRevenue,
+        pending: pendingRevenue,
+        invoices: recognizedRevenue,
+        otherIncome: 0
+      },
+      expenses: {
+        total: totalExpenses,
+        ...expensesByCategory
+      },
+      profit: {
+        net: netProfit,
+        gross: netProfit,
+        margin: recognizedRevenue > 0 ? (netProfit / recognizedRevenue) * 100 : 0
+      },
+      netIncome: netProfit,
+      accountingMethod,
+      invoices,
+      periodColumns: [],
+      hasBreakdown: false,
+      breakdownPeriod
+    };
+  }
+
+  /**
+   * Generate Expense Report Data
+   */
+  async generateExpenseData(startDate: string, endDate: string): Promise<any> {
+    const expenses = databaseService.getMany<any>(`
+      SELECT *
+      FROM expenses
+      WHERE date >= ? AND date <= ?
+      AND deleted_at IS NULL
+      ORDER BY date DESC
+    `, [startDate, endDate]);
+
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const expensesByCategory = expenses.reduce((acc: any, exp: any) => {
+      const category = exp.category || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + toNumber(exp.amount);
+      return acc;
+    }, {});
+
+    const totalAmount = expenses.reduce((sum: number, exp: any) => sum + toNumber(exp.amount), 0);
+
+    return {
+      expenses,
+      expensesByCategory,
+      totalAmount,
+      totalCount: expenses.length
+    };
+  }
+
+  /**
+   * Generate Invoice Report Data
+   */
+  async generateInvoiceData(startDate: string, endDate: string): Promise<any> {
+    const invoices = databaseService.getMany<any>(`
+      SELECT i.*, c.name as client_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.created_at >= ? AND i.created_at <= ?
+      AND i.deleted_at IS NULL
+      ORDER BY i.created_at DESC
+    `, [startDate, endDate + 'T23:59:59.999Z']);
+
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const invoicesByStatus = invoices.reduce((acc: any, inv: any) => {
+      const status = inv.status || 'draft';
+      acc[status] = (acc[status] || 0) + toNumber(inv.amount);
+      return acc;
+    }, {});
+
+    const invoicesByClient = invoices.reduce((acc: any, inv: any) => {
+      const clientName = inv.client_name || 'Unknown Client';
+      acc[clientName] = (acc[clientName] || 0) + toNumber(inv.amount);
+      return acc;
+    }, {});
+
+    const totalAmount = invoices.reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+    const paidAmount = invoices
+      .filter((inv: any) => inv.status === 'paid')
+      .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+    const pendingAmount = invoices
+      .filter((inv: any) => inv.status !== 'paid')
+      .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+    const overdueAmount = invoices
+      .filter((inv: any) => inv.status === 'overdue')
+      .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+
+    return {
+      invoices,
+      invoicesByStatus,
+      invoicesByClient,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      overdueAmount,
+      totalCount: invoices.length
+    };
+  }
+
+  /**
+   * Generate Client Report Data
+   */
+  async generateClientData(startDate?: string, endDate?: string): Promise<any> {
+    const clients = databaseService.getMany<any>(`
+      SELECT *
+      FROM clients
+      WHERE deleted_at IS NULL
+      ORDER BY name ASC
+    `);
+
+    let invoiceFilter = '';
+    const params: string[] = [];
+
+    if (startDate && endDate) {
+      invoiceFilter = 'WHERE i.created_at >= ? AND i.created_at <= ? AND i.deleted_at IS NULL';
+      params.push(startDate, endDate + 'T23:59:59.999Z');
+    } else {
+      invoiceFilter = 'WHERE i.deleted_at IS NULL';
+    }
+
+    const invoices = databaseService.getMany<any>(`
+      SELECT i.*, c.name as client_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      ${invoiceFilter}
+      ORDER BY i.created_at DESC
+    `, params);
+
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const clientStats = clients.map((client: any) => {
+      const clientInvoices = invoices.filter((inv: any) => inv.client_id === client.id);
+      const totalRevenue = clientInvoices.reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+      const paidRevenue = clientInvoices
+        .filter((inv: any) => inv.status === 'paid')
+        .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+      const pendingRevenue = clientInvoices
+        .filter((inv: any) => inv.status !== 'paid')
+        .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+      const overdueRevenue = clientInvoices
+        .filter((inv: any) => inv.status === 'overdue')
+        .reduce((sum: number, inv: any) => sum + toNumber(inv.amount), 0);
+
+      return {
+        ...client,
+        totalInvoices: clientInvoices.length,
+        totalRevenue,
+        paidRevenue,
+        pendingRevenue,
+        overdueRevenue
+      };
+    }).filter((client: any) => client.totalInvoices > 0);
+
+    const totalRevenue = clientStats.reduce((sum: number, client: any) => sum + client.totalRevenue, 0);
+    const totalPaidRevenue = clientStats.reduce((sum: number, client: any) => sum + client.paidRevenue, 0);
+    const totalPendingRevenue = clientStats.reduce((sum: number, client: any) => sum + client.pendingRevenue, 0);
+    const totalOverdueRevenue = clientStats.reduce((sum: number, client: any) => sum + client.overdueRevenue, 0);
+
+    return {
+      clients: clientStats,
+      totalClients: clientStats.length,
+      totalRevenue,
+      totalPaidRevenue,
+      totalPendingRevenue,
+      totalOverdueRevenue
+    };
+  }
 }
 
 // Export singleton instance

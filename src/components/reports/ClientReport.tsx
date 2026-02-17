@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, Save, Calendar } from 'lucide-react';
-import { reportOperations } from '../../lib/database';
+import { authenticatedFetch } from '@/utils/api';
 import { themeClasses, getButtonClasses } from '@/utils/themeUtils.util';
 import { formatDateRangeSync } from '@/utils/formatting';
 import { FormattedCurrency } from '@/components/ui/FormattedCurrency';
@@ -23,9 +23,19 @@ export const ClientReport: React.FC<ClientReportProps> = ({ onBack, onSave }) =>
   const generateReportData = async () => {
     setLoading(true);
     try {
-      // Use the updated database function that accepts date range
-      const data = await reportOperations.generateClientData(dateRange.start, dateRange.end);
-      setReportData(data);
+      const response = await authenticatedFetch('/api/reports/generate/client', {
+        method: 'POST',
+        body: JSON.stringify({
+          startDate: dateRange.start,
+          endDate: dateRange.end
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        setReportData(result.data);
+      } else {
+        console.error('Error generating report:', result.error);
+      }
     } catch (error) {
       console.error('Error generating client report data:', error);
     } finally {

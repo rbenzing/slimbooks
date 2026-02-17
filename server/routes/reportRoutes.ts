@@ -144,9 +144,9 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
-    
+
     const result = await reportService.deleteReport(reportId);
-    
+
     res.json({
       success: true,
       result: result
@@ -156,6 +156,116 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete report'
+    });
+  }
+});
+
+// Generate Profit & Loss Report
+router.post('/generate/profit-loss', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate, accountingMethod, preset, breakdownPeriod } = req.body;
+
+    if (!startDate || !endDate) {
+      res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required'
+      });
+      return;
+    }
+
+    const data = await reportService.generateProfitLossData(
+      startDate,
+      endDate,
+      accountingMethod || 'accrual',
+      preset,
+      breakdownPeriod || 'quarterly'
+    );
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error generating profit & loss report:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate profit & loss report'
+    });
+  }
+});
+
+// Generate Expense Report
+router.post('/generate/expense', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required'
+      });
+      return;
+    }
+
+    const data = await reportService.generateExpenseData(startDate, endDate);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error generating expense report:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate expense report'
+    });
+  }
+});
+
+// Generate Invoice Report
+router.post('/generate/invoice', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required'
+      });
+      return;
+    }
+
+    const data = await reportService.generateInvoiceData(startDate, endDate);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error generating invoice report:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate invoice report'
+    });
+  }
+});
+
+// Generate Client Report
+router.post('/generate/client', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    const data = await reportService.generateClientData(startDate, endDate);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error generating client report:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate client report'
     });
   }
 });
